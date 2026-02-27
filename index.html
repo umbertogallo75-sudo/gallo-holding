@@ -5,171 +5,157 @@
   <title>Gallo Holding — Visione. Struttura. Continuità.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Gallo Holding — Visione. Struttura. Continuità." />
-  <meta name="robots" content="index, follow" />
 
-  <!-- Open Graph (WhatsApp/LinkedIn preview) -->
-  <meta property="og:title" content="Gallo Holding" />
-  <meta property="og:description" content="Visione. Struttura. Continuità." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://galloholding.it/" />
-  <!-- Se vuoi anche immagine preview: og:image (te la preparo quando mi dici) -->
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Gallo Holding" />
-  <meta name="twitter:description" content="Visione. Struttura. Continuità." />
-
-  <!-- Favicon -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/favicon.svg" />
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400&display=swap" rel="stylesheet" />
 
   <style>
     :root{
       --bg:#ffffff;
-      --text:#111318;
+      --text:#0f1115;
       --muted:#6b7280;
-      --muted2:#9ca3af;
       --line:#e5e7eb;
     }
-    *{ box-sizing:border-box; }
+
+    *{box-sizing:border-box;}
+
     body{
       margin:0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter, system-ui, -apple-system, sans-serif;
+      line-height:1.6;
+    }
+
+    .container{
+      max-width:900px;
+      margin:0 auto;
+      padding:120px 24px 100px;
       text-align:center;
-    }
-    .wrap{
-      width:100%;
-      max-width:820px;
-      padding:48px 22px;
-    }
-    .top{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:14px;
-      margin-bottom:28px;
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 14px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      font-size:12px;
-      color:var(--muted);
-      background:rgba(255,255,255,.9);
-    }
-    .dot{
-      width:6px;height:6px;border-radius:999px;
-      background:var(--text);
-      opacity:.55;
     }
 
     .logo{
-      font-family: "Cormorant Garamond", serif;
-      font-size:56px;
+      font-family:"Cormorant Garamond", serif;
+      font-size:54px;
       letter-spacing:2px;
-      margin:6px 0 4px;
-      line-height:1;
+      margin-bottom:8px;
     }
+
     .brand{
-      font-family: "Cormorant Garamond", serif;
-      font-size:40px;
+      font-family:"Cormorant Garamond", serif;
+      font-size:42px;
       font-weight:600;
-      margin:0 0 14px;
-      letter-spacing:.2px;
+      margin-bottom:18px;
     }
+
     .tagline{
       font-size:18px;
       letter-spacing:2px;
       color:var(--muted);
-      margin:0 0 34px;
+      margin-bottom:80px;
     }
-    .contact{
+
+    .section{
+      margin-top:80px;
+    }
+
+    .section h2{
+      font-family:"Cormorant Garamond", serif;
+      font-size:22px;
+      font-weight:600;
+      margin-bottom:18px;
+      letter-spacing:1px;
+    }
+
+    .section p{
+      max-width:640px;
+      margin:0 auto;
+      color:var(--muted);
+      font-size:16px;
+    }
+
+    .divider{
+      width:60px;
+      height:1px;
+      background:var(--line);
+      margin:60px auto;
+    }
+
+    .principles{
       display:flex;
-      flex-direction:column;
-      gap:10px;
-      align-items:center;
       justify-content:center;
-      color:var(--muted2);
-      font-size:14px;
+      gap:60px;
+      margin-top:20px;
+      font-size:16px;
+      color:var(--muted);
     }
+
+    .contact{
+      margin-top:100px;
+      font-size:14px;
+      color:var(--muted);
+    }
+
     .contact a{
       color:inherit;
       text-decoration:none;
       border-bottom:1px solid transparent;
     }
-    .contact a:hover{ border-bottom-color: var(--line); }
 
-    .lang{
-      margin-top:22px;
-      font-size:12px;
-      color:var(--muted2);
-    }
-    .lang a{
-      color:var(--muted);
-      text-decoration:none;
+    .contact a:hover{
       border-bottom:1px solid var(--line);
-      padding-bottom:2px;
-    }
-    .lang a:hover{ color:var(--text); }
-
-    /* Micro-animazione premium (molto discreta) */
-    .fadeUp{
-      opacity:0;
-      transform: translateY(10px);
-      animation: fadeUp .9s ease-out forwards;
-    }
-    .fadeUp.delay1{ animation-delay: .10s; }
-    .fadeUp.delay2{ animation-delay: .20s; }
-    .fadeUp.delay3{ animation-delay: .30s; }
-    .fadeUp.delay4{ animation-delay: .40s; }
-
-    @keyframes fadeUp{
-      to{ opacity:1; transform: translateY(0); }
     }
 
-    @media (max-width:480px){
-      .logo{ font-size:48px; }
-      .brand{ font-size:34px; }
-      .tagline{ font-size:16px; letter-spacing:1.4px; }
+    @media (max-width:600px){
+      .principles{
+        flex-direction:column;
+        gap:20px;
+      }
+      .container{
+        padding:100px 20px 80px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <main class="wrap" aria-label="Gallo Holding">
-    <div class="top fadeUp">
-      <div class="badge">
-        <span class="dot"></span>
-        Private & Family
+  <main class="container">
+
+    <div class="logo">GH</div>
+    <div class="brand">Gallo Holding</div>
+    <div class="tagline">Visione. Struttura. Continuità.</div>
+
+    <div class="divider"></div>
+
+    <section class="section">
+      <h2>Identità</h2>
+      <p>
+        Struttura indipendente orientata alla gestione e allo sviluppo di iniziative nel tempo.
+        Approccio riservato. Orizzonte di lungo periodo.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="section">
+      <h2>Principi</h2>
+      <div class="principles">
+        <div>Visione</div>
+        <div>Disciplina</div>
+        <div>Continuità</div>
       </div>
+    </section>
+
+    <div class="contact">
+      <p>
+        <a href="mailto:umbertogallo@galloholding.it">umbertogallo@galloholding.it</a><br>
+        galloholding.it
+      </p>
     </div>
 
-    <div class="logo fadeUp delay1">GH</div>
-    <h1 class="brand fadeUp delay2">Gallo Holding</h1>
-    <p class="tagline fadeUp delay3">Visione. Struttura. Continuità.</p>
-
-    <div class="contact fadeUp delay4">
-      <div><a href="mailto:umbertogallo@galloholding.it">umbertogallo@galloholding.it</a></div>
-      <div>galloholding.it</div>
-    </div>
-
-    <div class="lang">
-      <a href="/en.html" aria-label="English version">English</a>
-    </div>
   </main>
 </body>
 </html>
