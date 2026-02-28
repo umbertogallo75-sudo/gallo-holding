@@ -6,25 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Gallo Holding — Visione. Struttura. Continuità." />
 
-  <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
-
-  <!-- Font (Inter fallback; Apple style relies on system font first) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
     :root{
       --bg:#ffffff;
-      --panel:#f5f5f7;   /* Apple-like */
+      --panel:#f5f5f7;     /* Apple-like */
       --text:#1d1d1f;
       --muted:#86868b;
       --line:#e5e5e7;
       --dark:#0b0b0c;
       --darkText:#f5f5f7;
-      --darkMuted:#b9b9bf;
+      --darkMuted:rgba(245,245,247,.62);
     }
     *{box-sizing:border-box;}
     html,body{height:100%;}
@@ -33,23 +27,19 @@
       background:var(--bg);
       color:var(--text);
       font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-                   "Inter", "Helvetica Neue", Arial, sans-serif;
+                   "Helvetica Neue", Arial, sans-serif;
       -webkit-font-smoothing:antialiased;
       text-rendering:optimizeLegibility;
     }
     a{color:inherit; text-decoration:none;}
 
-    /* Layout */
-    .wrap{
-      width:100%;
-    }
     .container{
-      max-width:1040px;
+      max-width:1060px;
       margin:0 auto;
       padding:0 24px;
     }
 
-    /* Subtle top label */
+    /* Subtle top pill */
     .topbar{
       position:fixed;
       top:18px;
@@ -59,8 +49,8 @@
     }
     .pill{
       pointer-events:auto;
-      margin:0 auto;
       width:max-content;
+      margin:0 auto;
       display:flex;
       align-items:center;
       gap:10px;
@@ -88,34 +78,34 @@
       padding:140px 0 110px;
     }
     .heroInner{
-      max-width:880px;
+      max-width:920px;
       margin:0 auto;
     }
-    .mark{
-      font-size:22px;
-      letter-spacing:2.8px;
-      font-weight:600;
-      margin:0 0 18px;
-      color:var(--text);
-      opacity:.92;
+
+    /* Logo lockup */
+    .lockup{
+      display:inline-flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
     }
-    h1{
-      margin:0 0 18px;
-      font-size:72px;
+    .brandName{
+      font-size:64px;
       line-height:1.05;
-      letter-spacing:-1.8px;
+      letter-spacing:-1.6px;
       font-weight:600;
+      margin:0;
     }
     .tagline{
-      margin:0 0 36px;
-      font-size:24px;
+      margin:0;
+      font-size:22px;
       line-height:1.25;
       color:var(--muted);
       letter-spacing:.3px;
       font-weight:400;
     }
     .hint{
-      margin:0;
+      margin-top:42px;
       font-size:13px;
       color:var(--muted);
       opacity:.95;
@@ -131,9 +121,7 @@
     .section{
       padding:120px 0;
     }
-    .section.panel{
-      background:var(--panel);
-    }
+    .section.panel{ background:var(--panel); }
     .kicker{
       font-size:13px;
       letter-spacing:.18em;
@@ -143,19 +131,15 @@
       text-align:center;
     }
     .lead{
-      max-width:760px;
+      max-width:780px;
       margin:0 auto;
       text-align:center;
-      font-size:22px;
+      font-size:21px;
       line-height:1.55;
       color:var(--muted);
     }
-    .lead strong{
-      color:var(--text);
-      font-weight:500;
-    }
+    .lead strong{ color:var(--text); font-weight:500; }
 
-    /* Principles */
     .principles{
       display:flex;
       justify-content:center;
@@ -164,7 +148,7 @@
       flex-wrap:wrap;
     }
     .principle{
-      min-width:180px;
+      min-width:190px;
       text-align:center;
     }
     .principle .title{
@@ -181,150 +165,126 @@
       color:var(--muted);
     }
 
-    /* Contact (dark footer like Apple closing) */
+    /* Footer (no email, only a quiet presence) */
     .footer{
       background:var(--dark);
       color:var(--darkText);
-      padding:90px 0;
-    }
-    .footer .kicker{ color: rgba(245,245,247,.65); }
-    .contact{
+      padding:80px 0;
       text-align:center;
-      font-size:16px;
-      color: rgba(245,245,247,.78);
     }
-    .contact a{
-      color:var(--darkText);
-      border-bottom:1px solid rgba(245,245,247,.18);
-      padding-bottom:2px;
-    }
-    .contact a:hover{
-      border-bottom-color: rgba(245,245,247,.55);
-    }
-    .small{
-      margin-top:22px;
+    .footer .small{
       font-size:12px;
-      color: rgba(245,245,247,.55);
+      color:var(--darkMuted);
     }
 
-    /* Ultra subtle motion */
+    /* Subtle reveal */
     .reveal{
       opacity:0;
       transform: translateY(14px);
       transition: opacity .9s ease, transform .9s ease;
       will-change: opacity, transform;
     }
-    .reveal.on{
-      opacity:1;
-      transform: translateY(0);
+    .reveal.on{ opacity:1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce){
+      .reveal{opacity:1; transform:none; transition:none;}
+      .pill{backdrop-filter:none;}
     }
 
-    /* Responsive */
-    @media (max-width: 980px){
-      h1{font-size:54px; letter-spacing:-1px;}
-      .tagline{font-size:20px;}
+    @media (max-width:980px){
+      .brandName{font-size:52px; letter-spacing:-1px;}
+      .tagline{font-size:19px;}
       .section{padding:90px 0;}
       .principles{gap:42px;}
       .lead{font-size:19px;}
     }
-    @media (max-width: 520px){
+    @media (max-width:520px){
       .container{padding:0 18px;}
       .hero{padding:120px 0 90px;}
-      h1{font-size:42px;}
-      .tagline{font-size:18px;}
-      .mark{font-size:18px;}
+      .brandName{font-size:40px;}
+      .tagline{font-size:17px;}
     }
-    @media (prefers-reduced-motion: reduce){
-      .reveal{opacity:1; transform:none; transition:none;}
-      .pill{backdrop-filter:none;}
+
+    /* SVG sizing */
+    .logoBox{
+      width:74px;
+      height:74px;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-
-    <!-- subtle fixed pill -->
-    <div class="topbar">
-      <div class="pill reveal">
-        <span class="dot"></span>
-        Struttura privata e riservata
-      </div>
-    </div>
-
-    <!-- HERO -->
-    <section class="hero">
-      <div class="container">
-        <div class="heroInner">
-          <div class="mark reveal">GH</div>
-          <h1 class="reveal">Gallo Holding</h1>
-          <p class="tagline reveal">Visione. Struttura. Continuità.</p>
-          <p class="hint reveal">Scorri <span>↓</span></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- IDENTITY -->
-    <section class="section panel">
-      <div class="container">
-        <p class="kicker reveal">Identità</p>
-        <p class="lead reveal">
-          Struttura indipendente orientata alla gestione e allo sviluppo di iniziative nel tempo.
-          <strong>Approccio riservato</strong>. Orizzonte di lungo periodo.
-        </p>
-      </div>
-    </section>
-
-    <!-- PRINCIPLES -->
-    <section class="section">
-      <div class="container">
-        <p class="kicker reveal">Principi</p>
-
-        <div class="principles">
-          <div class="principle reveal">
-            <p class="title">Visione</p>
-            <p class="desc">Direzione chiara, scelte coerenti.</p>
-          </div>
-          <div class="principle reveal">
-            <p class="title">Disciplina</p>
-            <p class="desc">Metodo, rigore, essenzialità.</p>
-          </div>
-          <div class="principle reveal">
-            <p class="title">Continuità</p>
-            <p class="desc">Costruire valore nel tempo.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FOOTER CONTACT -->
-    <footer class="footer">
-      <div class="container">
-        <p class="kicker reveal">Contatto</p>
-        <div class="contact reveal">
-          <div><a href="mailto:umbertogallo@galloholding.it">umbertogallo@galloholding.it</a></div>
-          <div class="small">galloholding.it</div>
-        </div>
-        <div class="small reveal" style="text-align:center;margin-top:34px;">
-          © <span id="y"></span> Gallo Holding
-        </div>
-      </div>
-    </footer>
-
+  <div class="topbar">
+    <div class="pill reveal"><span class="dot"></span> Struttura privata e riservata</div>
   </div>
 
+  <section class="hero">
+    <div class="container">
+      <div class="heroInner">
+        <div class="lockup">
+          <!-- LOGO (GH in rounded square) -->
+          <svg class="logoBox reveal" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-label="Gallo Holding logo" role="img">
+            <rect x="14" y="14" width="192" height="192" rx="26" fill="none" stroke="#1d1d1f" stroke-width="4"/>
+            <!-- G -->
+            <path d="M82 158V64H112C132 64 146 75 146 93C146 110 132 121 112 121H100V158H82ZM100 105H111C122 105 129 100 129 93C129 85 122 80 111 80H100V105Z" fill="#1d1d1f"/>
+            <!-- H -->
+            <path d="M152 158V64H170V99H196V64H214V158H196V114H170V158H152Z" fill="#1d1d1f"/>
+          </svg>
+
+          <!-- Wordmark + payoff -->
+          <h1 class="brandName reveal">Gallo Holding</h1>
+          <p class="tagline reveal">Visione. Struttura. Continuità.</p>
+        </div>
+
+        <p class="hint reveal">Scorri <span>↓</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel">
+    <div class="container">
+      <p class="kicker reveal">Identità</p>
+      <p class="lead reveal">
+        Struttura indipendente orientata alla gestione e allo sviluppo di iniziative nel tempo.
+        <strong>Approccio riservato</strong>. Orizzonte di lungo periodo.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <p class="kicker reveal">Principi</p>
+
+      <div class="principles">
+        <div class="principle reveal">
+          <p class="title">Visione</p>
+          <p class="desc">Direzione chiara, scelte coerenti.</p>
+        </div>
+        <div class="principle reveal">
+          <p class="title">Disciplina</p>
+          <p class="desc">Metodo, rigore, essenzialità.</p>
+        </div>
+        <div class="principle reveal">
+          <p class="title">Continuità</p>
+          <p class="desc">Costruire valore nel tempo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="small reveal">© <span id="y"></span> Gallo Holding</div>
+    </div>
+  </footer>
+
   <script>
-    // year
     document.getElementById("y").textContent = new Date().getFullYear();
 
-    // Apple-like subtle reveal on scroll
     const els = document.querySelectorAll(".reveal");
     const io = new IntersectionObserver((entries)=>{
-      entries.forEach(e=>{
-        if(e.isIntersecting) e.target.classList.add("on");
-      });
+      entries.forEach(e => { if(e.isIntersecting) e.target.classList.add("on"); });
     }, {threshold: 0.12});
-    els.forEach(el=>io.observe(el));
+    els.forEach(el => io.observe(el));
   </script>
 </body>
 </html>
