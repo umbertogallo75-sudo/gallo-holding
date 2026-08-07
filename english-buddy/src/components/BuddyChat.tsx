@@ -9,6 +9,7 @@ const openers: Record<string,string> = {
   "text-5": "Start a short natural English conversation with me.",
   guided: "Start today's guided Business English session using my learning memory.",
   surprise: "Choose the most useful English exercise for me right now and start immediately.",
+  buddy: "Send me your Buddy question for this moment of the day.",
 };
 
 export function BuddyChat({ mode }: { mode:string }) {
@@ -32,7 +33,10 @@ export function BuddyChat({ mode }: { mode:string }) {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false); } }, [mode]);
+  useEffect(() => {
+    if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- opener fires exactly once per mount
+  }, [mode]);
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   return <>

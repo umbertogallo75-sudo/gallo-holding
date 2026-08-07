@@ -11,9 +11,9 @@ export default async function HomePage() {
     database.execute({ sql:"SELECT display_name FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
   ]);
-  const profile = profileResult.rows[0] as any;
-  const metric = metricResult.rows[0] as any;
-  const name = profile?.display_name || "there";
+  const profile = profileResult.rows[0];
+  const metric = metricResult.rows[0];
+  const name = profile?.display_name ? String(profile.display_name) : "there";
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
     <div className="topbar"><div className="brand">English Buddy</div><span className="chip">Adaptive</span></div>
