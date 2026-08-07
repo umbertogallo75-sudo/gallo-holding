@@ -1,52 +1,59 @@
-# English Buddy — Turso Edition
+# English Buddy
 
-A mobile-first PWA for frequent, adaptive English practice: short written sessions now, with push notifications, Listen + Type and realtime voice planned next.
+A personal AI English coach, built as an iPhone-first PWA. Not a course, not gamified: English enters the day through many small interactions — 2 minutes counts, and the app adapts to whatever the user can do right now (type, listen, or talk).
 
-## Why Turso
-
-Phase 1 no longer depends on Supabase. The app uses Turso/libSQL for structured learning memory and a private server-side access code for the initial single-user MVP.
+Primary goal: functional, confident **professional English** — meetings, finance, M&A, negotiation, leadership — plus normal conversation.
 
 ## Stack
 
-- Next.js 16 + React 19 + TypeScript
-- Turso / libSQL
-- OpenAI Responses API
-- PWA manifest + service worker
-- Private access-code authentication using an HttpOnly signed session cookie
-- Vercel-ready
+- Next.js 16 · React 19 · TypeScript · Tailwind CSS v4
+- Turso / libSQL (structured learning memory — **no Supabase**)
+- OpenAI Responses API with strict structured outputs
+- Private single-user auth: access code → HMAC-signed expiring HttpOnly cookie
+- PWA (manifest, service worker, dark/light mode), Vercel-ready
 
-## Setup
+## Quick start
 
-1. Create a free Turso database.
-2. Run `db/migrations/0001_phase1_turso.sql` against it.
-3. Copy `.env.example` to `.env.local`.
-4. Fill in:
-   - `TURSO_DATABASE_URL`
-   - `TURSO_AUTH_TOKEN`
-   - `APP_ACCESS_CODE`
-   - `SESSION_SECRET` (32+ random characters)
-   - `OPENAI_API_KEY`
-5. Install dependencies with `npm install`.
-6. Run `npm run dev`.
-7. Open the app, enter the private access code, complete the 60-second onboarding, and begin a text session.
+```bash
+cd english-buddy
+npm install
+cp .env.example .env.local     # fill in the values (see docs/DEPLOYMENT.md)
 
-## Current Phase 1
+# Local dev can use a file database instead of Turso:
+#   TURSO_DATABASE_URL=file:local.db
+npm run db:migrate
+npm run dev
+```
 
-- PWA shell
-- Private single-user login
-- 2-minute and 5-minute written sessions
-- Guided Business English session
-- Adaptive coach using recent mistakes + due expressions
-- Structured learning memory
-- Spaced-repetition-ready expression records
-- Practical progress dashboard
-- Daily activity metrics
-- Database tables already reserved for push subscriptions and notification history
+Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second onboarding, start a session.
 
-## Next
+## Commands
 
-Phase 2: Web Push + notification scheduler and deep-linked English Buddy prompts.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm run lint` | ESLint (Next core-web-vitals + TypeScript) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest — auth, coach schema, spaced repetition, learning service on a real libSQL file DB |
+| `npm run db:migrate` | Apply `db/migrations/*.sql` (idempotent) |
 
-Phase 3: Listen + Type.
+## What works today (Phase 1)
 
-Phase 4: OpenAI Realtime voice.
+- Private login, short onboarding (goals, level incl. "I don't know", professional context, notification intensity)
+- Home: "What can you do right now?" — 2 min, 5 min, 20-min guided, Buddy question, Surprise me
+- Adaptive text coach with learning memory: recurring mistakes, useful expressions, natural spaced repetition woven into conversation, gradual skill estimates
+- Progress screen (practical ability estimates, recent fixes, new expressions), daily metrics
+- PWA shell with offline fallback, dark/light mode, iPhone icons
+
+## Roadmap
+
+Phase 2: Web Push + notification scheduler (schema and preferences already in place) · Phase 3: Listen + Type · Phase 4: Realtime voice (WebRTC) · Phase 5: deeper adaptation · Phase 6: polish.
+
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — structure and key decisions
+- [docs/DATABASE.md](docs/DATABASE.md) — schema, migrations, spaced repetition
+- [docs/AI_COACH.md](docs/AI_COACH.md) — model usage, turn contract, cost control
+- [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) — Phase 2 design
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Turso + Vercel setup, env vars, iPhone install
