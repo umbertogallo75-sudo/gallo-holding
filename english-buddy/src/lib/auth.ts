@@ -2,6 +2,14 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+/**
+ * Multi-user auth for a private, invite-only group.
+ * Each user logs in with a personal access code; the session cookie carries a
+ * signed token embedding the user id and its expiry. The original owner keeps
+ * logging in via the APP_ACCESS_CODE env var and stays mapped to user "owner",
+ * so pre-existing learning data remains attached.
+ */
+
 export const OWNER_ID = "owner";
 export const SESSION_COOKIE = "english_buddy_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
@@ -22,26 +30,43 @@ export function safeEqual(a: string, b: string) {
   return bufferA.length === bufferB.length && timingSafeEqual(bufferA, bufferB);
 }
 
-/** Creates a signed session token that embeds its own expiry timestamp. */
-export function createSessionToken(now = Date.now()) {
-  const payload = `${OWNER_ID}.${now + SESSION_MAX_AGE_SECONDS * 1000}`;
+/**
+ * Deterministic keyed hash of an access code, used for storage and lookup.
+ * Codes are never stored in plaintext; HMAC with the server secret allows an
+ * indexed equality lookup without a plaintext column.
+ */
+export function accessCodeHash(code: string) {
+  return createHmac("sha256", secret()).update(`access-code:${code}`).digest("hex");
+}
+
+/** Creates a signed session token embedding the user id and its expiry. */
+export function createSessionToken(userId: string, now = Date.now()) {
+  const payload = `${userId}.${now + SESSION_MAX_AGE_SECONDS * 1000}`;
   return `${payload}.${sign(payload)}`;
 }
 
-export function isValidSessionToken(token?: string | null, now = Date.now()) {
-  if (!token) return false;
+/** Returns the user id for a valid, unexpired token; null otherwise. */
+export function parseSessionToken(token?: string | null, now = Date.now()): string | null {
+  if (!token) return null;
   const lastDot = token.lastIndexOf(".");
-  if (lastDot <= 0) return false;
+  if (lastDot <= 0) return null;
   const payload = token.slice(0, lastDot);
   const signature = token.slice(lastDot + 1);
-  if (!safeEqual(signature, sign(payload))) return false;
-  const [ownerId, expiresAt] = payload.split(".");
-  return ownerId === OWNER_ID && Number(expiresAt) > now;
+  if (!safeEqual(signature, sign(payload))) return null;
+  const expiryDot = payload.lastIndexOf(".");
+  if (expiryDot <= 0) return null;
+  const userId = payload.slice(0, expiryDot);
+  const expiresAt = Number(payload.slice(expiryDot + 1));
+  return userId && expiresAt > now ? userId : null;
+}
+
+export function isValidSessionToken(token?: string | null, now = Date.now()) {
+  return parseSessionToken(token, now) !== null;
 }
 
 export async function getUserId() {
   const store = await cookies();
-  return isValidSessionToken(store.get(SESSION_COOKIE)?.value) ? OWNER_ID : null;
+  return parseSessionToken(store.get(SESSION_COOKIE)?.value);
 }
 
 export async function requireUserId() {

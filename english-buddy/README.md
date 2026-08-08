@@ -9,7 +9,7 @@ Primary goal: functional, confident **professional English** — meetings, finan
 - Next.js 16 · React 19 · TypeScript · Tailwind CSS v4
 - Turso / libSQL (structured learning memory — **no Supabase**)
 - OpenAI Responses API with strict structured outputs
-- Private single-user auth: access code → HMAC-signed expiring HttpOnly cookie
+- Private multi-user auth: personal access codes + invite-based registration → HMAC-signed expiring HttpOnly cookie
 - PWA (manifest, service worker, dark/light mode), Vercel-ready
 
 ## Quick start
@@ -40,7 +40,8 @@ Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second
 
 ## What works today (Phase 1)
 
-- Private login, short onboarding (goals, level incl. "I don't know", professional context, notification intensity)
+- Private login with per-user access codes and invite-based registration (`/register`, gated by `INVITE_CODE`); each user's learning data is fully separate
+- Short onboarding (goals, level incl. "I don't know", professional context, notification intensity)
 - Home: "What can you do right now?" — 2 min, 5 min, 20-min guided, Buddy question, Surprise me
 - Adaptive text coach with learning memory: recurring mistakes, useful expressions, natural spaced repetition woven into conversation, gradual skill estimates
 - Progress screen (practical ability estimates, recent fixes, new expressions), daily metrics

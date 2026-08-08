@@ -5,6 +5,7 @@ export function proxy(request: NextRequest) {
   const isPublic =
     path === "/" ||
     path.startsWith("/login") ||
+    path.startsWith("/register") ||
     path.startsWith("/api/auth") ||
     path.startsWith("/icons/") ||
     path === "/manifest.webmanifest" ||

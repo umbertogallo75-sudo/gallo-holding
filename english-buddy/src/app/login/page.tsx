@@ -25,5 +25,6 @@ export default function LoginPage() {
     <form onSubmit={submit}><input className="field" type="password" autoComplete="current-password" required placeholder="Personal access code" value={code} onChange={e=>setCode(e.target.value)} />
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
     <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button></form>
+    <p className="muted" style={{marginTop:14, fontSize:13}}>Have an invite code? <a href="/register" style={{textDecoration:"underline"}}>Create your access</a></p>
   </section></main>;
 }
