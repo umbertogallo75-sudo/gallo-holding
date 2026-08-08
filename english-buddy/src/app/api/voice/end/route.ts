@@ -51,7 +51,9 @@ export async function POST(request: Request) {
             "From this spoken-English practice transcript, extract ONLY clearly worthwhile learning items for an Italian professional: up to 2 real mistakes the learner made (with the natural correction) and up to 2 useful expressions the coach taught. Ignore transcription noise and pronunciation slips. Empty arrays are fine.",
           input: transcript.map((l) => `${l.role === "you" ? "LEARNER" : "COACH"}: ${l.text}`).join("\n"),
           reasoning: { effort: "low" },
-          max_output_tokens: 400,
+          // Reasoning shares this budget; too tight and the JSON truncates,
+          // silently skipping the memory extraction.
+          max_output_tokens: 800,
           text: {
             format: {
               type: "json_schema",

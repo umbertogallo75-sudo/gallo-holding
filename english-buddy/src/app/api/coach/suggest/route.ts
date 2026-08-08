@@ -46,7 +46,9 @@ export async function POST(request: Request) {
         instructions: `An Italian ${level}-level English learner doesn't know how to answer their coach's question. Suggest exactly 3 short, natural example answers in English they could give, matched to their level (simple for A1/A2). First person, ready to use, max 14 words each, no numbering.${context ? ` Their background: ${context}.` : ""}`,
         input: `The coach asked: ${parsed.data.question}`,
         reasoning: { effort: "low" },
-        max_output_tokens: 300,
+        // Reasoning shares this budget: a tight cap intermittently truncates
+        // the JSON and silently downgrades to the static fallback list.
+        max_output_tokens: 700,
         text: {
           format: {
             type: "json_schema",

@@ -73,7 +73,9 @@ ${context.professionalContext ? `Their background: ${context.professionalContext
 Avoid repeating these recent questions: ${JSON.stringify(context.recentQuestions.slice(0, 6))}`,
         input: `Write the next question for ${context.name || "your friend"}.`,
         reasoning: { effort: "low" },
-        max_output_tokens: 300,
+        // Generous cap: reasoning shares the budget and a truncated response
+        // would fall back to the static pool more often than necessary.
+        max_output_tokens: 700,
       }),
     });
     if (!response.ok) return poolQuestion(seed);
