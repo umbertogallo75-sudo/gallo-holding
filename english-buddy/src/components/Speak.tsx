@@ -1,8 +1,11 @@
 "use client";
 
+import { tuneSamUtterance } from "@/lib/voice-prefs";
+
 /**
  * Listen buttons for any English text: normal speed and slow replay.
- * Uses the device's speech synthesis (free, offline-capable, works on iOS).
+ * Uses the device's speech synthesis (free, offline-capable, works on iOS)
+ * with Sam's voice preferences (male, gentle).
  */
 export function Speak({ text, compact = false, lang = "en-US" }: { text: string; compact?: boolean; lang?: "en-US" | "en-GB" }) {
   if (typeof window !== "undefined" && !("speechSynthesis" in window)) return null;
@@ -11,11 +14,7 @@ export function Speak({ text, compact = false, lang = "en-US" }: { text: string;
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.replace(/\([^)]*\)/g, ""));
-      utterance.lang = lang;
-      utterance.rate = rate;
-      const voices = window.speechSynthesis.getVoices();
-      const voice = voices.find((v) => v.lang.replace("_", "-").startsWith(lang)) || voices.find((v) => v.lang.startsWith("en"));
-      if (voice) utterance.voice = voice;
+      tuneSamUtterance(utterance, lang, rate);
       window.speechSynthesis.speak(utterance);
     } catch {
       // Speech not available right now — button simply does nothing.

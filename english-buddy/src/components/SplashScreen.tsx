@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { tuneSamUtterance } from "@/lib/voice-prefs";
 
 const SHOWN_KEY = "buddy-splash-shown";
 const SAM_KEY = "buddy-sam-intro-seen";
@@ -33,19 +34,20 @@ export function SplashScreen() {
       const synth = window.speechSynthesis;
       if (!synth) return;
       synth.cancel();
-      const voices = synth.getVoices();
-      const italian = new SpeechSynthesisUtterance(
-        "Ciao, sono Sam, il tuo coach personale d'inglese. Dammi tre mesi, pochi minuti al giorno: riunioni, call e trasferte in inglese, senza paura."
+      const italian = tuneSamUtterance(
+        new SpeechSynthesisUtterance(
+          "Ciao, sono Sam, il tuo coach personale d'inglese. Dammi tre mesi, pochi minuti al giorno: riunioni, call e trasferte in inglese, senza paura."
+        ),
+        "it-IT",
+        0.92
       );
-      italian.lang = "it-IT";
-      const itVoice = voices.find((v) => v.lang.replace("_", "-").startsWith("it"));
-      if (itVoice) italian.voice = itVoice;
-      const english = new SpeechSynthesisUtterance(
-        "Hi, I'm Sam, your personal English coach. Give me three months, a few minutes a day, and you'll be operational in English. Ready?"
+      const english = tuneSamUtterance(
+        new SpeechSynthesisUtterance(
+          "Hi, I'm Sam, your personal English coach. Give me three months, a few minutes a day, and you'll be operational in English. Ready?"
+        ),
+        "en-US",
+        0.92
       );
-      english.lang = "en-US";
-      const enVoice = voices.find((v) => v.lang.replace("_", "-").startsWith("en"));
-      if (enVoice) english.voice = enVoice;
       synth.speak(italian);
       synth.speak(english);
     } catch {
