@@ -1,5 +1,6 @@
 import { BottomNav } from "@/components/BottomNav";
 import { EnablePush } from "@/components/EnablePush";
+import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { ModeGrid } from "@/components/ModeGrid";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -22,6 +23,7 @@ export default async function HomePage() {
     <ModeGrid />
     <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span></div><div className="stat"><strong>{interactions}</strong><span>interactions</span></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span></div></section>
     <EnablePush />
+    <WelcomeIntro />
     <BottomNav active="home" />
   </main>;
 }

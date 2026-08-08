@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 type PushState = "checking" | "unsupported" | "need-install" | "idle" | "subscribing" | "subscribed" | "denied";
 
+const DISMISS_KEY = "buddy-push-banner-dismissed";
+
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const normalized = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -13,6 +15,9 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 
 export function EnablePush() {
   const [state, setState] = useState<PushState>("checking");
+  const [dismissed, setDismissed] = useState<boolean>(
+    () => typeof window === "undefined" || sessionStorage.getItem(DISMISS_KEY) === "1"
+  );
 
   useEffect(() => {
     (async () => {
@@ -59,19 +64,15 @@ export function EnablePush() {
     }
   }
 
+  function dismiss() {
+    sessionStorage.setItem(DISMISS_KEY, "1");
+    setDismissed(true);
+  }
+
   if (state === "checking" || state === "unsupported") return null;
 
   if (state === "subscribed") {
     return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Buddy notifications are on.</p>;
-  }
-
-  if (state === "need-install") {
-    return (
-      <section className="card">
-        <h2>Hear from your Buddy</h2>
-        <p className="muted">To receive Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there.</p>
-      </section>
-    );
   }
 
   if (state === "denied") {
@@ -83,10 +84,42 @@ export function EnablePush() {
     );
   }
 
+  // Prominent banner shown as soon as the app opens, until enabled or postponed.
+  if (!dismissed) {
+    return (
+      <div className="sheetBackdrop" role="dialog" aria-label="Enable notifications">
+        <div className="sheet">
+          <h2>🔔 Hear from your Buddy</h2>
+          <p className="muted">
+            {state === "need-install"
+              ? "To get Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there."
+              : "Get short English questions at natural moments of your day — like a friend texting you. Answer when you want; no streaks, no guilt."}
+          </p>
+          {state !== "need-install" ? (
+            <button className="primary full" style={{ marginTop: 12 }} disabled={state === "subscribing"} onClick={enable}>
+              {state === "subscribing" ? "Enabling…" : "Enable notifications"}
+            </button>
+          ) : null}
+          <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>Not now</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Postponed this session: keep a quiet card at the bottom of Home.
+  if (state === "need-install") {
+    return (
+      <section className="card">
+        <h2>Hear from your Buddy</h2>
+        <p className="muted">To receive Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="card">
       <h2>Hear from your Buddy</h2>
-      <p className="muted">Get short English questions at natural moments of your day — like a friend texting you. Answer when you want; no streaks, no guilt.</p>
+      <p className="muted">Get short English questions at natural moments of your day.</p>
       <button className="primary full" style={{ marginTop: 10 }} disabled={state === "subscribing"} onClick={enable}>
         {state === "subscribing" ? "Enabling…" : "Enable notifications"}
       </button>

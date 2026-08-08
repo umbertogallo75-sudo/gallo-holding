@@ -106,3 +106,17 @@ p { line-height:1.5; }
 .pillActive { background:var(--accent); color:var(--bg); border-color:var(--accent); }
 .optionRow { display:flex; flex-direction:column; gap:2px; width:100%; text-align:left; border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:13px 15px; margin:6px 0; cursor:pointer; }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+
+.sheetBackdrop { position:fixed; inset:0; background:rgba(8,10,8,.5); backdrop-filter:blur(3px); display:flex; align-items:flex-end; justify-content:center; z-index:40; }
+.welcomeOverlay { position:fixed; inset:0; z-index:60; overflow-y:auto; background: radial-gradient(circle at 12% -6%, var(--glow) 0, transparent 40%), var(--bg); }
+.welcomeInner { max-width:560px; margin:0 auto; padding:36px 22px 40px; display:flex; flex-direction:column; min-height:100%; }
+.welcomeMark { font-size:36px; margin-bottom:10px; }
+.welcomeInner h1 { font-size:38px; margin:10px 0 14px; }
+.welcomeLead { font-size:17px; line-height:1.55; }
+.welcomeGrid { display:flex; flex-direction:column; gap:10px; margin:18px 0 6px; }
+.welcomeItem { display:flex; gap:13px; align-items:flex-start; border:1px solid var(--line); background:var(--bubble); border-radius:18px; padding:14px 16px; }
+.welcomeItem p { margin:3px 0 0; font-size:14px; line-height:1.45; }
+.welcomeNote { border:1px solid var(--line); background:var(--soft); border-radius:18px; padding:15px 17px; margin:14px 0 4px; font-size:14px; line-height:1.5; }
+.welcomeQuote { font-weight:750; letter-spacing:-.02em; font-size:20px; line-height:1.3; border-left:3px solid var(--accent); padding-left:14px; margin:20px 0 24px; }
+.welcomeCta { margin-top:auto; min-height:52px; font-size:16px; }
+.sheet { width:min(540px, calc(100% - 20px)); margin-bottom:16px; background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:20px; box-shadow:0 14px 44px rgba(0,0,0,.3); }
