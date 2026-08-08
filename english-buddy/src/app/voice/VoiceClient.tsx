@@ -7,7 +7,7 @@ type Status = "idle" | "connecting" | "live" | "ended" | "error";
 
 const MAX_SECONDS = 600; // hard cap per conversation to keep costs sane
 
-export function VoiceClient() {
+export function VoiceClient({ mode }: { mode?: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -47,7 +47,7 @@ export function VoiceClient() {
   async function start() {
     setStatus("connecting"); setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     try {
-      const tokenResponse = await fetch("/api/voice/session", { method: "POST" });
+      const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
       const tokenData = await tokenResponse.json();
       if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
 

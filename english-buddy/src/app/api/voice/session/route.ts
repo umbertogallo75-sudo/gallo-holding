@@ -16,6 +16,8 @@ const VOICE_MODEL = "gpt-realtime-mini";
 export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = (await request.json().catch(() => ({}))) as { mode?: string };
+  const diary = body?.mode === "diary";
   // Voice minutes are the most expensive resource: keep a sane per-user cap.
   if (!rateLimit(clientKey(request, "voice"), 6, 60 * 60_000).allowed) {
     return NextResponse.json({ error: "Voice limit reached for now. Try again in an hour. · Limite voce raggiunto, riprova tra un'ora." }, { status: 429 });
@@ -44,7 +46,11 @@ Conversation rules:
 - HARD RULE — never loop: never ask them to repeat the same word or sentence more than once in the whole conversation. If the second attempt is still imperfect, TELL THEM transparently and warmly that it's not quite right yet and that you'll bring it back another time — e.g. "Not perfect yet, but don't worry: I'll make this come back in our next sessions. Let's move on."${beginner ? ' (for beginners, say it in Italian too: "Non è ancora perfetta, ma tranquillo: te la riproporrò nelle prossime sessioni. Andiamo avanti.")' : ""} — then continue the conversation. Communication always beats perfection.
 - If you did not understand what they said twice in a row, do NOT say "repeat" again: assume a plausible meaning and continue, or ask a simpler question, or offer two options to choose from ("Did you mean X or Y?").
 - Prefer topics that matter to them: their day, business, meetings, travel, numbers.
-- Encourage without flattery. Never lecture about grammar.`;
+- Encourage without flattery. Never lecture about grammar.${
+    diary
+      ? `\nSPOKEN DIARY MODE: this session is their 1-minute spoken diary. Invite them warmly to tell you about their day (work, meetings, anything) for about a minute, in English. Listen with minimal interruptions — only short encouragements ("mm-hm", "go on"). When they finish: give a warm 3-part close: one thing they said well, at most 2 corrections (with the note that you'll bring them back another day), and a naturally-phrased version of one of their sentences. Then say goodbye — keep the whole session short.`
+      : ""
+  }`;
 
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",

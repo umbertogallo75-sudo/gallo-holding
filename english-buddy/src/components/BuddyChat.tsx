@@ -15,16 +15,24 @@ const openers: Record<string,string> = {
   zero: "Start today's Start-from-Zero guided micro-lesson. Teach me one useful sentence pattern step by step.",
   mission: "Give me a real-life mission I haven't completed yet and role-play it with me.",
   listen: "Start a listening dictation session. Give me the first sentence to transcribe.",
+  review: "Start my rapid review quiz on the items I need to practice.",
+  warmup: "I have a meeting or call soon. Warm me up: ask me what it's about.",
+  shadow: "Start a shadowing drill. Give me the first sentence to listen to and repeat aloud.",
+  briefing: "Give me today's short business read and then ask me about it.",
 };
 
 /** Hidden dictation sentence: audio-first, text revealed only on demand. */
 function DictationCard({ sentence }: { sentence: string }) {
   const [revealed, setRevealed] = useState(false);
+  // Alternate UK/US voices deterministically so the ear trains on both accents.
+  let hash = 0;
+  for (let i = 0; i < sentence.length; i++) hash = (hash * 31 + sentence.charCodeAt(i)) | 0;
+  const uk = Math.abs(hash) % 2 === 0;
   return (
     <span className="dictation">
-      <span className="dictationLabel">🎧 Listen and type what you hear <span className="itHint" style={{ display: "block", fontStyle: "normal" }}>Ascolta e scrivi qui sotto quello che senti</span></span>
+      <span className="dictationLabel">🎧 Listen and type what you hear <span style={{ fontWeight: 400 }}>{uk ? "🇬🇧" : "🇺🇸"}</span> <span className="itHint" style={{ display: "block", fontStyle: "normal" }}>Ascolta e scrivi qui sotto quello che senti (accento {uk ? "britannico" : "americano"})</span></span>
       <span style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-        <Speak text={sentence} compact />
+        <Speak text={sentence} compact lang={uk ? "en-GB" : "en-US"} />
         <span className="dictationText">{revealed ? sentence : "• • • • • •"}</span>
       </span>
       {!revealed ? (

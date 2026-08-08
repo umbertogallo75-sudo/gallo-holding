@@ -5,6 +5,7 @@ import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ensureProfile,
+  ensureWeeklyFocus,
   getCapabilities,
   getRelevantLearningContext,
   maybeAdjustLevel,
@@ -125,6 +126,17 @@ describe("learning service against a real libSQL database", () => {
     expect(await maybeAdjustLevel(climber, client)).toBeNull(); // then stable
     const profile = (await client.execute({ sql: "SELECT translation_support FROM profiles WHERE id = ?", args: [climber] })).rows[0];
     expect(Number(profile.translation_support)).toBe(0);
+  });
+
+  it("weekly focus targets the most recurring open mistake and sticks for the week", async () => {
+    const mistake = { incorrect: "depend from", correct: "depend on", category: "grammar" as const, severity: "meaningful" as const, note: "" };
+    await saveMistake(USER, mistake, client);
+    await saveMistake(USER, mistake, client); // now recurring
+    // Not yet refreshed: set_at is fresh (null focus stored) — force expiry.
+    await client.execute({ sql: "UPDATE profiles SET weekly_focus_set_at = ? WHERE id = ?", args: [new Date(Date.now() - 8 * 86_400_000).toISOString(), USER] });
+    const focus = await ensureWeeklyFocus(USER, client);
+    expect(focus).toContain("depend on");
+    expect(await ensureWeeklyFocus(USER, client)).toBe(focus); // stable within the week
   });
 
   it("ensureProfile lets a user who skipped onboarding start a session (FK regression)", async () => {

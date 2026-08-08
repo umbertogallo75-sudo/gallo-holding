@@ -24,6 +24,7 @@ export type LearningContext = {
   capabilitiesAchieved: string[];
   mistakes7d: number;
   masteredExpressions: number;
+  weeklyFocus: string | null;
   level?: string;
   goal?: string;
   recentMistakes: { incorrect: string; correct: string; category: string }[];
@@ -61,7 +62,7 @@ export async function getRelevantLearningContext(
   const timestamp = now();
   const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult, signalsResult] =
     await Promise.all([
-      client.execute({ sql: "SELECT display_name, native_language, professional_context, starting_level, translation_support, path_started_at, created_at FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+      client.execute({ sql: "SELECT display_name, native_language, professional_context, starting_level, translation_support, path_started_at, created_at, weekly_focus FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT cefr_level, primary_goal FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT incorrect, correct, category FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY last_seen_at DESC LIMIT 8", args: [userId] }),
       client.execute({ sql: "SELECT incorrect, correct FROM mistakes WHERE user_id = ? AND mastered = 0 AND next_review_at IS NOT NULL AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 4", args: [userId, timestamp] }),
@@ -95,6 +96,7 @@ export async function getRelevantLearningContext(
     capabilitiesAchieved: capabilitiesResult.rows.map((r) => String(r.capability)),
     mistakes7d: Number(signalsResult.rows[0]?.m7 ?? 0),
     masteredExpressions: Number(signalsResult.rows[0]?.mastered ?? 0),
+    weeklyFocus: profile?.weekly_focus ? String(profile.weekly_focus) : null,
     level: state?.cefr_level ? String(state.cefr_level) : undefined,
     goal: state?.primary_goal ? String(state.primary_goal) : undefined,
     recentMistakes: mistakesResult.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct), category: String(r.category) })),
@@ -245,6 +247,32 @@ export async function saveCapabilities(userId: string, keys: string[], client: C
 export async function getCapabilities(userId: string, client: Client = db()): Promise<string[]> {
   const result = await client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] });
   return result.rows.map((r) => String(r.capability));
+}
+
+/**
+ * Weekly focus: once a week, pick the user's most recurring open mistake and
+ * make it the declared focus that the coach steers all conversations toward.
+ * Refreshes automatically after 7 days; clears when nothing qualifies.
+ */
+export async function ensureWeeklyFocus(userId: string, client: Client = db()): Promise<string | null> {
+  const profile = await client.execute({ sql: "SELECT weekly_focus, weekly_focus_set_at FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
+  if (!profile.rows.length) return null;
+  const row = profile.rows[0];
+  const setAt = row.weekly_focus_set_at ? Date.parse(String(row.weekly_focus_set_at)) : NaN;
+  if (row.weekly_focus && !Number.isNaN(setAt) && Date.now() - setAt < 7 * 86_400_000) {
+    return String(row.weekly_focus);
+  }
+
+  const top = await client.execute({
+    sql: "SELECT incorrect, correct, times_seen FROM mistakes WHERE user_id = ? AND mastered = 0 AND times_seen >= 2 ORDER BY times_seen DESC, last_seen_at DESC LIMIT 1",
+    args: [userId],
+  });
+  const focus = top.rows.length ? `Say "${String(top.rows[0].correct)}" — not "${String(top.rows[0].incorrect)}"` : null;
+  await client.execute({
+    sql: "UPDATE profiles SET weekly_focus = ?, weekly_focus_set_at = ? WHERE id = ?",
+    args: [focus, now(), userId],
+  });
+  return focus;
 }
 
 /**

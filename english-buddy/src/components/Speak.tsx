@@ -4,16 +4,17 @@
  * Listen buttons for any English text: normal speed and slow replay.
  * Uses the device's speech synthesis (free, offline-capable, works on iOS).
  */
-export function Speak({ text, compact = false }: { text: string; compact?: boolean }) {
+export function Speak({ text, compact = false, lang = "en-US" }: { text: string; compact?: boolean; lang?: "en-US" | "en-GB" }) {
   if (typeof window !== "undefined" && !("speechSynthesis" in window)) return null;
 
   function play(rate: number) {
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.replace(/\([^)]*\)/g, ""));
-      utterance.lang = "en-US";
+      utterance.lang = lang;
       utterance.rate = rate;
-      const voice = window.speechSynthesis.getVoices().find((v) => v.lang.startsWith("en"));
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find((v) => v.lang.replace("_", "-").startsWith(lang)) || voices.find((v) => v.lang.startsWith("en"));
       if (voice) utterance.voice = voice;
       window.speechSynthesis.speak(utterance);
     } catch {

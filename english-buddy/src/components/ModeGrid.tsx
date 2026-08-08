@@ -35,5 +35,12 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
     <Wide href="/buddy?mode=buddy" icon="☕︎" title="Buddy question" meta="One quick question from your English-speaking friend" it="Una domanda veloce dal tuo amico che parla inglese" color="#8a6d3b" />
     <Wide href="/rescue" icon="🆘" title="English Rescue" meta="I need English now — say it right, right now" it="Mi serve l'inglese adesso: scrivi in italiano, te lo do in inglese con l'audio" color="#c4483a" />
     <Wide href="/buddy?mode=surprise" icon="✦" title="Surprise me" meta="Let the coach choose what matters most today" it="Sorprendimi: lascia scegliere al coach cosa ti serve oggi" color="#7a5aa0" />
+    <div className="kicker" style={{ gridColumn: "1 / -1", margin: "14px 2px 2px" }}>Accelerators · Acceleratori</div>
+    <Wide href="/buddy?mode=warmup" icon="🎯" title="Meeting warm-up" meta="A call is coming — get the exact phrases, now" it="Hai una call tra poco? 5 minuti di riscaldamento mirato con le frasi che ti serviranno" color="#b3362a" />
+    <Wide href="/buddy?mode=review" icon="🔁" title="Daily review" meta="2-minute quiz on what you're learning" it="Quiz di 2 minuti sulle tue espressioni ed errori: è così che si fissano" color="#1d6b4c" />
+    <Wide href="/buddy?mode=shadow" icon="🗣️" title="Shadowing" meta="Listen and repeat aloud — rhythm and pronunciation" it="Ascolta e ripeti a voce alta imitando ritmo e pronuncia: la tecnica degli interpreti" color="#3b6ea5" />
+    <Wide href="/buddy?mode=briefing" icon="📰" title="Daily read" meta="A 60-second business read at your level" it="Una lettura business di 60 secondi sul tuo livello, con domande" color="#7a5aa0" />
+    <Wide href="/voice?mode=diary" icon="📔" title="Spoken diary" meta="One minute out loud about your day" it="Un minuto a voce sulla tua giornata: il coach ascolta e ti aiuta a dirla meglio" color="#b0567a" />
+    <Wide href="/phrasebook" icon="📖" title="Phrasebook" meta="All your phrases, with audio, in one place" it="Il tuo frasario personale: tutte le frasi imparate, con l'audio" color="#8a6d3b" />
   </div>;
 }
