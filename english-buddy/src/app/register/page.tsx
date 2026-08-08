@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { WelcomeIntro } from "@/components/WelcomeIntro";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -28,6 +29,7 @@ export default function RegisterPage() {
 
   return (
     <main className="shell authWrap">
+      <WelcomeIntro />
       <section className="authCard">
         <div className="brand">English Buddy</div>
         <div className="hero">

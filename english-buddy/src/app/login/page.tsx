@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { WelcomeIntro } from "@/components/WelcomeIntro";
 
 export default function LoginPage() {
   const [code, setCode] = useState("");
@@ -19,7 +20,7 @@ export default function LoginPage() {
     router.push("/"); router.refresh();
   }
 
-  return <main className="shell authWrap"><section className="authCard">
+  return <main className="shell authWrap"><WelcomeIntro /><section className="authCard">
     <div className="brand">English Buddy</div>
     <div className="hero"><div className="kicker">Private AI coach</div><h1>English that fits your day.</h1><p className="muted">This first version is private. Enter your personal access code.</p></div>
     <form onSubmit={submit}><input className="field" type="password" autoComplete="current-password" required placeholder="Personal access code" value={code} onChange={e=>setCode(e.target.value)} />
