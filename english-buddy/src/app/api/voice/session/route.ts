@@ -1,0 +1,71 @@
+import { NextResponse } from "next/server";
+import { getUserId } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
+
+export const maxDuration = 30;
+
+const VOICE_MODEL = "gpt-realtime-mini";
+
+/**
+ * Creates a short-lived OpenAI Realtime token so the browser can open a
+ * WebRTC voice conversation directly, without our key ever leaving the
+ * server. Instructions are personalized from the learning memory.
+ */
+export async function POST(request: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Voice minutes are the most expensive resource: keep a sane per-user cap.
+  if (!rateLimit(clientKey(request, "voice"), 6, 60 * 60_000).allowed) {
+    return NextResponse.json({ error: "Voice limit reached for now. Try again in an hour. · Limite voce raggiunto, riprova tra un'ora." }, { status: 429 });
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "Voice is not configured" }, { status: 500 });
+
+  const result = await db().execute({
+    sql: `SELECT p.display_name, p.professional_context, p.starting_level, p.translation_support, p.path_started_at, p.created_at, ls.cefr_level
+          FROM profiles p LEFT JOIN learning_state ls ON ls.user_id = p.id WHERE p.id = ? LIMIT 1`,
+    args: [userId],
+  });
+  const row = result.rows[0];
+  const level = row?.cefr_level ? String(row.cefr_level) : "B1";
+  const beginner = ["A1", "A2"].includes(level) || ["zero", "basics"].includes(String(row?.starting_level ?? ""));
+  const phase = monthPhase(row?.path_started_at ? String(row.path_started_at) : row?.created_at ? String(row.created_at) : null);
+
+  const instructions = `You are English Buddy, a warm spoken English coach for ${row?.display_name || "an Italian professional"} (level ${level}).
+Their 3-month mission: functional professional English for meetings, finance, negotiation, travel. Month ${phase} focus — ${PHASE_FOCUS[phase]}
+${row?.professional_context ? `Their background: ${String(row.professional_context)}.` : ""}
+Conversation rules:
+- ${beginner ? "SPEAK SLOWLY and use short, simple sentences. If they are lost, explain briefly in Italian, then return to English." : "Speak naturally at a moderate pace. English only unless they are completely stuck."}
+- Have a real conversation: one question at a time, react to what they say, keep turns short (max ~3 sentences).
+- Gently correct only meaningful or repeated mistakes: say the natural version, have them repeat it once, move on.
+- Prefer topics that matter to them: their day, business, meetings, travel, numbers.
+- Encourage without flattery. Never lecture about grammar.`;
+
+  const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      expires_after: { anchor: "created_at", seconds: 900 },
+      session: {
+        type: "realtime",
+        model: VOICE_MODEL,
+        instructions,
+        audio: {
+          input: { transcription: { model: "gpt-4o-mini-transcribe" } },
+          output: { voice: "marin" },
+        },
+      },
+    }),
+  });
+  if (!response.ok) {
+    console.error("voice session error:", response.status, (await response.text()).slice(0, 300));
+    return NextResponse.json({ error: "Voice is temporarily unavailable" }, { status: 502 });
+  }
+  const json = (await response.json()) as { value?: string };
+  if (!json.value) return NextResponse.json({ error: "Voice is temporarily unavailable" }, { status: 502 });
+
+  return NextResponse.json({ clientSecret: json.value, model: VOICE_MODEL });
+}

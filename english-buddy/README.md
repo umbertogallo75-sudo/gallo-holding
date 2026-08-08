@@ -59,7 +59,7 @@ Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second
 
 ## Roadmap
 
-Phase 2 (done): Web Push Buddy notifications — natural questions during the day, per-user intensity/quiet hours/timezone, deep links into the conversation · Phase 3: Listen + Type · Phase 4: Realtime voice (WebRTC) · Phase 5: deeper adaptation · Phase 6: polish.
+Phase 2 (done): Web Push Buddy notifications · Phase 3 (done): Listen + Type dictation with hidden sentences and slow replay · Phase 4 (done): Realtime voice conversation (WebRTC + OpenAI Realtime, gpt-realtime-mini, 10-min capped sessions) · Phase 5: deeper adaptation · Phase 6: polish.
 
 ## Docs
 

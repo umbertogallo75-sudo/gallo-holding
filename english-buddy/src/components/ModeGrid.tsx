@@ -7,11 +7,12 @@ const cardTint = (hex: string) => ({
   borderColor: `color-mix(in srgb, ${hex} 30%, var(--line))`,
 });
 
-const modes = [
+type ModeCard = { icon:string; title:string; meta:string; it:string; mode:string; color:string; href?:string };
+const modes: ModeCard[] = [
   { icon:"✍︎", title:"2 min", meta:"One useful answer", it:"2 minuti: una risposta utile", mode:"text-2", color:"#3b6ea5" },
   { icon:"✍︎", title:"5 min", meta:"Quick written chat", it:"5 minuti di conversazione scritta", mode:"text-5", color:"#3b6ea5" },
   { icon:"🎧", title:"Listen + Type", meta:"Hear a sentence, type what you heard", it:"Ascolta una frase e scrivi quello che senti", mode:"listen", color:"#7a5aa0" },
-  { icon:"🎙️", title:"Voice", meta:"Coming soon · real-time speaking", it:"In arrivo presto: conversazione a voce", mode:"voice", color:"#b0567a", disabled:true },
+  { icon:"🎙️", title:"Voice", meta:"Real conversation, out loud", it:"Parla davvero col coach, a voce", mode:"voice", color:"#b0567a", href:"/voice" },
 ];
 
 function Wide({ href, icon, title, meta, it, color }: { href:string; icon:string; title:string; meta:string; it:string; color:string }) {
@@ -24,8 +25,8 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
       <Wide href="/buddy?mode=zero" icon="🌱" title="Start from Zero · guided path" meta="Today's step-by-step micro-lesson: listen, read, repeat, use" it="Il percorso guidato di oggi: ascolta, leggi, ripeti, usa — un passo alla volta" color="#1d6b4c" />
       <Wide href="/buddy?mode=mission" icon="🎯" title="Real-life mission" meta="Introduce yourself, order food, survive the airport…" it="Una missione reale: presentarti, ordinare, cavartela in viaggio…" color="#d98e2b" />
     </> : null}
-    {modes.map(m => m.disabled ? <div className="mode" key={m.mode} style={{...cardTint(m.color), opacity:.55}}><span className="modeIcon" style={tint(m.color)}>{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div><div className="itHint">{m.it}</div></div></div> :
-      <Link href={`/buddy?mode=${m.mode}`} className="mode" key={m.mode} style={cardTint(m.color)}><span className="modeIcon" style={tint(m.color)}>{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div><div className="itHint">{m.it}</div></div></Link>)}
+    {modes.map(m =>
+      <Link href={m.href ?? `/buddy?mode=${m.mode}`} className="mode" key={m.mode} style={cardTint(m.color)}><span className="modeIcon" style={tint(m.color)}>{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div><div className="itHint">{m.it}</div></div></Link>)}
     {!beginner ? <>
       <Wide href="/buddy?mode=guided" icon="↗" title="20 min guided session" meta="Business English, correction and adaptive review" it="Sessione guidata di 20 minuti: business English, correzioni e ripasso" color="#1d6b4c" />
       <Wide href="/buddy?mode=mission" icon="🎯" title="Real-life mission" meta="Meetings, calls, negotiation, travel — one goal per scene" it="Una missione reale: riunioni, telefonate, trattative, viaggi" color="#d98e2b" />

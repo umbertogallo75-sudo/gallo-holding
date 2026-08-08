@@ -145,6 +145,10 @@ p { line-height:1.55; font-size:16px; }
 .alertBar strong:first-child { color:#b3362a; }
 @media (prefers-color-scheme: dark) { .alertBar strong:first-child { color:#ff8f7d; } .alertBar { border-color:#8a3a30; } }
 
+.voiceOrb { width:110px; height:110px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:44px; background:linear-gradient(135deg, var(--accent), #b0567a); box-shadow:0 8px 30px color-mix(in srgb, var(--accent) 40%, transparent); }
+.voiceOrb.pulsing { animation:orbPulse 1.6s ease-in-out infinite; }
+@keyframes orbPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.07); box-shadow:0 10px 40px color-mix(in srgb, var(--accent) 55%, transparent); } }
+
 .dictation { display:block; margin:10px 0 4px; padding:14px 16px; border:1.5px dashed color-mix(in srgb, #7a5aa0 45%, var(--line)); border-radius:16px; background:color-mix(in srgb, #7a5aa0 8%, var(--surface)); }
 .dictationLabel { font-weight:700; font-size:15px; }
 .dictationText { font-size:17px; font-weight:650; letter-spacing:.06em; }
