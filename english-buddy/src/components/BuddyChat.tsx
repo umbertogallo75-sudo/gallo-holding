@@ -137,7 +137,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         </div>
         {m.correction ? <div className="correction">Better: {m.correction}</div> : null}
       </div>)}
-      {loading && <div className="bubble ai muted">Thinking…</div>}
+      {loading && <div className="bubble ai muted">Sam is thinking…</div>}
       {failedMessage && !loading && (
         <div className="bubble ai">
           ⚠️ Connection problem — your answer was not lost.

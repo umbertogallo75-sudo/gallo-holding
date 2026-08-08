@@ -47,10 +47,10 @@ export async function POST(request: Request) {
   }
 
   // Nudge: one motivational push, recorded in history so the scheduler sees it.
-  const question = data.message || "Your English Buddy misses you! One quick question: how was your day? Answer in English, even one line counts.";
+  const question = data.message || "Sam here — I miss our English! One quick question: how was your day? Answer in English, even one line counts.";
   const notificationId = randomUUID();
   const delivered = await sendPushToUser(data.userId, {
-    title: "English Buddy",
+    title: "Sam · English Buddy",
     body: question,
     data: { url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`, nid: notificationId },
   });

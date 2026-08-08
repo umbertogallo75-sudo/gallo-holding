@@ -90,7 +90,7 @@ async function run(request: Request) {
 
       const notificationId = randomUUID();
       const delivered = await sendPushToUser(userId, {
-        title: "English Buddy",
+        title: "Sam · English Buddy",
         body: question,
         data: {
           url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`,
