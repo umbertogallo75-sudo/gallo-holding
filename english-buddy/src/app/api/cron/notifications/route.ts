@@ -14,10 +14,15 @@ export const maxDuration = 60;
  * sends one natural Buddy question with a deep link into the conversation.
  */
 async function run(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization") ?? "";
+  // Trim both sides: env values pasted from mobile clipboards often carry
+  // stray whitespace/newlines.
+  const secret = (process.env.CRON_SECRET ?? "").trim();
+  const authorization = (request.headers.get("authorization") ?? "").trim();
   if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized", configured: Boolean(secret), secretLength: secret.length },
+      { status: 401 }
+    );
   }
 
   const database = db();
