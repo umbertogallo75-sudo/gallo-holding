@@ -24,11 +24,11 @@ export async function accessCodeInUse(code: string, client: Client = db()): Prom
   return (await findUserIdByAccessCode(code, client)) !== null;
 }
 
-export async function createAuthUser(name: string, code: string, client: Client = db()): Promise<string> {
+export async function createAuthUser(name: string, code: string, email: string | null = null, client: Client = db()): Promise<string> {
   const id = randomUUID();
   await client.execute({
-    sql: "INSERT INTO auth_users (id, display_name, code_hmac) VALUES (?, ?, ?)",
-    args: [id, name, accessCodeHash(code)],
+    sql: "INSERT INTO auth_users (id, display_name, code_hmac, email) VALUES (?, ?, ?, ?)",
+    args: [id, name, accessCodeHash(code), email],
   });
   return id;
 }

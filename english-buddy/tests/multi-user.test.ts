@@ -33,8 +33,8 @@ describe("multi-user accounts and data separation", () => {
   });
 
   it("registers users and resolves each personal code to its own id", async () => {
-    const marco = await createAuthUser("Marco", "codice-di-marco-123", client);
-    const laura = await createAuthUser("Laura", "codice-di-laura-456", client);
+    const marco = await createAuthUser("Marco", "codice-di-marco-123", "marco@example.com", client);
+    const laura = await createAuthUser("Laura", "codice-di-laura-456", "laura@example.com", client);
     expect(marco).not.toBe(laura);
     expect(await findUserIdByAccessCode("codice-di-marco-123", client)).toBe(marco);
     expect(await findUserIdByAccessCode("codice-di-laura-456", client)).toBe(laura);
@@ -42,7 +42,7 @@ describe("multi-user accounts and data separation", () => {
   });
 
   it("rejects a duplicate personal code at the database level", async () => {
-    await expect(createAuthUser("Copia", "codice-di-marco-123", client)).rejects.toThrow();
+    await expect(createAuthUser("Copia", "codice-di-marco-123", "copia@example.com", client)).rejects.toThrow();
   });
 
   it("keeps each user's learning data fully separate", async () => {

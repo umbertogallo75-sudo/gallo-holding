@@ -16,13 +16,14 @@ export default async function AdminPage() {
   if (userId !== OWNER_ID) redirect("/home");
 
   const database = db();
-  const [profiles, minutes, lastSessions, caps, pushes, lastNotifs] = await Promise.all([
+  const [profiles, minutes, lastSessions, caps, pushes, lastNotifs, authUsers] = await Promise.all([
     database.execute("SELECT id, display_name, starting_level, notification_intensity, created_at FROM profiles ORDER BY created_at ASC"),
     database.execute("SELECT user_id, SUM(minutes_practiced) AS total_minutes, SUM(interactions) AS total_interactions, MAX(day) AS last_day FROM daily_metrics GROUP BY user_id"),
     database.execute("SELECT user_id, MAX(started_at) AS last_session, COUNT(*) AS session_count FROM sessions GROUP BY user_id"),
     database.execute("SELECT user_id, COUNT(*) AS cap_count FROM user_capabilities GROUP BY user_id"),
     database.execute("SELECT user_id, COUNT(*) AS sub_count FROM push_subscriptions GROUP BY user_id"),
     database.execute("SELECT user_id, MAX(sent_at) AS last_sent, COUNT(*) AS sent_count FROM notification_history GROUP BY user_id"),
+    database.execute("SELECT id, email FROM auth_users"),
   ]);
 
   const by = (result: { rows: ArrayLike<Record<string, unknown>> }) =>
@@ -32,6 +33,7 @@ export default async function AdminPage() {
   const capsBy = by(caps);
   const pushBy = by(pushes);
   const notifBy = by(lastNotifs);
+  const emailById = new Map(authUsers.rows.map((r) => [String(r.id), r.email ? String(r.email) : null]));
 
   // eslint-disable-next-line react-hooks/purity -- server component, rendered fresh per request
   const today = Date.now();
@@ -43,6 +45,7 @@ export default async function AdminPage() {
     const daysIdle = lastActivity ? Math.floor((today - Date.parse(lastActivity)) / 86_400_000) : null;
     return {
       id,
+      email: emailById.get(id) ?? null,
       name: String(p.display_name ?? "—"),
       startingLevel: p.starting_level ? String(p.starting_level) : "—",
       intensity: String(p.notification_intensity ?? "immersive"),
@@ -69,7 +72,7 @@ export default async function AdminPage() {
       {rows.map((r) => (
         <section className="card" key={r.id}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0 }}>{r.name} <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· {r.id}</span></h2>
+            <h2 style={{ margin: 0 }}>{r.name} <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· {r.email ?? r.id}</span></h2>
             {r.daysIdle !== null && r.daysIdle > 3 ? <span className="warnText" style={{ marginTop: 0 }}>fermo da {r.daysIdle} giorni</span> : <span className="chip">attivo</span>}
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -82,13 +85,19 @@ export default async function AdminPage() {
               </tr></tbody>
             </table>
           </div>
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+            {r.email ? (
+              <a className="pill" style={{ alignSelf: "flex-start", textDecoration: "none" }}
+                href={`mailto:${r.email}?subject=${encodeURIComponent("English Buddy — come va il tuo inglese?")}&body=${encodeURIComponent(`Ciao ${r.name},\n\nho visto che è un po' che non pratichi su English Buddy. Anche 2 minuti oggi contano!\n\nApri l'app: https://english-buddy-hxvi.vercel.app\n\nUmberto`)}`}>
+                ✉️ Scrivi email
+              </a>
+            ) : null}
             <AdminActions userId={r.id} intensity={r.intensity} hasPush={r.hasPush} />
           </div>
         </section>
       ))}
       <p className="itHint" style={{ margin: "14px 4px" }}>
-        Nota: l&rsquo;app non raccoglie indirizzi email, quindi lo stimolo via email non è ancora disponibile — le notifiche push arrivano solo a chi le ha attivate. Se vuoi le email, possiamo aggiungere la raccolta dell&rsquo;email alla registrazione.
+        Nota: l&rsquo;email viene raccolta alla registrazione — chi si è registrato prima di questa versione non la ha. &ldquo;✉️ Scrivi email&rdquo; apre la tua app di posta con un messaggio già pronto che puoi modificare. Le notifiche push arrivano solo a chi le ha attivate sul telefono.
       </p>
     </main>
   );

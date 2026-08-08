@@ -22,10 +22,12 @@ export default function LoginPage() {
 
   return <main className="shell authWrap"><WelcomeIntro /><section className="authCard">
     <div className="brand">English Buddy</div>
-    <div className="hero"><div className="kicker">Private AI coach</div><h1>English that fits your day.</h1><p className="muted">This first version is private. Enter your personal access code.</p></div>
+    <div className="hero"><div className="kicker">Private AI coach</div><h1>English that fits your day.</h1><p className="muted">This first version is private. Enter your personal access code.</p><p className="itHint">Inserisci il tuo codice personale di accesso per entrare.</p></div>
     <form onSubmit={submit}><input className="field" type="password" autoComplete="current-password" required placeholder="Personal access code" value={code} onChange={e=>setCode(e.target.value)} />
+    <p className="itHint" style={{margin:"0 4px 6px"}}>Il tuo codice segreto di accesso</p>
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
-    <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button></form>
-    <p className="muted" style={{marginTop:14, fontSize:13}}>New here? <a href="/register" style={{textDecoration:"underline"}}>Create your access</a></p>
+    <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button>
+    <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri English Buddy</p></form>
+    <p className="muted" style={{marginTop:14, fontSize:13}}>New here? <a href="/register" style={{textDecoration:"underline"}}>Create your access</a><span className="itHint" style={{display:"block"}}>Sei nuovo? Registrati da qui — è gratis e ci vogliono 30 secondi</span></p>
   </section></main>;
 }
