@@ -4,7 +4,6 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
-  const [inviteCode, setInviteCode] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +17,7 @@ export default function RegisterPage() {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inviteCode, name, code }),
+      body: JSON.stringify({ name, code }),
     });
     const data = await response.json().catch(() => ({}));
     setLoading(false);
@@ -32,12 +31,11 @@ export default function RegisterPage() {
       <section className="authCard">
         <div className="brand">English Buddy</div>
         <div className="hero">
-          <div className="kicker">Invite only</div>
+          <div className="kicker">Get started</div>
           <h1>Create your access.</h1>
-          <p className="muted">Enter the invite code you received, then choose your personal access code — you will use it to log in.</p>
+          <p className="muted">Choose your personal access code — you will use it every time you log in. Keep it private.</p>
         </div>
         <form onSubmit={submit}>
-          <input className="field" required placeholder="Invite code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
           <input className="field" required placeholder="Your first name" value={name} onChange={(e) => setName(e.target.value)} />
           <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Choose a personal access code (min 8 characters)" value={code} onChange={(e) => setCode(e.target.value)} />
           {error ? <div className="notice" style={{ marginBottom: 8 }}>{error}</div> : null}

@@ -31,7 +31,7 @@ tests/                  Vitest: auth, schema parsing, spaced repetition, service
 - **Learning memory, not chat history.** Each coach turn builds a compact context (`getRelevantLearningContext`): profile, level, recent/due mistakes, due expressions, last 12 session messages, today's metrics. Full history is never replayed into the model.
 - **Service layer owns persistence.** API routes call `src/lib/learning/service.ts`; no SQL in components. Every service function accepts an optional libSQL client so tests run against a local `file:` database.
 - **Structured outputs.** The coach model must return the `coach_turn` JSON schema (strict mode). Zod re-validates on our side and degrades gracefully (a malformed turn still yields a plain reply).
-- **Invite-only multi-user auth.** Each user logs in with a personal access code (stored as a keyed HMAC in `auth_users`); registration at `/register` requires the private `INVITE_CODE`. The owner authenticates via `APP_ACCESS_CODE` and maps to user `owner`. Session tokens embed the user id. All learning data is keyed by `user_id`, so every account's history is fully separate.
+- **Invite-only multi-user auth.** Each user logs in with a personal access code (stored as a keyed HMAC in `auth_users`); registration at `/register` is open by default and can be locked with the optional `INVITE_CODE` env var. The owner authenticates via `APP_ACCESS_CODE` and maps to user `owner`. Session tokens embed the user id. All learning data is keyed by `user_id`, so every account's history is fully separate.
 - **Sessions self-close.** Each coach turn bumps `sessions.ended_at`, so duration is derivable without client-side beacons.
 
 ## Phase status

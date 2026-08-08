@@ -39,7 +39,7 @@ Re-running is safe; applied files are tracked in `schema_migrations`.
 | `TURSO_DATABASE_URL` | yes | `libsql://…turso.io` (or `file:local.db` locally) |
 | `TURSO_AUTH_TOKEN` | yes (remote DB) | From `turso db tokens create` |
 | `APP_ACCESS_CODE` | yes | The owner's private login code — long and unguessable |
-| `INVITE_CODE` | no | Enables invite-based registration at `/register`; share privately with new users |
+| `INVITE_CODE` | no | Optional lock: when set, `/register` requires this invite code; unset = open self-registration |
 | `SESSION_SECRET` | yes | 32+ random chars, e.g. `openssl rand -hex 32` |
 | `OPENAI_API_KEY` | yes | Server-side only |
 | `OPENAI_MODEL` | no | Defaults to `gpt-5-mini` |

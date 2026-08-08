@@ -5,19 +5,14 @@ import { accessCodeInUse, createAuthUser } from "@/lib/auth-users";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
-  inviteCode: z.string().min(1).max(200),
   name: z.string().trim().min(1).max(80),
   code: z.string().min(8, "The personal code must be at least 8 characters").max(200),
+  inviteCode: z.string().max(200).optional(),
 });
 
 export async function POST(request: Request) {
-  if (!rateLimit(clientKey(request, "register"), 5, 60 * 60_000).allowed) {
+  if (!rateLimit(clientKey(request, "register"), 10, 60 * 60_000).allowed) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
-  }
-
-  const invite = process.env.INVITE_CODE;
-  if (!invite) {
-    return NextResponse.json({ error: "Registration is not enabled." }, { status: 503 });
   }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -25,11 +20,15 @@ export async function POST(request: Request) {
     const message = parsed.error.issues[0]?.message ?? "Invalid request";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-  const { inviteCode, name, code } = parsed.data;
+  const { name, code, inviteCode } = parsed.data;
 
-  if (!safeEqual(inviteCode, invite)) {
-    return NextResponse.json({ error: "Invalid invite code" }, { status: 403 });
+  // Registration is open by default. Setting INVITE_CODE on the server locks
+  // it down to invitees without any code change.
+  const invite = process.env.INVITE_CODE;
+  if (invite && (!inviteCode || !safeEqual(inviteCode, invite))) {
+    return NextResponse.json({ error: "An invite code is required to register." }, { status: 403 });
   }
+
   if (await accessCodeInUse(code)) {
     return NextResponse.json({ error: "This personal code is already taken — choose a different one." }, { status: 409 });
   }
