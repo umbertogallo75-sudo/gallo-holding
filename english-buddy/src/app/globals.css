@@ -145,6 +145,9 @@ p { line-height:1.55; font-size:16px; }
 .alertBar strong:first-child { color:#b3362a; }
 @media (prefers-color-scheme: dark) { .alertBar strong:first-child { color:#ff8f7d; } .alertBar { border-color:#8a3a30; } }
 
+.firstStep { border-width:2px !important; border-color:var(--accent) !important; box-shadow:0 4px 18px color-mix(in srgb, var(--accent) 25%, transparent) !important; animation:firstStepGlow 2.4s ease-in-out infinite; }
+@keyframes firstStepGlow { 0%,100% { box-shadow:0 4px 18px color-mix(in srgb, var(--accent) 22%, transparent); } 50% { box-shadow:0 4px 26px color-mix(in srgb, var(--accent) 42%, transparent); } }
+
 /* ---- Launch screen ---- */
 .splash {
   position:fixed; inset:0; z-index:100; cursor:pointer; overflow:hidden;

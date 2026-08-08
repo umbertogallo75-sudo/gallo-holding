@@ -65,6 +65,10 @@ export function WelcomeIntro() {
             esperienze e delle informazioni degli stessi manager che la utilizzano, e migliora ogni settimana.
           </div>
 
+          <div className="welcomeNote" style={{ borderColor: "color-mix(in srgb, #1d6b4c 45%, var(--line))" }}>
+            <strong>🎯 La promessa.</strong> Segui il tuo Buddy anche solo pochi minuti al giorno e <strong>in 3 mesi sarai operativo in inglese</strong>: riunioni, call, negoziazioni e trasferte.
+          </div>
+
           <p className="welcomeQuote">Il tuo tempo è prezioso. Anche il tuo inglese dovrebbe esserlo.</p>
 
           {dots}

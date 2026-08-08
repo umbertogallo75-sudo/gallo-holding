@@ -26,14 +26,14 @@ export const maxDuration = 60;
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
-  mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials", "zero", "mission", "listen", "review", "warmup", "shadow", "briefing"]).default("text-5"),
+  mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials", "zero", "mission", "listen", "review", "warmup", "shadow", "briefing", "levelcheck"]).default("text-5"),
   sessionId: z.string().uuid().optional(),
   // A Buddy question delivered via push, shown client-side before the first
   // reply; recorded as the session's opening assistant turn.
   opener: z.string().trim().max(500).optional(),
 });
 
-const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3, essentials: 7, zero: 4, mission: 7, listen: 5, review: 3, warmup: 5, shadow: 4, briefing: 3 };
+const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3, essentials: 7, zero: 4, mission: 7, listen: 5, review: 3, warmup: 5, shadow: 4, briefing: 3, levelcheck: 3 };
 
 export async function POST(request: Request) {
   try {

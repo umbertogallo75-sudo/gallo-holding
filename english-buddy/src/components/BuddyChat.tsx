@@ -19,6 +19,7 @@ const openers: Record<string,string> = {
   warmup: "I have a meeting or call soon. Warm me up: ask me what it's about.",
   shadow: "Start a shadowing drill. Give me the first sentence to listen to and repeat aloud.",
   briefing: "Give me today's short business read and then ask me about it.",
+  levelcheck: "Let's find my starting level with a short friendly chat. Start easy.",
 };
 
 /** Hidden dictation sentence: audio-first, text revealed only on demand. */

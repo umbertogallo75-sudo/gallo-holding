@@ -88,6 +88,9 @@ export default function OnboardingPage() {
                 <span className="muted">{option.meta}</span>
               </button>
             ))}
+            <div className="notice" style={{ margin: "6px 0 10px" }}>
+              🎯 <strong>Seguimi e in 3 mesi sei operativo in inglese</strong>: riunioni, call, trasferte. Bastano pochi minuti al giorno — al ritmo ci penso io.
+            </div>
             <button className="primary full" disabled={loading} onClick={save}>{loading ? "Saving…" : "Start"}</button>
           </>
         )}

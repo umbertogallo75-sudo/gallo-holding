@@ -35,7 +35,7 @@ export function SplashScreen() {
         <div className="splashWordmark">English&nbsp;Buddy</div>
         <div className="splashRule" aria-hidden="true" />
         <p className="splashTagline">Business English. On your time.</p>
-        <p className="splashTaglineIt">Il coach d&rsquo;inglese pensato per chi non ha tempo.</p>
+        <p className="splashTaglineIt">Seguimi: in 3 mesi sei operativo in inglese.</p>
       </div>
       <div className="splashFooter">
         <div className="splashLoading" aria-hidden="true"><span /><span /><span /></div>
