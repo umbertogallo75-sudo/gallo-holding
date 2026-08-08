@@ -22,10 +22,38 @@ export function SplashScreen() {
 
   if (stage === "hidden") return null;
 
+  // Sam introduces himself out loud: Italian first, then his English voice.
+  // Called inside the tap handler so iOS unlocks speech synthesis.
+  function speakSamIntro() {
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      synth.cancel();
+      const voices = synth.getVoices();
+      const italian = new SpeechSynthesisUtterance(
+        "Ciao, sono Sam, il tuo coach personale d'inglese. Dammi tre mesi, pochi minuti al giorno: riunioni, call e trasferte in inglese, senza paura."
+      );
+      italian.lang = "it-IT";
+      const itVoice = voices.find((v) => v.lang.replace("_", "-").startsWith("it"));
+      if (itVoice) italian.voice = itVoice;
+      const english = new SpeechSynthesisUtterance(
+        "Hi, I'm Sam, your personal English coach. Give me three months, a few minutes a day, and you'll be operational in English. Ready?"
+      );
+      english.lang = "en-US";
+      const enVoice = voices.find((v) => v.lang.replace("_", "-").startsWith("en"));
+      if (enVoice) english.voice = enVoice;
+      synth.speak(italian);
+      synth.speak(english);
+    } catch {
+      // No speech available — the written intro carries the message.
+    }
+  }
+
   function dismissSplash() {
     if (leaving) return;
     sessionStorage.setItem(SHOWN_KEY, "1");
     if (localStorage.getItem(SAM_KEY) !== "1") {
+      speakSamIntro();
       setStage("sam");
       return;
     }
@@ -35,6 +63,7 @@ export function SplashScreen() {
 
   function dismissSam() {
     if (leaving) return;
+    try { window.speechSynthesis?.cancel(); } catch { /* nothing to stop */ }
     localStorage.setItem(SAM_KEY, "1");
     setLeaving(true);
     setTimeout(() => setStage("hidden"), 420);
@@ -55,6 +84,7 @@ export function SplashScreen() {
           </div>
         </div>
         <div className="splashFooter">
+          <button type="button" className="samReplay" onClick={speakSamIntro}>🔊 Riascolta Sam</button>
           <button type="button" className="samCta" onClick={dismissSam}>SFIDA ACCETTATA · INIZIA</button>
           <div className="splashBy">Sam is ready when you are</div>
         </div>
