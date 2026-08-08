@@ -7,6 +7,7 @@ export function proxy(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/api/auth") ||
+    path.startsWith("/api/cron") ||
     path.startsWith("/icons/") ||
     path === "/manifest.webmanifest" ||
     path === "/sw.js" ||
