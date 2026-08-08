@@ -7,6 +7,7 @@ import { runCoach } from "@/lib/ai/openai";
 import {
   ensureProfile,
   getRelevantLearningContext,
+  saveCapabilities,
   recordDailyMetric,
   recordReviewResult,
   saveExpression,
@@ -19,14 +20,14 @@ import {
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
-  mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials"]).default("text-5"),
+  mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials", "zero", "mission"]).default("text-5"),
   sessionId: z.string().uuid().optional(),
   // A Buddy question delivered via push, shown client-side before the first
   // reply; recorded as the session's opening assistant turn.
   opener: z.string().trim().max(500).optional(),
 });
 
-const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3, essentials: 7 };
+const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3, essentials: 7, zero: 4, mission: 7 };
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
     }
 
     await updateSkillEstimate(userId, result.skill_updates);
+    if (result.capabilities.length) await saveCapabilities(userId, result.capabilities.slice(0, 3));
     await recordDailyMetric(userId, {
       minutes: modeMinutes[mode] ?? 5,
       interactions: 1,

@@ -10,5 +10,5 @@ export default async function BuddyPage({ searchParams }: { searchParams: Promis
   if (!profileResult.rows.length) redirect("/onboarding");
   const params = await searchParams; const mode = params.mode || "text-5";
   const initialQuestion = params.q?.slice(0, 500);
-  return <main className="shell"><div className="topbar"><div><div className="brand">English Buddy</div><div className="muted" style={{fontSize:12}}>Mode · {mode}</div></div><a className="chip" href="/home">Change</a></div><BuddyChat mode={mode} initialQuestion={initialQuestion} /><BottomNav active="buddy" /></main>;
+  return <main className="shell"><div className="topbar"><div><div className="brand">English Buddy</div><div className="muted" style={{fontSize:12}}>Mode · {mode}</div></div><span style={{display:"flex",gap:6}}><a className="chip" href="/rescue">🆘</a><a className="chip" href="/home">Change</a></span></div><BuddyChat mode={mode} initialQuestion={initialQuestion} /><BottomNav active="buddy" /></main>;
 }

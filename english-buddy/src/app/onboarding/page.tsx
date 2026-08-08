@@ -3,25 +3,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const GOAL_OPTIONS = ["Business calls and meetings", "Finance and investments", "Presentations", "Negotiations", "Travel", "Everyday conversation"];
-const LEVELS = [
-  { value: "A1", label: "A1 · Beginner" },
-  { value: "A2", label: "A2 · Elementary" },
-  { value: "B1", label: "B1 · Intermediate" },
-  { value: "B2", label: "B2 · Upper intermediate" },
-  { value: "C1", label: "C1 · Advanced" },
-  { value: "unknown", label: "I don't know" },
+const STARTING_LEVELS = [
+  { value: "zero", label: "I'm starting from zero", meta: "Parto da zero — conosco pochissimo inglese e ho bisogno di un percorso guidato." },
+  { value: "basics", label: "I understand a little", meta: "Capisco qualcosa — riconosco un po' di inglese ma faccio fatica a parlare." },
+  { value: "independent", label: "I can manage", meta: "Me la cavo — riesco a comunicare, ma voglio diventare più fluente e sicuro." },
+  { value: "business", label: "Business English", meta: "Ho già una base — voglio concentrarmi su riunioni, call, finanza e situazioni professionali." },
 ];
 const INTENSITIES = [
-  { value: "immersive", label: "Immersive", meta: "Many small touchpoints during the day" },
-  { value: "normal", label: "Normal", meta: "A few well-timed nudges" },
-  { value: "low", label: "Low", meta: "Rare, only the essentials" },
+  { value: "immersive", label: "Immersive", meta: "Many small touchpoints during the day · Tanti piccoli momenti durante la giornata" },
+  { value: "normal", label: "Normal", meta: "A few well-timed nudges · Qualche promemoria ben piazzato" },
+  { value: "low", label: "Low", meta: "Rare, only the essentials · Rari, solo l'essenziale" },
 ];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const [startingLevel, setStartingLevel] = useState("");
   const [name, setName] = useState("");
   const [goals, setGoals] = useState<string[]>(["Business calls and meetings"]);
-  const [level, setLevel] = useState("A2");
   const [context, setContext] = useState("");
   const [intensity, setIntensity] = useState("immersive");
   const [loading, setLoading] = useState(false);
@@ -37,7 +35,14 @@ export default function OnboardingPage() {
     const response = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name || "Friend", level, goals: goals.length ? goals : ["Business calls and meetings"], professionalContext: context, notificationIntensity: intensity, timezone }),
+      body: JSON.stringify({
+        name: name || "Friend",
+        startingLevel: startingLevel || "independent",
+        goals: goals.length ? goals : ["Business calls and meetings"],
+        professionalContext: context,
+        notificationIntensity: intensity,
+        timezone,
+      }),
     });
     setLoading(false);
     if (!response.ok) return router.push("/login");
@@ -51,22 +56,25 @@ export default function OnboardingPage() {
         <div className="brand">English Buddy</div>
         {step === 0 && (
           <>
-            <div className="hero"><div className="kicker">Step 1 of 3</div><h1>Make it yours.</h1><p className="muted">What should I call you, and what do you want English for?</p></div>
+            <div className="hero"><div className="kicker">Step 1 of 3</div><h1>Where do you start from?</h1><p className="muted">Da dove parti? Scegli quella più vicina a te — poi mi calibro dalle conversazioni reali.</p></div>
+            {STARTING_LEVELS.map((option) => (
+              <button key={option.value} type="button" className={`optionRow ${startingLevel === option.value ? "optionActive" : ""}`} onClick={() => setStartingLevel(option.value)}>
+                <strong>{option.label}</strong>
+                <span className="muted">{option.meta}</span>
+              </button>
+            ))}
+            <button className="primary full" style={{ marginTop: 10 }} disabled={!startingLevel} onClick={() => setStep(1)}>Continue</button>
+          </>
+        )}
+        {step === 1 && (
+          <>
+            <div className="hero"><div className="kicker">Step 2 of 3</div><h1>Make it yours.</h1><p className="muted">What should I call you, and what do you want English for? · Come ti chiamo, e a cosa ti serve l&rsquo;inglese?</p></div>
             <input className="field" placeholder="First name" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="pillGroup">
               {GOAL_OPTIONS.map((goal) => (
                 <button key={goal} type="button" className={`pill ${goals.includes(goal) ? "pillActive" : ""}`} onClick={() => toggleGoal(goal)}>{goal}</button>
               ))}
             </div>
-            <button className="primary full" onClick={() => setStep(1)}>Continue</button>
-          </>
-        )}
-        {step === 1 && (
-          <>
-            <div className="hero"><div className="kicker">Step 2 of 3</div><h1>Where are you now?</h1><p className="muted">A rough guess is enough — I adjust from real conversations.</p></div>
-            <select className="field" value={level} onChange={(e) => setLevel(e.target.value)}>
-              {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
             <textarea className="field" rows={3} placeholder="Your professional context (optional) — e.g. I run a holding company, evaluate acquisitions, talk to banks and investors" value={context} onChange={(e) => setContext(e.target.value)} />
             <button className="primary full" onClick={() => setStep(2)}>Continue</button>
           </>

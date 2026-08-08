@@ -38,7 +38,17 @@ Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second
 | `npm test` | Vitest — auth, coach schema, spaced repetition, learning service on a real libSQL file DB |
 | `npm run db:migrate` | Apply `db/migrations/*.sql` (idempotent) |
 
-## What works today (Phase 1)
+## What works today
+
+- **Start from Zero**: level selection at onboarding (zero / a little / manage / business), a guided beginner path (listen → read → repeat → complete → use) with Italian scaffolding that fades as competence grows — while keeping the 3-month business-English mission
+- **3-month capability path**: month 1 foundations → month 2 workplace → month 3 managerial English; real-world capabilities ("can introduce yourself", "can present numbers"…) tracked on the Progress screen
+- **English Rescue** (`/rescue`): type Italian, get the sentence in English in three registers (simple / natural / business) with audio, copy, save-for-review and practice
+- **"I don't know what to say"**: in any conversation, get 2-3 level-appropriate example answers to choose and edit
+- **Real-life missions**: role-play scenes (introduce yourself, airport, hotel, restaurant, meetings, calls, numbers, scheduling) that mark capabilities when completed
+- **Owner dashboard** (`/admin`): who uses the app, minutes, last activity, capability count; send nudge notifications and tune per-user notification intensity
+- Listen buttons (normal + slow speed) on coach messages via device speech synthesis
+
+### Phase 1 foundation
 
 - Self-registration at `/register` with per-user access codes (lockable via `INVITE_CODE`); each user's learning data is fully separate
 - Short onboarding (goals, level incl. "I don't know", professional context, notification intensity)

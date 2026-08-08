@@ -5,7 +5,9 @@ import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ensureProfile,
+  getCapabilities,
   getRelevantLearningContext,
+  saveCapabilities,
   recordDailyMetric,
   recordReviewResult,
   saveExpression,
@@ -101,6 +103,16 @@ describe("learning service against a real libSQL database", () => {
     expect(Number(row.grammar)).toBe(52); // clamped to +2
     expect(Number(row.fluency)).toBe(48); // clamped to -2
     expect(Number(row.listening)).toBe(50);
+  });
+
+  it("stores demonstrated capabilities idempotently and ignores unknown keys", async () => {
+    await saveCapabilities(USER, ["introduce_yourself", "not_a_real_capability"], client);
+    await saveCapabilities(USER, ["introduce_yourself", "give_opinion"], client);
+    const caps = await getCapabilities(USER, client);
+    expect(caps.sort()).toEqual(["give_opinion", "introduce_yourself"]);
+    const context = await getRelevantLearningContext(USER, "any-session", client);
+    expect(context.capabilitiesAchieved.sort()).toEqual(["give_opinion", "introduce_yourself"]);
+    expect([1, 2, 3]).toContain(context.monthPhase);
   });
 
   it("ensureProfile lets a user who skipped onboarding start a session (FK regression)", async () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { capabilityKeys } from "@/lib/learning/capabilities";
 
 export const mistakeCategories = ["grammar", "vocabulary", "word_order", "tense", "preposition", "article", "business_expression", "register", "other"] as const;
 export const skillNames = ["listening", "speaking", "business_conversation", "vocabulary", "grammar", "pronunciation", "fluency", "comprehension"] as const;
@@ -24,6 +25,8 @@ export const coachResultSchema = z.object({
     z.object({ text: z.string(), success: z.boolean() })
   ).default([]),
   skill_updates: z.record(z.string(), z.number()).default({}),
+  // Real-world capabilities the user clearly demonstrated this turn.
+  capabilities: z.array(z.string()).default([]),
 });
 
 export type CoachResult = z.infer<typeof coachResultSchema>;
@@ -33,7 +36,7 @@ export type CoachMistake = CoachResult["mistakes"][number];
 export const coachResultJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "correction", "mistakes", "expressions", "reviewed_items", "skill_updates"],
+  required: ["reply", "correction", "mistakes", "expressions", "reviewed_items", "skill_updates", "capabilities"],
   properties: {
     reply: { type: "string", description: "Natural next reply/question in English." },
     correction: { type: "string", description: "One short user-facing correction of the user's last message, or empty string." },
@@ -83,6 +86,11 @@ export const coachResultJsonSchema = {
       properties: Object.fromEntries(
         skillNames.map((skill) => [skill, { type: "number", description: "Delta from -2 to 2, 0 when no evidence this turn." }])
       ),
+    },
+    capabilities: {
+      type: "array",
+      description: "Capability keys the user CLEARLY demonstrated this turn (usually empty; max 2).",
+      items: { type: "string", enum: capabilityKeys },
     },
   },
 } as const;

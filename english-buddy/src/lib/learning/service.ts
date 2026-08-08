@@ -3,6 +3,7 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { skillNames, type CoachMistake, type SkillName } from "@/lib/ai/types";
 import { isMastered, nextIntervalDays, nextReviewAt } from "./spaced-repetition";
+import { isCapabilityKey, monthPhase } from "./capabilities";
 
 /**
  * Structured learning memory. All persistence for the adaptive engine lives
@@ -15,7 +16,11 @@ export type LearningContext = {
     displayName: string;
     nativeLanguage: string;
     professionalContext: string | null;
+    startingLevel: string | null;
+    translationSupport: boolean;
   } | null;
+  monthPhase: 1 | 2 | 3;
+  capabilitiesAchieved: string[];
   level?: string;
   goal?: string;
   recentMistakes: { incorrect: string; correct: string; category: string }[];
@@ -51,15 +56,16 @@ export async function getRelevantLearningContext(
   client: Client = db()
 ): Promise<LearningContext> {
   const timestamp = now();
-  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult] =
+  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult] =
     await Promise.all([
-      client.execute({ sql: "SELECT display_name, native_language, professional_context FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+      client.execute({ sql: "SELECT display_name, native_language, professional_context, starting_level, translation_support, path_started_at, created_at FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT cefr_level, primary_goal FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT incorrect, correct, category FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY last_seen_at DESC LIMIT 8", args: [userId] }),
       client.execute({ sql: "SELECT incorrect, correct FROM mistakes WHERE user_id = ? AND mastered = 0 AND next_review_at IS NOT NULL AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 4", args: [userId, timestamp] }),
       client.execute({ sql: "SELECT expression, meaning FROM expressions WHERE user_id = ? AND mastered = 0 AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 6", args: [userId, timestamp] }),
       client.execute({ sql: "SELECT role, content FROM messages WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC LIMIT 12", args: [userId, sessionId] }),
       client.execute({ sql: "SELECT minutes_practiced, interactions FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args: [userId, today()] }),
+      client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
     ]);
 
   const profile = profileResult.rows[0];
@@ -72,8 +78,14 @@ export async function getRelevantLearningContext(
           displayName: String(profile.display_name ?? "Friend"),
           nativeLanguage: String(profile.native_language ?? "Italian"),
           professionalContext: profile.professional_context ? String(profile.professional_context) : null,
+          startingLevel: profile.starting_level ? String(profile.starting_level) : null,
+          translationSupport: Number(profile.translation_support ?? 1) !== 0,
         }
       : null,
+    monthPhase: monthPhase(
+      profile?.path_started_at ? String(profile.path_started_at) : profile?.created_at ? String(profile.created_at) : null
+    ),
+    capabilitiesAchieved: capabilitiesResult.rows.map((r) => String(r.capability)),
     level: state?.cefr_level ? String(state.cefr_level) : undefined,
     goal: state?.primary_goal ? String(state.primary_goal) : undefined,
     recentMistakes: mistakesResult.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct), category: String(r.category) })),
@@ -208,6 +220,22 @@ export async function updateSkillEstimate(userId: string, deltas: Record<string,
   updates.push("updated_at = ?");
   args.push(now(), userId);
   await client.execute({ sql: `UPDATE learning_state SET ${updates.join(", ")} WHERE user_id = ?`, args });
+}
+
+/** Marks real-world capabilities the coach saw demonstrated; idempotent. */
+export async function saveCapabilities(userId: string, keys: string[], client: Client = db()) {
+  for (const key of keys) {
+    if (!isCapabilityKey(key)) continue;
+    await client.execute({
+      sql: "INSERT OR IGNORE INTO user_capabilities (user_id, capability, achieved_at) VALUES (?, ?, ?)",
+      args: [userId, key, now()],
+    });
+  }
+}
+
+export async function getCapabilities(userId: string, client: Client = db()): Promise<string[]> {
+  const result = await client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] });
+  return result.rows.map((r) => String(r.capability));
 }
 
 export async function recordDailyMetric(
