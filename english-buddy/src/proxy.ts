@@ -6,6 +6,8 @@ export function proxy(request: NextRequest) {
     path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/register") ||
+    path.startsWith("/forgot") ||
+    path.startsWith("/reset") ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
     path.startsWith("/icons/") ||

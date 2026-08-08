@@ -6,6 +6,7 @@ import { requireUserId, OWNER_ID } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CAPABILITIES, monthPhase } from "@/lib/learning/capabilities";
 import { LogoutButton } from "./LogoutButton";
+import { ChangeCode } from "./ChangeCode";
 
 const LEVEL_LABELS: Record<string, string> = {
   zero: "Parto da zero",
@@ -70,6 +71,7 @@ export default async function ProfilePage() {
       <Link href="/onboarding" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         ⚙️ Cambia livello, obiettivi o notifiche
       </Link>
+      {userId !== OWNER_ID ? <ChangeCode /> : null}
       {userId === OWNER_ID ? (
         <Link href="/admin" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
           👑 Dashboard di monitoraggio

@@ -28,6 +28,7 @@ export default function LoginPage() {
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
     <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button>
     <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri English Buddy</p></form>
+    <p style={{textAlign:"center", margin:"10px 0 0"}}><a href="/forgot" className="itHint" style={{textDecoration:"underline", fontSize:14.5}}>Forgot your code? · Hai dimenticato il codice? Recuperalo qui</a></p>
     <div style={{display:"flex", alignItems:"center", gap:10, margin:"18px 0 12px"}}>
       <span style={{flex:1, height:1, background:"var(--line)"}} />
       <span className="muted" style={{fontSize:12}}>or · oppure</span>

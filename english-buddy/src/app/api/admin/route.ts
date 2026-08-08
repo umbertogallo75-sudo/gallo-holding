@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId, OWNER_ID } from "@/lib/auth";
+import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
 import { randomUUID } from "node:crypto";
@@ -16,6 +17,10 @@ const bodySchema = z.discriminatedUnion("action", [
     userId: z.string().min(1).max(80),
     intensity: z.enum(["low", "normal", "immersive"]),
   }),
+  z.object({
+    action: z.literal("resetcode"),
+    userId: z.string().min(1).max(80),
+  }),
 ]);
 
 /** Owner-only actions from the monitoring dashboard. */
@@ -26,6 +31,12 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const data = parsed.data;
+
+  if (data.action === "resetcode") {
+    const temp = await adminResetCode(data.userId);
+    if (!temp) return NextResponse.json({ error: "Non posso resettare questo account" }, { status: 400 });
+    return NextResponse.json({ ok: true, tempCode: temp });
+  }
 
   if (data.action === "intensity") {
     await db().execute({

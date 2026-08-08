@@ -39,6 +39,11 @@ export function accessCodeHash(code: string) {
   return createHmac("sha256", secret()).update(`access-code:${code}`).digest("hex");
 }
 
+/** Keyed hash for one-time reset tokens (separate domain from access codes). */
+export function resetTokenHash(token: string) {
+  return createHmac("sha256", secret()).update(`reset-token:${token}`).digest("hex");
+}
+
 /** Creates a signed session token embedding the user id and its expiry. */
 export function createSessionToken(userId: string, now = Date.now()) {
   const payload = `${userId}.${now + SESSION_MAX_AGE_SECONDS * 1000}`;

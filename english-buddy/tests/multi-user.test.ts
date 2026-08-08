@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 process.env.SESSION_SECRET = "test-secret-that-is-definitely-32-characters-long";
 process.env.APP_ACCESS_CODE = "owner-secret-code";
 
-import { createAuthUser, findUserIdByAccessCode } from "@/lib/auth-users";
+import { adminResetCode, createAuthUser, createResetToken, findUserIdByAccessCode, resetCodeWithToken, updateAccessCode } from "@/lib/auth-users";
 import { getRelevantLearningContext, saveMistake, startSession, saveMessage } from "@/lib/learning/service";
 
 let dir: string;
@@ -70,5 +70,30 @@ describe("multi-user accounts and data separation", () => {
     expect(lauraContext.profile?.displayName).toBe("Laura");
     expect(lauraContext.recentMistakes).toHaveLength(0);
     expect(lauraContext.recentMessages).toHaveLength(0);
+  });
+
+  it("recovers a lost code via email reset token", async () => {
+    const marco = (await findUserIdByAccessCode("codice-di-marco-123", client))!;
+    expect(await createResetToken("sconosciuta@example.com", client)).toBeNull();
+    const reset = (await createResetToken("marco@example.com", client))!;
+    expect(reset.token.length).toBeGreaterThan(20);
+    expect(await resetCodeWithToken("token-sbagliato", "nuovo-codice-marco", client)).toBeNull();
+    expect(await resetCodeWithToken(reset.token, "nuovo-codice-marco", client)).toBe(marco);
+    expect(await findUserIdByAccessCode("codice-di-marco-123", client)).toBeNull(); // old code dead
+    expect(await findUserIdByAccessCode("nuovo-codice-marco", client)).toBe(marco);
+    expect(await resetCodeWithToken(reset.token, "altro-codice-123", client)).toBeNull(); // token single-use
+  });
+
+  it("changes a code from the profile and via admin temp code", async () => {
+    const marco = (await findUserIdByAccessCode("nuovo-codice-marco", client))!;
+    expect(await updateAccessCode(marco, "codice-di-laura-456", client)).toBe(false); // taken
+    expect(await updateAccessCode(marco, "codice-scelto-da-me", client)).toBe(true);
+    expect(await findUserIdByAccessCode("codice-scelto-da-me", client)).toBe(marco);
+    expect(await updateAccessCode("owner", "qualsiasi-cosa-123", client)).toBe(false); // owner is env-based
+
+    const temp = (await adminResetCode(marco, client))!;
+    expect(temp).toMatch(/^buddy-/);
+    expect(await findUserIdByAccessCode(temp, client)).toBe(marco);
+    expect(await adminResetCode("owner", client)).toBeNull();
   });
 });
