@@ -121,7 +121,8 @@ export function VoiceClient({ mode }: { mode?: string }) {
             </>
           )}
           {status === "error" ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
-          <button className="primary full" style={{ marginTop: 12, minHeight: 58, fontSize: 18 }} onClick={start}>
+          <p className="itHint" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
+          <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} onClick={start}>
             🎙️ {status === "ended" ? "Talk again · Parla ancora" : "Start talking · Inizia a parlare"}
           </button>
         </section>

@@ -199,6 +199,7 @@ p { line-height:1.55; font-size:16px; }
 .samPromise { margin-top:20px; max-width:360px; font-size:17px; line-height:1.6; color:#eef0e9; border:1.5px solid rgba(94,199,154,.4); border-radius:18px; padding:16px 20px; background:rgba(47,143,99,.12); }
 .samCta { border:0; border-radius:999px; background:linear-gradient(135deg, #2f8f63, #37a774); color:#fff; font-size:16px; font-weight:800; letter-spacing:.18em; text-indent:.18em; padding:18px 34px; cursor:pointer; box-shadow:0 6px 28px rgba(47,143,99,.5); animation:ctaPulse 2s ease-in-out infinite; }
 .samCta:active { transform:scale(.96); }
+.samHint { font-size:13.5px; color:#a8b0a3; text-align:center; max-width:300px; line-height:1.4; }
 .samReplay { border:1.5px solid rgba(238,240,233,.28); border-radius:999px; background:transparent; color:#cfd6c9; font-size:14px; font-weight:650; padding:10px 20px; cursor:pointer; }
 .samReplay:active { transform:scale(.95); }
 

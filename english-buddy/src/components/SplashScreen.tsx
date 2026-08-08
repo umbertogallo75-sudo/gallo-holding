@@ -13,10 +13,14 @@ const SAM_KEY = "buddy-sam-intro-seen";
 export function SplashScreen() {
   const [stage, setStage] = useState<"hidden" | "splash" | "sam">("hidden");
   const [leaving, setLeaving] = useState(false);
+  const [samComing, setSamComing] = useState(false);
 
   useEffect(() => {
     (async () => {
-      if (sessionStorage.getItem(SHOWN_KEY) !== "1") setStage("splash");
+      if (sessionStorage.getItem(SHOWN_KEY) !== "1") {
+        setStage("splash");
+        if (localStorage.getItem(SAM_KEY) !== "1") setSamComing(true);
+      }
     })();
   }, []);
 
@@ -84,6 +88,7 @@ export function SplashScreen() {
           </div>
         </div>
         <div className="splashFooter">
+          <div className="samHint">🎧 Non senti Sam? Alza il volume, togli il silenzioso o metti le cuffie</div>
           <button type="button" className="samReplay" onClick={speakSamIntro}>🔊 Riascolta Sam</button>
           <button type="button" className="samCta" onClick={dismissSam}>SFIDA ACCETTATA · INIZIA</button>
           <div className="splashBy">Sam is ready when you are</div>
@@ -104,6 +109,7 @@ export function SplashScreen() {
       </div>
       <div className="splashFooter">
         <div className="splashLoading" aria-hidden="true"><span /><span /><span /></div>
+        {samComing ? <div className="samHint">🎧 Alza il volume o metti le cuffie: Sam sta per presentarsi a voce</div> : null}
         <div className="splashCta">TAP PER AVVIARE</div>
         <div className="splashBy">by Umberto Gallo</div>
       </div>
