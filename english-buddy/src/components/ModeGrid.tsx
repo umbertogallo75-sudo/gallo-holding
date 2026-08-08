@@ -10,8 +10,8 @@ const cardTint = (hex: string) => ({
 const modes = [
   { icon:"✍︎", title:"2 min", meta:"One useful answer", it:"2 minuti: una risposta utile", mode:"text-2", color:"#3b6ea5" },
   { icon:"✍︎", title:"5 min", meta:"Quick written chat", it:"5 minuti di conversazione scritta", mode:"text-5", color:"#3b6ea5" },
-  { icon:"🎧", title:"Listen + Type", meta:"Phase 3 · interface ready", it:"In arrivo: ascolta e scrivi", mode:"listen", color:"#7a5aa0", disabled:true },
-  { icon:"🎙️", title:"Voice", meta:"Phase 4 · realtime", it:"In arrivo: conversazione a voce", mode:"voice", color:"#b0567a", disabled:true },
+  { icon:"🎧", title:"Listen + Type", meta:"Hear a sentence, type what you heard", it:"Ascolta una frase e scrivi quello che senti", mode:"listen", color:"#7a5aa0" },
+  { icon:"🎙️", title:"Voice", meta:"Coming soon · real-time speaking", it:"In arrivo presto: conversazione a voce", mode:"voice", color:"#b0567a", disabled:true },
 ];
 
 function Wide({ href, icon, title, meta, it, color }: { href:string; icon:string; title:string; meta:string; it:string; color:string }) {

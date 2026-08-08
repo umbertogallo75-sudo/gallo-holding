@@ -14,7 +14,43 @@ const openers: Record<string,string> = {
   essentials: "Teach me essential everyday English. Pick a real situation — like a restaurant, airport or hotel — and start the role-play.",
   zero: "Start today's Start-from-Zero guided micro-lesson. Teach me one useful sentence pattern step by step.",
   mission: "Give me a real-life mission I haven't completed yet and role-play it with me.",
+  listen: "Start a listening dictation session. Give me the first sentence to transcribe.",
 };
+
+/** Hidden dictation sentence: audio-first, text revealed only on demand. */
+function DictationCard({ sentence }: { sentence: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <span className="dictation">
+      <span className="dictationLabel">🎧 Listen and type what you hear <span className="itHint" style={{ display: "block", fontStyle: "normal" }}>Ascolta e scrivi qui sotto quello che senti</span></span>
+      <span style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+        <Speak text={sentence} compact />
+        <span className="dictationText">{revealed ? sentence : "• • • • • •"}</span>
+      </span>
+      {!revealed ? (
+        <button type="button" className="pill" style={{ marginTop: 10 }} onClick={() => setRevealed(true)}>👁 Show text · Mostra testo</button>
+      ) : null}
+    </span>
+  );
+}
+
+/** Splits out a ⟦dictation⟧ segment so it can be hidden and played as audio. */
+function AssistantBubble({ content }: { content: string }) {
+  const match = content.match(/⟦([\s\S]*?)⟧/);
+  if (!match || match.index === undefined) {
+    return <>{content}<span style={{ display: "block", marginTop: 6 }}><Speak text={content} compact /></span></>;
+  }
+  const before = content.slice(0, match.index).trim();
+  const after = content.slice(match.index + match[0].length).trim();
+  return (
+    <>
+      {before}
+      <DictationCard sentence={match[1].trim()} />
+      {after}
+      {before ? <span style={{ display: "block", marginTop: 6 }}><Speak text={before} compact /></span> : null}
+    </>
+  );
+}
 
 export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuestion?:string }) {
   const [messages, setMessages] = useState<Msg[]>(
@@ -88,8 +124,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
     <div className="chat">
       {messages.map((m,i) => <div key={i} style={{display:"contents"}}>
         <div className={`bubble ${m.role === "assistant" ? "ai" : "user"}`}>
-          {m.content}
-          {m.role === "assistant" ? <div style={{ marginTop: 6 }}><Speak text={m.content} compact /></div> : null}
+          {m.role === "assistant" ? <AssistantBubble content={m.content} /> : m.content}
         </div>
         {m.correction ? <div className="correction">Better: {m.correction}</div> : null}
       </div>)}
