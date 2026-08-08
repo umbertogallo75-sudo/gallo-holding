@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ensureProfile } from "@/lib/learning/service";
 
 const bodySchema = z.object({
   subscription: z.object({
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   const { subscription, timezone } = parsed.data;
 
+  await ensureProfile(userId);
   await db().execute({
     sql: `INSERT INTO push_subscriptions (id, user_id, endpoint, subscription_json, timezone)
           VALUES (?, ?, ?, ?, ?)

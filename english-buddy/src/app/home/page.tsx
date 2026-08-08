@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { EnablePush } from "@/components/EnablePush";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
@@ -14,6 +15,9 @@ export default async function HomePage() {
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
   ]);
   const profile = profileResult.rows[0];
+  // The installed PWA starts here directly (manifest start_url), so this page
+  // must route brand-new users through onboarding itself.
+  if (!profile) redirect("/onboarding");
   const metric = metricResult.rows[0];
   const name = profile?.display_name ? String(profile.display_name) : "there";
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);

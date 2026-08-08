@@ -29,6 +29,22 @@ export type LearningContext = {
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * Every user-data table has a foreign key to profiles(id), but the profile row
+ * is normally created at onboarding — and the installed PWA starts at /home,
+ * which can be reached before onboarding. Ensure a minimal profile exists so
+ * no write path ever hits a FK failure; onboarding upserts the real values.
+ */
+export async function ensureProfile(userId: string, client: Client = db()) {
+  await client.batch(
+    [
+      { sql: "INSERT OR IGNORE INTO profiles (id) VALUES (?)", args: [userId] },
+      { sql: "INSERT OR IGNORE INTO learning_state (user_id) VALUES (?)", args: [userId] },
+    ],
+    "write"
+  );
+}
+
 export async function getRelevantLearningContext(
   userId: string,
   sessionId: string,

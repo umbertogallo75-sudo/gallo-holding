@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,6 +14,7 @@ export default async function ProgressPage() {
     database.execute({sql:"SELECT expression FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",args:[id]}),
   ]);
   const state = stateResult.rows[0];
+  if (!state) redirect("/onboarding");
   const mistakes = mistakesResult.rows;
   const expressions = expressionsResult.rows;
   const values = Object.keys(labels).map(k => [k, Number(state?.[k] ?? 50)] as const);

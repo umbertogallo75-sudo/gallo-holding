@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  ensureProfile,
   getRelevantLearningContext,
   recordDailyMetric,
   recordReviewResult,
@@ -100,5 +101,17 @@ describe("learning service against a real libSQL database", () => {
     expect(Number(row.grammar)).toBe(52); // clamped to +2
     expect(Number(row.fluency)).toBe(48); // clamped to -2
     expect(Number(row.listening)).toBe(50);
+  });
+
+  it("ensureProfile lets a user who skipped onboarding start a session (FK regression)", async () => {
+    const newcomer = "newcomer-no-onboarding";
+    await expect(startSession(newcomer, "text-5", client)).rejects.toThrow(); // FK fails without a profile
+    await ensureProfile(newcomer, client);
+    const sessionId = await startSession(newcomer, "text-5", client);
+    await saveMessage(newcomer, sessionId, "user", "Hello!", null, client);
+    expect(sessionId).toBeTruthy();
+    await ensureProfile(newcomer, client); // idempotent, never overwrites
+    const profile = (await client.execute({ sql: "SELECT display_name FROM profiles WHERE id = ?", args: [newcomer] })).rows[0];
+    expect(String(profile.display_name)).toBe("Friend");
   });
 });

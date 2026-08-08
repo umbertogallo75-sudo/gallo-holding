@@ -5,6 +5,7 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
 import { runCoach } from "@/lib/ai/openai";
 import {
+  ensureProfile,
   getRelevantLearningContext,
   recordDailyMetric,
   recordReviewResult,
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
 
     let sessionId = parsed.data.sessionId;
     if (!sessionId) {
+      await ensureProfile(userId);
       sessionId = await startSession(userId, mode);
       if (parsed.data.opener) await saveMessage(userId, sessionId, "assistant", parsed.data.opener);
     }
