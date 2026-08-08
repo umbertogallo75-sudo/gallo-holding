@@ -75,11 +75,15 @@ export function EnablePush() {
     return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Buddy notifications are on.</p>;
   }
 
+  const warning = <p className="warnText">⚠️ App non funzionante senza notifiche abilitate.</p>;
+
   if (state === "denied") {
     return (
       <section className="card">
         <h2>Notifications are blocked</h2>
         <p className="muted">Enable notifications for English Buddy in your device Settings to get Buddy questions during the day.</p>
+        <p className="itHint">Le notifiche sono bloccate: attivale dalle Impostazioni del telefono.</p>
+        {warning}
       </section>
     );
   }
@@ -95,12 +99,18 @@ export function EnablePush() {
               ? "To get Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there."
               : "Get short English questions at natural moments of your day — like a friend texting you. Answer when you want; no streaks, no guilt."}
           </p>
+          <p className="itHint">
+            {state === "need-install"
+              ? "Per ricevere le notifiche, aggiungi prima l'app alla schermata Home: Condividi → Aggiungi alla schermata Home."
+              : "Riceverai brevi domande in inglese durante la giornata, come i messaggi di un amico. Rispondi quando vuoi."}
+          </p>
           {state !== "need-install" ? (
             <button className="primary full" style={{ marginTop: 12 }} disabled={state === "subscribing"} onClick={enable}>
               {state === "subscribing" ? "Enabling…" : "Enable notifications"}
             </button>
           ) : null}
           <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>Not now</button>
+          {warning}
         </div>
       </div>
     );
@@ -112,6 +122,8 @@ export function EnablePush() {
       <section className="card">
         <h2>Hear from your Buddy</h2>
         <p className="muted">To receive Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there.</p>
+        <p className="itHint">Aggiungi l&rsquo;app alla schermata Home (Condividi → Aggiungi alla schermata Home) per ricevere le notifiche.</p>
+        {warning}
       </section>
     );
   }
@@ -120,9 +132,11 @@ export function EnablePush() {
     <section className="card">
       <h2>Hear from your Buddy</h2>
       <p className="muted">Get short English questions at natural moments of your day.</p>
+      <p className="itHint">Ricevi brevi domande in inglese durante la giornata.</p>
       <button className="primary full" style={{ marginTop: 10 }} disabled={state === "subscribing"} onClick={enable}>
         {state === "subscribing" ? "Enabling…" : "Enable notifications"}
       </button>
+      {warning}
     </section>
   );
 }
