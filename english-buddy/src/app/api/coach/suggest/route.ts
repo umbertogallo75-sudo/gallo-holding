@@ -4,6 +4,8 @@ import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
+export const maxDuration = 30;
+
 const bodySchema = z.object({
   question: z.string().trim().min(1).max(600),
   mode: z.string().max(20).optional(),

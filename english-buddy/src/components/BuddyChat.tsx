@@ -25,21 +25,43 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   const [sessionId, setSessionId] = useState<string>();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
+  const [failedMessage, setFailedMessage] = useState<string>();
   const started = useRef(Boolean(initialQuestion));
   const opener = useRef(initialQuestion);
+
+  async function coachCall(message: string) {
+    const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Coach unavailable");
+    return data;
+  }
 
   async function send(raw: string, visible = true) {
     const message = raw.trim(); if (!message || loading) return;
     if (visible) setMessages(v => [...v, { role:"user", content:message }]);
-    setText(""); setSuggestions([]); setLoading(true);
+    setText(""); setSuggestions([]); setFailedMessage(undefined); setLoading(true);
     try {
-      const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || "Coach unavailable");
+      let data;
+      try {
+        data = await coachCall(message);
+      } catch {
+        // Mobile networks drop long requests; one quiet retry fixes most cases.
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        data = await coachCall(message);
+      }
       setSessionId(data.sessionId);
       setMessages(v => [...v, { role:"assistant", content:data.reply, correction:data.correction }]);
-    } catch (e) { setMessages(v => [...v, { role:"assistant", content:`I couldn't connect to the coach. ${e instanceof Error ? e.message : ""}` }]); }
+    } catch {
+      setFailedMessage(message);
+    }
     finally { setLoading(false); }
+  }
+
+  function retry() {
+    const message = failedMessage;
+    if (!message) return;
+    setFailedMessage(undefined);
+    void send(message, false);
   }
 
   async function askForHelp() {
@@ -72,6 +94,13 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         {m.correction ? <div className="correction">Better: {m.correction}</div> : null}
       </div>)}
       {loading && <div className="bubble ai muted">Thinking…</div>}
+      {failedMessage && !loading && (
+        <div className="bubble ai">
+          ⚠️ Connection problem — your answer was not lost.
+          <span className="itHint" style={{display:"block"}}>Problema di connessione: la tua risposta non è andata persa. Tocca Riprova.</span>
+          <button type="button" className="primary" style={{marginTop:8, padding:"8px 16px", minWidth:0}} onClick={retry}>Retry · Riprova</button>
+        </div>
+      )}
       {suggestions.length > 0 && (
         <div className="suggestBox">
           <div className="itHint" style={{ marginBottom: 4 }}>Scegli una risposta, poi puoi modificarla prima di inviare:</div>

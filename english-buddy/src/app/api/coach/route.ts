@@ -18,6 +18,10 @@ import {
   updateSkillEstimate,
 } from "@/lib/learning/service";
 
+// LLM turns can exceed Vercel's 10s default; without this the platform kills
+// the function mid-response and the phone sees a bare "Load failed".
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
   mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials", "zero", "mission"]).default("text-5"),

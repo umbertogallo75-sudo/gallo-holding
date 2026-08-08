@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { ensureProfile, saveExpression } from "@/lib/learning/service";
 
+export const maxDuration = 30;
+
 const translateSchema = z.object({ text: z.string().trim().min(1).max(600) });
 const saveSchema = z.object({ expression: z.string().trim().min(1).max(300), meaning: z.string().trim().max(300).default("") });
 
