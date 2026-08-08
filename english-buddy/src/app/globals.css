@@ -118,5 +118,10 @@ p { line-height:1.5; }
 .welcomeItem p { margin:3px 0 0; font-size:14px; line-height:1.45; }
 .welcomeNote { border:1px solid var(--line); background:var(--soft); border-radius:18px; padding:15px 17px; margin:14px 0 4px; font-size:14px; line-height:1.5; }
 .welcomeQuote { font-weight:750; letter-spacing:-.02em; font-size:20px; line-height:1.3; border-left:3px solid var(--accent); padding-left:14px; margin:20px 0 24px; }
-.welcomeCta { margin-top:auto; min-height:52px; font-size:16px; }
+.welcomeCta { min-height:52px; font-size:16px; }
+.welcomeDots { display:flex; gap:7px; justify-content:center; margin:auto 0 14px; padding-top:18px; }
+.welcomeDot { width:8px; height:8px; border-radius:999px; background:var(--line); }
+.welcomeDot.on { background:var(--accent); }
+.welcomeRow { display:flex; gap:8px; align-items:stretch; }
+.welcomeRow .secondary { min-height:52px; }
 .sheet { width:min(540px, calc(100% - 20px)); margin-bottom:16px; background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:20px; box-shadow:0 14px 44px rgba(0,0,0,.3); }

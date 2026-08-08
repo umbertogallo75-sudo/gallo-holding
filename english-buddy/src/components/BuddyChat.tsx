@@ -10,6 +10,7 @@ const openers: Record<string,string> = {
   guided: "Start today's guided Business English session using my learning memory.",
   surprise: "Choose the most useful English exercise for me right now and start immediately.",
   buddy: "Send me your Buddy question for this moment of the day.",
+  essentials: "Teach me essential everyday English. Pick a real situation — like a restaurant, airport or hotel — and start the role-play.",
 };
 
 export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuestion?:string }) {

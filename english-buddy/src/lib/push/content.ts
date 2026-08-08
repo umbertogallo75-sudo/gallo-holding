@@ -29,6 +29,10 @@ const POOL = [
   "Tell me about a small win you had this week.",
   "How do you decide when to delegate and when to do it yourself?",
   "What would you do with one extra free hour every day?",
+  "You're at a restaurant in London and the waiter arrives. What do you say to order?",
+  "Quick basics: how would you ask for the bill in English, politely?",
+  "You land at the airport and need a taxi to your hotel. What do you ask the driver?",
+  "At hotel check-in they ask for your details. How do you introduce yourself in English?",
 ] as const;
 
 function hashCode(text: string): number {
@@ -61,6 +65,7 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
         instructions: `You are English Buddy, an English-speaking friend who texts short questions during the day to help an ${context.level || "intermediate"}-level professional practice English naturally.
 Write ONE question, max 22 words, plain text only (no quotes, no emoji).
 Vary topics across: daily life, opinions, travel, food, business, investments, leadership, negotiation, strategy. Never feel like homework.
+Occasionally (about one time in five) ask a practical "essentials" question instead: a real-life situation like ordering at a restaurant, taking a taxi, or checking into a hotel, asking how they would say it in English.
 ${context.professionalContext ? `Their background: ${context.professionalContext}.` : ""}
 Avoid repeating these recent questions: ${JSON.stringify(context.recentQuestions.slice(0, 6))}`,
         input: `Write the next question for ${context.name || "your friend"}.`,

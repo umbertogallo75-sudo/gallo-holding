@@ -12,6 +12,7 @@ export function ModeGrid() {
     {modes.map(m => m.disabled ? <div className="mode" key={m.mode} style={{opacity:.55}}><span className="modeIcon">{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div></div></div> :
       <Link href={`/buddy?mode=${m.mode}`} className="mode" key={m.mode}><span className="modeIcon">{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div></div></Link>)}
     <Link href="/buddy?mode=guided" className="mode wide"><span className="modeIcon">↗</span><div><div className="modeTitle">20 min guided session</div><div className="modeMeta">Business English, correction and adaptive review</div></div></Link>
+    <Link href="/buddy?mode=essentials" className="mode wide"><span className="modeIcon">🍽️</span><div><div className="modeTitle">Everyday essentials</div><div className="modeMeta">Basic words for restaurants, travel and getting around</div></div></Link>
     <Link href="/buddy?mode=buddy" className="mode wide"><span className="modeIcon">☕︎</span><div><div className="modeTitle">Buddy question</div><div className="modeMeta">One quick question from your English-speaking friend</div></div></Link>
     <Link href="/buddy?mode=surprise" className="mode wide"><span className="modeIcon">✦</span><div><div className="modeTitle">Surprise me</div><div className="modeMeta">Let the coach choose what matters most today</div></div></Link>
   </div>;
