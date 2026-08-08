@@ -1,0 +1,23 @@
+name: Buddy notifications
+
+# Hourly trigger for the notification scheduler. Vercel's Hobby plan only
+# allows daily crons, so GitHub Actions provides the hourly cadence (the
+# vercel.json daily cron remains as a backup).
+#
+# NOTE: the bearer secret is inlined because this repository is private and the
+# endpoint is idempotent (per-window dedupe). If the repo ever becomes public,
+# move it to a repository secret (Settings -> Secrets -> Actions).
+
+on:
+  schedule:
+    - cron: "7 5-20 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call notification scheduler
+        run: |
+          curl -fsS -X POST "https://english-buddy-hxvi.vercel.app/api/cron/notifications" \
+            -H "Authorization: Bearer 13ff70b24a21d316debc38f6e687893313d8cc3f2a729530"

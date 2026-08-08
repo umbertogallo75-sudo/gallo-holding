@@ -37,5 +37,5 @@ tests/                  Vitest: auth, schema parsing, spaced repetition, service
 ## Phase status
 
 - Phase 1 (foundation, text modes, learning memory, PWA shell): **done**
-- Phase 2 (Web Push scheduler): schema is ready (`push_subscriptions`, `notification_history`, profile intensity/quiet hours); implementation next
+- Phase 2 (Web Push Buddy notifications): **done** — hourly scheduler (GitHub Actions + daily Vercel cron backup), per-user windows/intensity/quiet hours/timezone, LLM-generated questions with pool fallback, deep links
 - Phase 3 (Listen + Type) and Phase 4 (Realtime voice): not started; modes are visible but disabled in the UI

@@ -12,19 +12,22 @@ const openers: Record<string,string> = {
   buddy: "Send me your Buddy question for this moment of the day.",
 };
 
-export function BuddyChat({ mode }: { mode:string }) {
-  const [messages, setMessages] = useState<Msg[]>([]);
+export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuestion?:string }) {
+  const [messages, setMessages] = useState<Msg[]>(
+    initialQuestion ? [{ role:"assistant", content:initialQuestion }] : []
+  );
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>();
-  const started = useRef(false);
+  const started = useRef(Boolean(initialQuestion));
+  const opener = useRef(initialQuestion);
 
   async function send(raw: string, visible = true) {
     const message = raw.trim(); if (!message || loading) return;
     if (visible) setMessages(v => [...v, { role:"user", content:message }]);
     setText(""); setLoading(true);
     try {
-      const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId }) });
+      const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Coach unavailable");
       setSessionId(data.sessionId);

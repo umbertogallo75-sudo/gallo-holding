@@ -49,7 +49,7 @@ Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second
 
 ## Roadmap
 
-Phase 2: Web Push + notification scheduler (schema and preferences already in place) · Phase 3: Listen + Type · Phase 4: Realtime voice (WebRTC) · Phase 5: deeper adaptation · Phase 6: polish.
+Phase 2 (done): Web Push Buddy notifications — natural questions during the day, per-user intensity/quiet hours/timezone, deep links into the conversation · Phase 3: Listen + Type · Phase 4: Realtime voice (WebRTC) · Phase 5: deeper adaptation · Phase 6: polish.
 
 ## Docs
 

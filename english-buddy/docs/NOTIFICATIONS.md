@@ -1,22 +1,46 @@
-# Notifications (Phase 2 — designed, not yet implemented)
+# Notifications (Phase 2 — implemented)
 
-## What already exists
+English Buddy texts users like a friend: short, natural English questions at
+natural moments of the day. No streaks, no guilt; ignoring a question has no
+consequence.
 
-- `push_subscriptions` table (multi-device ready) and `notification_history` (sent/opened tracking for later timing optimization)
-- `profiles.notification_intensity` (`low` / `normal` / `immersive`, chosen in onboarding; the initial user defaults to immersive) and `profiles.quiet_hours_start/end` + timezone
-- Service worker registered from first load (`public/sw.js`)
-- `.env.example` placeholders for VAPID keys
+## How it works
 
-## Planned implementation
+1. **Subscription** — the Home screen shows an "Enable notifications" card
+   (after an explicit tap, never on first render). The client subscribes via
+   the service worker and POSTs the subscription + timezone to
+   `/api/push/subscribe`. Multiple devices per user are supported; dead
+   subscriptions are cleaned automatically on send failures (404/410).
+2. **Scheduler** — `/api/cron/notifications` (Bearer `CRON_SECRET`) runs
+   hourly via GitHub Actions (`.github/workflows/notifications.yml`), with a
+   daily Vercel cron (`vercel.json`) as backup — Vercel's Hobby plan only
+   allows daily crons. For each subscribed user it applies, in their timezone:
+   - **Windows**: morning 8-10 · late morning 10-12 · lunch 12-14 ·
+     afternoon 14-16 · late afternoon 16-18 · evening 18-21
+   - **Intensity** (from onboarding): `immersive` = all six windows,
+     `normal` = morning/lunch/evening, `low` = evening only
+   - **Quiet hours** per profile (default 22 → 7, may wrap midnight)
+   - **Dedupe**: max one notification per window per local day
+     (`notification_history.kind` = `buddy:<window>:<local date>`)
+3. **Content** — a tiny LLM call generates one fresh question (≤22 words),
+   personalized by name/level/professional context and avoiding recent
+   questions; on any upstream failure a curated pool provides the fallback.
+4. **Delivery & deep link** — the service worker shows the notification;
+   tapping it opens `/buddy?mode=buddy&q=<question>` where the question
+   appears instantly as the Buddy's message (no extra model call) and the
+   reply flows into the normal coach loop. The click also marks
+   `notification_history.opened_at` for future timing personalization.
 
-1. Generate VAPID keys: `npx web-push generate-vapid-keys`; set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
-2. Client: subscribe after an explicit user action (never on first render), POST subscription to `/api/push/subscribe`.
-3. `sw.js`: `push` handler shows the notification; `notificationclick` deep-links (e.g. `/buddy?mode=buddy`).
-4. Scheduler: a Vercel Cron route runs hourly, checks each user's timezone, quiet hours, intensity, and today's `notification_history`, and generates a natural Buddy question (never "Time to study English!"). Windows: morning, late morning, lunch, mid-afternoon, late afternoon, evening.
-5. Log every send in `notification_history`; mark `opened_at` from the click handler for future timing personalization.
+The scheduling core is pure and unit-tested (`src/lib/push/windows.ts`,
+`tests/push-windows.test.ts`).
 
-## Philosophy
+## iOS requirements
 
-Many gentle touchpoints, like a friend texting. No streaks, no guilt, no punishment for ignoring a question. Intensity is user-controlled.
+Web Push on iOS (16.4+) works only for PWAs added to the Home Screen. The
+Enable card detects a non-installed iOS browser and shows install guidance
+instead of a broken permission prompt.
 
-iOS requirement: Web Push works only for PWAs added to the Home Screen (iOS 16.4+), so the install flow comes first.
+## Environment variables
+
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
+`CRON_SECRET` — see docs/DEPLOYMENT.md.

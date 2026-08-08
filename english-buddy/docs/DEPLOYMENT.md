@@ -44,7 +44,8 @@ Re-running is safe; applied files are tracked in `schema_migrations`.
 | `OPENAI_API_KEY` | yes | Server-side only |
 | `OPENAI_MODEL` | no | Defaults to `gpt-5-mini` |
 | `NEXT_PUBLIC_APP_URL` | no | Public URL of the deployment |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Phase 2 | `npx web-push generate-vapid-keys` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | yes (push) | `npx web-push generate-vapid-keys` |
+| `CRON_SECRET` | yes (push) | Bearer token protecting `/api/cron/notifications` (used by GitHub Actions + Vercel cron) |
 
 Never commit secrets; `.env*` is gitignored.
 

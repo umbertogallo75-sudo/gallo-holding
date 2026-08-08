@@ -20,6 +20,9 @@ const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
   mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy"]).default("text-5"),
   sessionId: z.string().uuid().optional(),
+  // A Buddy question delivered via push, shown client-side before the first
+  // reply; recorded as the session's opening assistant turn.
+  opener: z.string().trim().max(500).optional(),
 });
 
 const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3 };
@@ -37,7 +40,11 @@ export async function POST(request: Request) {
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     const { message, mode } = parsed.data;
 
-    const sessionId = parsed.data.sessionId ?? (await startSession(userId, mode));
+    let sessionId = parsed.data.sessionId;
+    if (!sessionId) {
+      sessionId = await startSession(userId, mode);
+      if (parsed.data.opener) await saveMessage(userId, sessionId, "assistant", parsed.data.opener);
+    }
     await saveMessage(userId, sessionId, "user", message);
 
     const context = await getRelevantLearningContext(userId, sessionId);
