@@ -99,7 +99,8 @@ export function WelcomeIntro() {
           con la freccia) e poi <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>.<br />
           Su <strong>Android</strong>: in Chrome tocca il menu <strong>⋮</strong> e poi
           <strong> &ldquo;Installa app&rdquo;</strong>.<br />
-          Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche del Buddy.
+          Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche del Buddy.<br />
+          📶 <strong>Serve Internet</strong>: English Buddy funziona con una connessione attiva (Wi-Fi o dati). Senza connessione il coach non può risponderti.
         </div>
 
         {dots}
