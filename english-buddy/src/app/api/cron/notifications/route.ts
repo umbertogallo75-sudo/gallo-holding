@@ -72,12 +72,18 @@ async function run(request: Request) {
         continue;
       }
 
+      const dueExpressionResult = await database.execute({
+        sql: "SELECT expression FROM expressions WHERE user_id = ? AND mastered = 0 AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 1",
+        args: [userId, now.toISOString()],
+      });
+
       const question = await generateBuddyQuestion(
         {
           name: profile.display_name ? String(profile.display_name) : null,
           level: stateResult.rows[0]?.cefr_level ? String(stateResult.rows[0].cefr_level) : null,
           professionalContext: profile.professional_context ? String(profile.professional_context) : null,
           recentQuestions: recent.rows.map((r) => String(r.prompt ?? "")).filter(Boolean),
+          dueExpression: dueExpressionResult.rows[0]?.expression ? String(dueExpressionResult.rows[0].expression) : null,
         },
         `${userId}:${due.kind}`
       );

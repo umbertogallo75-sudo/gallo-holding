@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { skillNames, type CoachMistake, type SkillName } from "@/lib/ai/types";
 import { isMastered, nextIntervalDays, nextReviewAt } from "./spaced-repetition";
 import { isCapabilityKey, monthPhase } from "./capabilities";
+import { bandForScore, stepToward } from "./levels";
 
 /**
  * Structured learning memory. All persistence for the adaptive engine lives
@@ -21,6 +22,8 @@ export type LearningContext = {
   } | null;
   monthPhase: 1 | 2 | 3;
   capabilitiesAchieved: string[];
+  mistakes7d: number;
+  masteredExpressions: number;
   level?: string;
   goal?: string;
   recentMistakes: { incorrect: string; correct: string; category: string }[];
@@ -56,7 +59,7 @@ export async function getRelevantLearningContext(
   client: Client = db()
 ): Promise<LearningContext> {
   const timestamp = now();
-  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult] =
+  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult, signalsResult] =
     await Promise.all([
       client.execute({ sql: "SELECT display_name, native_language, professional_context, starting_level, translation_support, path_started_at, created_at FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT cefr_level, primary_goal FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
@@ -66,6 +69,10 @@ export async function getRelevantLearningContext(
       client.execute({ sql: "SELECT role, content FROM messages WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC LIMIT 12", args: [userId, sessionId] }),
       client.execute({ sql: "SELECT minutes_practiced, interactions FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args: [userId, today()] }),
       client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
+      client.execute({
+        sql: "SELECT (SELECT COUNT(*) FROM mistakes WHERE user_id = ?1 AND last_seen_at >= ?2) AS m7, (SELECT COUNT(*) FROM expressions WHERE user_id = ?1 AND mastered = 1) AS mastered",
+        args: [userId, new Date(Date.now() - 7 * 86_400_000).toISOString()],
+      }),
     ]);
 
   const profile = profileResult.rows[0];
@@ -86,6 +93,8 @@ export async function getRelevantLearningContext(
       profile?.path_started_at ? String(profile.path_started_at) : profile?.created_at ? String(profile.created_at) : null
     ),
     capabilitiesAchieved: capabilitiesResult.rows.map((r) => String(r.capability)),
+    mistakes7d: Number(signalsResult.rows[0]?.m7 ?? 0),
+    masteredExpressions: Number(signalsResult.rows[0]?.mastered ?? 0),
     level: state?.cefr_level ? String(state.cefr_level) : undefined,
     goal: state?.primary_goal ? String(state.primary_goal) : undefined,
     recentMistakes: mistakesResult.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct), category: String(r.category) })),
@@ -236,6 +245,31 @@ export async function saveCapabilities(userId: string, keys: string[], client: C
 export async function getCapabilities(userId: string, client: Client = db()): Promise<string[]> {
   const result = await client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] });
   return result.rows.map((r) => String(r.capability));
+}
+
+/**
+ * Diagnostic-through-use (Phase 5): when the evidence-based skill estimates
+ * settle into a different CEFR band, move the level one step. Reaching B1
+ * also switches off automatic Italian translation support — independence,
+ * not permanent translation.
+ */
+export async function maybeAdjustLevel(userId: string, client: Client = db()): Promise<string | null> {
+  const state = await client.execute({ sql: "SELECT * FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] });
+  if (!state.rows.length) return null;
+  const row = state.rows[0];
+  const average = skillNames.reduce((sum, skill) => sum + Number(row[skill] ?? 50), 0) / skillNames.length;
+  const current = String(row.cefr_level ?? "A2");
+  const next = stepToward(current, bandForScore(average));
+  if (next === current) return null;
+
+  await client.execute({
+    sql: "UPDATE learning_state SET cefr_level = ?, updated_at = ? WHERE user_id = ?",
+    args: [next, now(), userId],
+  });
+  if (["B1", "B2", "C1"].includes(next)) {
+    await client.execute({ sql: "UPDATE profiles SET translation_support = 0 WHERE id = ?", args: [userId] });
+  }
+  return next;
 }
 
 export async function recordDailyMetric(

@@ -50,6 +50,8 @@ export type QuestionContext = {
   level?: string | null;
   professionalContext?: string | null;
   recentQuestions: string[];
+  // A spaced-repetition expression that is due: the question can invite it.
+  dueExpression?: string | null;
 };
 
 export async function generateBuddyQuestion(context: QuestionContext, seed: string): Promise<string> {
@@ -66,6 +68,7 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
 Write ONE question, max 22 words, plain text only (no quotes, no emoji).
 Vary topics across: daily life, opinions, travel, food, business, investments, leadership, negotiation, strategy. Never feel like homework.
 Occasionally (about one time in five) ask a practical "essentials" question instead: a real-life situation like ordering at a restaurant, taking a taxi, or checking into a hotel, asking how they would say it in English.
+${context.dueExpression ? `They are due to review the expression "${context.dueExpression}": about half the time, shape the question so answering naturally invites using it — without saying it's a review.` : ""}
 ${context.professionalContext ? `Their background: ${context.professionalContext}.` : ""}
 Avoid repeating these recent questions: ${JSON.stringify(context.recentQuestions.slice(0, 6))}`,
         input: `Write the next question for ${context.name || "your friend"}.`,

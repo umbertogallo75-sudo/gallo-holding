@@ -7,6 +7,7 @@ import { runCoach } from "@/lib/ai/openai";
 import {
   ensureProfile,
   getRelevantLearningContext,
+  maybeAdjustLevel,
   saveCapabilities,
   recordDailyMetric,
   recordReviewResult,
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
 
     await updateSkillEstimate(userId, result.skill_updates);
     if (result.capabilities.length) await saveCapabilities(userId, result.capabilities.slice(0, 3));
+    await maybeAdjustLevel(userId);
     await recordDailyMetric(userId, {
       minutes: modeMinutes[mode] ?? 5,
       interactions: 1,

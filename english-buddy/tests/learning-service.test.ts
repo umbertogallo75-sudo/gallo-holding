@@ -7,6 +7,7 @@ import {
   ensureProfile,
   getCapabilities,
   getRelevantLearningContext,
+  maybeAdjustLevel,
   saveCapabilities,
   recordDailyMetric,
   recordReviewResult,
@@ -113,6 +114,17 @@ describe("learning service against a real libSQL database", () => {
     const context = await getRelevantLearningContext(USER, "any-session", client);
     expect(context.capabilitiesAchieved.sort()).toEqual(["give_opinion", "introduce_yourself"]);
     expect([1, 2, 3]).toContain(context.monthPhase);
+  });
+
+  it("advances the CEFR level one step when skills settle in a higher band, and drops translation support", async () => {
+    const climber = "climber-user";
+    await ensureProfile(climber, client);
+    await client.execute({ sql: "UPDATE learning_state SET cefr_level = 'A2', listening=70, speaking=70, business_conversation=70, vocabulary=70, grammar=70, pronunciation=70, fluency=70, comprehension=70 WHERE user_id = ?", args: [climber] });
+    expect(await maybeAdjustLevel(climber, client)).toBe("B1"); // one step only, despite B2-band average
+    expect(await maybeAdjustLevel(climber, client)).toBe("B2"); // next call takes the second step
+    expect(await maybeAdjustLevel(climber, client)).toBeNull(); // then stable
+    const profile = (await client.execute({ sql: "SELECT translation_support FROM profiles WHERE id = ?", args: [climber] })).rows[0];
+    expect(Number(profile.translation_support)).toBe(0);
   });
 
   it("ensureProfile lets a user who skipped onboarding start a session (FK regression)", async () => {

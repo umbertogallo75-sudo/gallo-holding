@@ -1,5 +1,5 @@
-const CACHE = "english-buddy-shell-v2";
-const SHELL = ["/", "/home", "/buddy", "/progress", "/manifest.webmanifest"];
+const CACHE = "english-buddy-shell-v3";
+const SHELL = ["/", "/home", "/buddy", "/progress", "/profile", "/rescue", "/voice", "/manifest.webmanifest"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => undefined));

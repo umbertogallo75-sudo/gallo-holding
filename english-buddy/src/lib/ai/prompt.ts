@@ -71,5 +71,7 @@ ${JSON.stringify(memory.recentMistakes)}
 Recent conversation this session:
 ${JSON.stringify(memory.recentMessages)}
 
+Recent performance signals (calibrate difficulty on these, not on time elapsed): ${memory.mistakes7d} mistakes seen in the last 7 days, ${memory.masteredExpressions} expressions mastered so far, ${memory.capabilitiesAchieved.length} capabilities demonstrated.
+
 Today so far: ${memory.todayMinutes} minutes practiced, ${memory.todayInteractions} interactions.`;
 }
