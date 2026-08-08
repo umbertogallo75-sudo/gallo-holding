@@ -28,6 +28,14 @@ export default function LoginPage() {
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
     <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button>
     <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri English Buddy</p></form>
-    <p className="muted" style={{marginTop:14, fontSize:13}}>New here? <a href="/register" style={{textDecoration:"underline"}}>Create your access</a><span className="itHint" style={{display:"block"}}>Sei nuovo? Registrati da qui — è gratis e ci vogliono 30 secondi</span></p>
+    <div style={{display:"flex", alignItems:"center", gap:10, margin:"18px 0 12px"}}>
+      <span style={{flex:1, height:1, background:"var(--line)"}} />
+      <span className="muted" style={{fontSize:12}}>or · oppure</span>
+      <span style={{flex:1, height:1, background:"var(--line)"}} />
+    </div>
+    <a href="/register" className="secondary full" style={{display:"block", textAlign:"center", fontWeight:750, padding:"14px", borderWidth:2}}>
+      🆕 I&rsquo;m new — Create my access
+      <span className="itHint" style={{display:"block", fontWeight:400, marginTop:2}}>Non hai ancora un codice? Registrati qui: è gratis, bastano nome, email e un codice a tua scelta</span>
+    </a>
   </section></main>;
 }
