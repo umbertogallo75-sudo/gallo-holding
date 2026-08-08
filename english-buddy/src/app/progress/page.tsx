@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CAPABILITIES, monthPhase } from "@/lib/learning/capabilities";
+import { NotificationReminder } from "@/components/NotificationReminder";
 
 const labels: Record<string,string> = { listening:"Listening", speaking:"Speaking", business_conversation:"Business conversation", vocabulary:"Vocabulary", grammar:"Grammar", pronunciation:"Pronunciation", fluency:"Fluency", comprehension:"Comprehension" };
 
@@ -27,6 +28,7 @@ export default async function ProgressPage() {
   const phase = monthPhase(profileRow?.path_started_at ? String(profileRow.path_started_at) : profileRow?.created_at ? String(profileRow.created_at) : null);
   const values = Object.keys(labels).map(k => [k, Number(state?.[k] ?? 50)] as const);
   return <main className="shell"><div className="topbar"><div className="brand">Progress</div><span className="chip">CEFR {state?.cefr_level ? String(state.cefr_level) : "—"} · Month {phase}/3</span></div>
+    <NotificationReminder />
     <section className="hero"><div className="kicker">Practical ability</div><h1>What is getting easier?</h1><p className="muted">Scores move gradually from real evidence in your conversations.</p><p className="itHint">Mese {phase} del tuo percorso di 3 mesi verso l&rsquo;inglese professionale.</p></section>
     <section className="card"><h2>You can now</h2>
       {done.length ? done.map(c => <p key={c.key} style={{margin:"7px 0"}}>✓ <strong>{c.en}</strong><span className="itHint" style={{display:"block",marginLeft:20}}>{c.it}</span></p>) : <p className="muted">Real-world abilities will appear here as you demonstrate them in conversation. <span className="itHint" style={{display:"block"}}>Le abilità reali appariranno qui man mano che le dimostri in conversazione.</span></p>}

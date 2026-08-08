@@ -129,6 +129,10 @@ p { line-height:1.5; }
 .itHint { color:var(--muted); font-size:11.5px; font-style:italic; margin-top:2px; }
 .warnText { color:#b3362a; font-size:12.5px; font-weight:650; margin-top:8px; }
 
+.alertBar { border:1.5px solid #c4483a; background:color-mix(in srgb, #c4483a 8%, var(--surface)); color:var(--ink); border-radius:16px; padding:12px 15px; font-size:13px; line-height:1.5; margin:0 0 14px; }
+.alertBar strong:first-child { color:#b3362a; }
+@media (prefers-color-scheme: dark) { .alertBar strong:first-child { color:#ff8f7d; } .alertBar { border-color:#8a3a30; } }
+
 .speakRow { display:inline-flex; align-items:center; gap:6px; }
 .speakBtn { border:1px solid var(--line); background:var(--surface); border-radius:999px; width:30px; height:30px; font-size:14px; cursor:pointer; padding:0; line-height:1; }
 .helpBtn { align-self:flex-start; border:1px dashed var(--line); background:var(--soft); color:var(--muted); border-radius:14px; padding:10px 14px; font-size:13px; cursor:pointer; }

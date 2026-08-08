@@ -2,6 +2,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { RescueClient } from "./RescueClient";
+import { NotificationReminder } from "@/components/NotificationReminder";
 
 export default async function RescuePage() {
   const userId = await requireUserId();
@@ -17,6 +18,7 @@ export default async function RescuePage() {
   return (
     <main className="shell">
       <div className="topbar"><div className="brand">English Rescue</div><span className="chip">🆘 Now</span></div>
+      <NotificationReminder />
       <section className="hero">
         <div className="kicker">I need English now</div>
         <h1>Say it right, right now.</h1>
