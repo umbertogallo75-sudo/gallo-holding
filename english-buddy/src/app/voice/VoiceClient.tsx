@@ -17,6 +17,7 @@ export function VoiceClient() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const secondsRef = useRef(0);
+  const linesRef = useRef<Line[]>([]);
 
   useEffect(() => () => { cleanup(false); }, []);
 
@@ -25,7 +26,10 @@ export function VoiceClient() {
     pcRef.current?.close(); pcRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
     if (report && secondsRef.current > 3) {
-      const payload = JSON.stringify({ seconds: secondsRef.current });
+      const payload = JSON.stringify({
+        seconds: secondsRef.current,
+        transcript: linesRef.current.slice(-30).map((l) => ({ role: l.role, text: l.text.slice(0, 400) })),
+      });
       const sent = navigator.sendBeacon?.("/api/voice/end", new Blob([payload], { type: "application/json" }));
       if (!sent) {
         fetch("/api/voice/end", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => null);
@@ -35,11 +39,13 @@ export function VoiceClient() {
 
   function push(role: "you" | "coach", text: string) {
     const clean = text.trim();
-    if (clean) setLines((v) => [...v.slice(-30), { role, text: clean }]);
+    if (!clean) return;
+    linesRef.current = [...linesRef.current.slice(-30), { role, text: clean }];
+    setLines(linesRef.current);
   }
 
   async function start() {
-    setStatus("connecting"); setError(""); setLines([]); setSeconds(0); secondsRef.current = 0;
+    setStatus("connecting"); setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     try {
       const tokenResponse = await fetch("/api/voice/session", { method: "POST" });
       const tokenData = await tokenResponse.json();
