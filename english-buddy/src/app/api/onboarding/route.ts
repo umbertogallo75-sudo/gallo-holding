@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         sql: `INSERT INTO profiles (id, display_name, timezone, professional_context, learning_goals, notification_intensity, starting_level, translation_support, path_started_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
               ON CONFLICT(id) DO UPDATE SET
-                display_name = excluded.display_name,
+                display_name = CASE WHEN excluded.display_name = 'Friend' THEN profiles.display_name ELSE excluded.display_name END,
                 timezone = excluded.timezone,
                 professional_context = excluded.professional_context,
                 learning_goals = excluded.learning_goals,
