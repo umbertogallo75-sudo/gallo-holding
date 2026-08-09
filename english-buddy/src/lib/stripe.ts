@@ -90,6 +90,9 @@ export async function createCheckout(userId: string, email: string | null, plan:
   if (def.interval) {
     params["subscription_data[metadata][userId]"] = userId;
     params["subscription_data[metadata][plan]"] = plan;
+  } else {
+    // One-time program purchase: create the customer so future events map back.
+    params.customer_creation = "always";
   }
   const session = await stripeFetch("/checkout/sessions", params);
   return String(session.url);
@@ -133,6 +136,8 @@ export async function createTeamCheckout(
     "line_items[0][price_data][unit_amount]": String(order.unitAmount),
     "line_items[0][quantity]": String(order.quantity),
     customer_email: order.buyerEmail,
+    // payment mode + tax-id collection requires a full customer object
+    customer_creation: "always",
     "metadata[b2b]": "1",
     "metadata[company]": order.companyName.slice(0, 200),
     "metadata[qty]": String(order.quantity),
