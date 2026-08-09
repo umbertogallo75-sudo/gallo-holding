@@ -10,7 +10,7 @@ import { safeEqual } from "@/lib/auth";
  */
 
 export function baseUrl() {
-  return (process.env.APP_BASE_URL || "https://english-buddy-hxvi.vercel.app").replace(/\/$/, "");
+  return (process.env.APP_BASE_URL || "https://execlingo.it").replace(/\/$/, "");
 }
 
 export function googleEnabled() {

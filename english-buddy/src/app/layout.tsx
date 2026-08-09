@@ -5,6 +5,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { SplashScreen } from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_BASE_URL || "https://execlingo.it"),
   title: "ExecLingo",
   description: "Your adaptive AI English coach.",
   manifest: "/manifest.webmanifest",

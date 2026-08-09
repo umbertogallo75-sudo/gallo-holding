@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Prefer the explicit base URL, else the domain the user is actually on,
     // so reset links follow the app onto execlingo.it automatically.
     const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-    const base = process.env.APP_BASE_URL || (host ? `https://${host}` : "https://english-buddy-hxvi.vercel.app");
+    const base = process.env.APP_BASE_URL || (host ? `https://${host}` : "https://execlingo.it");
     const link = `${base}/reset?token=${reset.token}`;
     await sendEmail(
       parsed.data.email,
