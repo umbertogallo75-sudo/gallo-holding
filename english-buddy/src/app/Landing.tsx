@@ -62,7 +62,7 @@ export function Landing() {
         <div className="landCtas" style={{ justifyContent: "center" }}>
           <Link href="/register" className="landCta" data-track="landing_cta_register">Inizia ora — il test è gratis</Link>
         </div>
-        <p className="landFoot">English Buddy · by Umberto Gallo · L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.</p>
+        <p className="landFoot">English Buddy · by Umberto Gallo · L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.<br /><a href="/privacy">Privacy</a> · <a href="/termini">Termini di servizio</a></p>
       </section>
     </main>
   );

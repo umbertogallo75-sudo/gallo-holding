@@ -281,3 +281,4 @@ p { line-height:1.55; font-size:16px; }
 .landFinal { padding-bottom:40px; }
 .landFinal .landCta { background:linear-gradient(135deg, var(--accent), #37a774); }
 .landFoot { margin:34px 0 0; padding:18px 0 8px; border-top:1px solid var(--line); font-size:13px; line-height:1.5; color:var(--muted); text-align:center; }
+.landFoot a { color:var(--brandText); text-decoration:underline; }

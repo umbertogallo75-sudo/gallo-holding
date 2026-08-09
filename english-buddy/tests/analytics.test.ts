@@ -35,9 +35,11 @@ describe("funnel analytics", () => {
     expect(rows[1].user_id).toBe("user-1");
   });
 
-  it("never throws when the table is unavailable", async () => {
-    const broken = createClient({ url: `file:${join(dir, "empty.db")}` });
-    await expect(trackEvent("landing_view", {}, broken)).resolves.toBeUndefined();
-    broken.close();
+  it("self-heals the schema when the migration has not run yet", async () => {
+    const fresh = createClient({ url: `file:${join(dir, "empty.db")}` });
+    await expect(trackEvent("landing_view", { visitorId: "visitor-5678" }, fresh)).resolves.toBeUndefined();
+    const rows = (await fresh.execute("SELECT name FROM analytics_events")).rows;
+    expect(rows).toHaveLength(1);
+    fresh.close();
   });
 });

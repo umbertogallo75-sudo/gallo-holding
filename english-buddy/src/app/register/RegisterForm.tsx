@@ -49,6 +49,9 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
           {error ? <div className="notice" style={{ marginBottom: 8 }}>{error}</div> : null}
           <button className="primary full" disabled={loading}>{loading ? "Creating…" : "Create my access"}</button>
           <p className="itHint" style={{ margin: "6px 4px", textAlign: "center" }}>Crea il mio accesso</p>
+          <p className="itHint" style={{ margin: "2px 4px", textAlign: "center" }}>
+            Registrandoti accetti i <a href="/termini" style={{ textDecoration: "underline" }}>Termini</a> e l&rsquo;<a href="/privacy" style={{ textDecoration: "underline" }}>Informativa privacy</a>
+          </p>
         </form>
         <p className="muted" style={{ marginTop: 14, fontSize: 13 }}>
           Already have a code? <a href="/login" style={{ textDecoration: "underline" }}>Log in</a>

@@ -8,6 +8,8 @@ export function proxy(request: NextRequest) {
     path.startsWith("/register") ||
     path.startsWith("/forgot") ||
     path.startsWith("/reset") ||
+    path === "/privacy" ||
+    path === "/termini" ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
     path === "/api/track" ||
