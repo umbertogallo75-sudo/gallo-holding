@@ -10,6 +10,7 @@ export function proxy(request: NextRequest) {
     path.startsWith("/reset") ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
+    path === "/api/track" ||
     path.startsWith("/icons/") ||
     path === "/manifest.webmanifest" ||
     path === "/sw.js" ||

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { trackEvent } from "@/lib/analytics";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(80).default("Friend"),
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
   const translationSupport = startingLevel === "zero" || startingLevel === "basics" || cefr === "A1" ? 1 : 0;
   const primaryGoal = goals[0] ?? "Business calls and meetings";
 
+  // First-time onboarding vs. profile edit — only the first counts in the funnel.
+  const existing = await db().execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
+
   await db().batch(
     [
       {
@@ -63,6 +67,7 @@ export async function POST(request: Request) {
     ],
     "write"
   );
+  if (!existing.rows.length) await trackEvent("onboarding_done", { userId });
 
   return NextResponse.json({ ok: true });
 }

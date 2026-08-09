@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { accessCodeInUse, createAuthUser } from "@/lib/auth-users";
+import { trackEvent } from "@/lib/analytics";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
   }
 
   const userId = await createAuthUser(name, code, email);
+  await trackEvent("register_done", { userId });
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, createSessionToken(userId), {

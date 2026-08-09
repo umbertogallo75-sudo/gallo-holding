@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LandingTracker } from "./LandingTracker";
 
 /**
  * Public marketing landing shown at "/" to logged-out visitors — the
@@ -7,14 +8,15 @@ import Link from "next/link";
 export function Landing() {
   return (
     <main className="landing">
+      <LandingTracker />
       <section className="landHero">
         <div className="landShell">
           <div className="landBrand"><span className="landDot" /> English Buddy</div>
           <h1 className="landH1">In 3 mesi sei <span className="landGrad">operativo in inglese</span>.</h1>
           <p className="landLead">Riunioni, call, negoziazioni, trasferte. <strong>Sam</strong>, il tuo coach personale con intelligenza artificiale, ti allena pochi minuti al giorno — nei ritagli veri della tua giornata, anche partendo da zero.</p>
           <div className="landCtas">
-            <Link href="/register" className="landCta">Prova Sam gratis — test di 3 minuti</Link>
-            <Link href="/login" className="landCta2">Ho già un account</Link>
+            <Link href="/register" className="landCta" data-track="landing_cta_register">Prova Sam gratis — test di 3 minuti</Link>
+            <Link href="/login" className="landCta2" data-track="landing_cta_login">Ho già un account</Link>
           </div>
           <p className="landHint">Niente lezioni fisse. Niente esercizi da scuola. Nessuna carta di credito per iniziare.</p>
         </div>
@@ -58,7 +60,7 @@ export function Landing() {
       <section className="landShell landSection landFinal">
         <h2 className="landH2" style={{ textAlign: "center" }}>Il tuo tempo è prezioso.<br />Anche il tuo inglese dovrebbe esserlo.</h2>
         <div className="landCtas" style={{ justifyContent: "center" }}>
-          <Link href="/register" className="landCta">Inizia ora — il test è gratis</Link>
+          <Link href="/register" className="landCta" data-track="landing_cta_register">Inizia ora — il test è gratis</Link>
         </div>
         <p className="landFoot">English Buddy · by Umberto Gallo · L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.</p>
       </section>

@@ -26,6 +26,22 @@ export default async function AdminPage() {
     database.execute("SELECT id, email FROM auth_users"),
   ]);
 
+  // Marketing funnel (last 7 / 30 days). Table may not exist before migration
+  // 0010 runs — the funnel is simply hidden until then.
+  const funnel = await database
+    .execute(
+      `SELECT name,
+              SUM(CASE WHEN created_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END) AS d7,
+              COUNT(*) AS d30,
+              COUNT(DISTINCT visitor_id) AS visitors30
+       FROM analytics_events
+       WHERE created_at >= datetime('now', '-30 days')
+       GROUP BY name`
+    )
+    .catch(() => null);
+  const funnelBy = new Map((funnel?.rows ?? []).map((r) => [String(r.name), r]));
+  const f = (name: string, col: "d7" | "d30" | "visitors30") => Number(funnelBy.get(name)?.[col] ?? 0);
+
   const by = (result: { rows: ArrayLike<Record<string, unknown>> }) =>
     new Map(Array.from(result.rows).map((r) => [String(r.user_id), r]));
   const minutesBy = by(minutes);
@@ -69,6 +85,23 @@ export default async function AdminPage() {
         <h1>Chi sta imparando?</h1>
         <p className="muted">{rows.length} utenti · Gli utenti fermi da più di 3 giorni sono evidenziati. Puoi stimolarli con una notifica o regolare quante ne ricevono.</p>
       </section>
+      {funnel ? (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>📈 Funnel marketing</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table className="adminTable">
+              <thead><tr><th>Passo</th><th>7 giorni</th><th>30 giorni</th></tr></thead>
+              <tbody>
+                <tr><td>Visite alla landing</td><td>{f("landing_view", "d7")}</td><td>{f("landing_view", "d30")} ({f("landing_view", "visitors30")} visitatori)</td></tr>
+                <tr><td>Click su «Prova Sam gratis»</td><td>{f("landing_cta_register", "d7")}</td><td>{f("landing_cta_register", "d30")}</td></tr>
+                <tr><td>Registrazioni completate</td><td>{f("register_done", "d7")}</td><td>{f("register_done", "d30")}</td></tr>
+                <tr><td>Onboarding completati</td><td>{f("onboarding_done", "d7")}</td><td>{f("onboarding_done", "d30")}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="itHint" style={{ marginBottom: 0 }}>Dati raccolti in forma anonima dal nostro database, senza tracker esterni. Quando partirà la pubblicità, qui vedrai subito se le visite si trasformano in iscritti.</p>
+        </section>
+      ) : null}
       {rows.map((r) => (
         <section className="card" key={r.id}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
