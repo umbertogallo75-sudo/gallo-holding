@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("checkout error:", error);
-    return NextResponse.json({ error: "Impossibile avviare il pagamento. Riprova tra qualche minuto." }, { status: 500 });
+    const detail = error instanceof Error ? error.message.slice(0, 300) : undefined;
+    return NextResponse.json({ error: "Impossibile avviare il pagamento. Riprova tra qualche minuto.", detail }, { status: 500 });
   }
 }
