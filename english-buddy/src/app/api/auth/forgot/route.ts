@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createResetToken } from "@/lib/auth-users";
-import { isEmailConfigured, sendEmail } from "@/lib/email";
+import { isEmailConfigured, renderEmail, sendEmail } from "@/lib/email";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({ email: z.string().trim().toLowerCase().email().max(160) });
@@ -28,14 +28,20 @@ export async function POST(request: Request) {
     const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
     const base = process.env.APP_BASE_URL || (host ? `https://${host}` : "https://execlingo.it");
     const link = `${base}/reset?token=${reset.token}`;
+    const firstName = reset.name ? ` ${reset.name}` : "";
     await sendEmail(
       parsed.data.email,
-      "ExecLingo — recupera il tuo codice di accesso",
-      `<p>Ciao ${reset.name || ""},</p>
-       <p>hai chiesto di reimpostare il tuo codice di accesso a <strong>ExecLingo</strong>.</p>
-       <p><a href="${link}" style="display:inline-block;background:#1d6b4c;color:#fff;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:bold">Scegli un nuovo codice</a></p>
-       <p>Il link vale 30 minuti. Se non sei stato tu, ignora questa email: il tuo codice resta invariato.</p>
-       <p>— ExecLingo</p>`
+      "Recupera il tuo codice di accesso a ExecLingo",
+      renderEmail({
+        preheader: "Scegli un nuovo codice in un minuto — il link vale 30 minuti.",
+        heading: `Ciao${firstName}, recuperiamo il tuo accesso.`,
+        bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Hai chiesto di reimpostare il tuo codice personale di accesso a <strong>ExecLingo</strong>. Tocca il pulsante qui sotto e scegline uno nuovo: ci vuole un minuto.</p>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#6b736a;">⏱ Il link vale <strong>30 minuti</strong> e funziona una sola volta.<br>🔒 Se non sei stato tu, ignora questa email: il tuo codice resta invariato e il tuo account è al sicuro.</p>`,
+        ctaLabel: "Scegli un nuovo codice",
+        ctaUrl: link,
+        footerNote: "Hai ricevuto questa email perché è stato richiesto il recupero del codice per il tuo account ExecLingo.",
+      }),
+      `Ciao${firstName},\n\nhai chiesto di reimpostare il tuo codice di accesso a ExecLingo.\n\nApri questo link per sceglierne uno nuovo (vale 30 minuti, una sola volta):\n${link}\n\nSe non sei stato tu, ignora questa email: il tuo codice resta invariato.\n\nExecLingo · un servizio VASP ITALIA SRL\nhttps://execlingo.it`
     );
   }
   return NextResponse.json({ ok: true, emailConfigured: true });
