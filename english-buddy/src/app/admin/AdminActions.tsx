@@ -2,22 +2,25 @@
 
 import { useState } from "react";
 
-export function AdminActions({ userId, intensity, hasPush }: { userId: string; intensity: string; hasPush: boolean }) {
+export function AdminActions({ userId, intensity, hasPush, hasFree }: { userId: string; intensity: string; hasPush: boolean; hasFree: boolean }) {
+  const [free, setFree] = useState(hasFree);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [tempCode, setTempCode] = useState("");
 
-  async function call(body: Record<string, unknown>, okText: string) {
+  async function call(body: Record<string, unknown>, okText: string): Promise<boolean> {
     setBusy(true); setStatus("");
     try {
       const r = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Errore");
-      if (body.action === "resetcode" && data.tempCode) { setTempCode(String(data.tempCode)); setStatus(""); return; }
+      if (body.action === "resetcode" && data.tempCode) { setTempCode(String(data.tempCode)); setStatus(""); return true; }
       setStatus(body.action === "nudge" && data.delivered === 0 ? "Nessun dispositivo iscritto alle notifiche" : okText);
+      return true;
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Errore");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -43,6 +46,17 @@ export function AdminActions({ userId, intensity, hasPush }: { userId: string; i
         </button>
         {userId !== "owner" ? (
           <button className="pill" disabled={busy} title="Genera un codice temporaneo se l'utente ha perso il suo" onClick={resetCode}>🔑 Reset codice</button>
+        ) : null}
+        {userId !== "owner" ? (
+          <button className="pill" disabled={busy} style={free ? { borderColor: "var(--accent)", fontWeight: 700 } : undefined}
+            title={free ? "Questo utente usa l'app gratis: tocca per revocare" : "Concedi accesso completo gratuito (senza pagamento)"}
+            onClick={() => {
+              const next = !free;
+              if (!window.confirm(next ? "Concedere l'accesso gratuito completo a questo utente?" : "Revocare l'accesso gratuito? L'utente dovrà attivare un piano.")) return;
+              void call({ action: "freeaccess", userId, grant: next }, next ? "Accesso gratuito attivato ✓" : "Accesso gratuito revocato ✓").then((ok) => { if (ok) setFree(next); });
+            }}>
+            {free ? "🎁 Gratis ✓" : "🎁 Rendi gratis"}
+          </button>
         ) : null}
       </div>
       {tempCode ? (

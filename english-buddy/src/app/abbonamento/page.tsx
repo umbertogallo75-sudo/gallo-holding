@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserId, OWNER_ID } from "@/lib/auth";
-import { getBilling, getEntitlement, stripeConfigured, stripeTestMode, TRIAL_DAYS } from "@/lib/stripe";
+import { getBilling, getEntitlement, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { PlanButton } from "./PlanButton";
 import { RedeemBox } from "./RedeemBox";
 
@@ -44,15 +44,15 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         <h1>{hasPlan ? "Sei operativo." : "Scegli il tuo percorso."}</h1>
         {userId === OWNER_ID ? (
           <p className="muted">Account fondatore: accesso completo, per sempre.</p>
+        ) : entitlement.reason === "free" ? (
+          <p className="muted">Il tuo account ha l&rsquo;accesso completo gratuito. Buon allenamento con Sam!</p>
         ) : hasPlan ? (
           <p className="muted">
             Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
             {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
           </p>
-        ) : entitlement.reason === "trial" ? (
-          <p className="muted">Sei nel periodo di prova gratuito{entitlement.daysLeft ? ` — ancora ${entitlement.daysLeft} giorni` : ""} (dura {TRIAL_DAYS} giorni). Scegli un piano per non fermarti.</p>
         ) : (
-          <p className="muted">Il periodo di prova è terminato. Scegli un piano per continuare con Sam.</p>
+          <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — scegli il piano che fa per te.</p>
         )}
         <p className="itHint">Pagamento sicuro con Stripe: carta, Apple Pay o Google Pay. Prezzi IVA inclusa. Disdici quando vuoi i piani mensili.</p>
       </section>

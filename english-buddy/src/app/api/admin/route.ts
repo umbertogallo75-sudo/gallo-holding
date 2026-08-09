@@ -4,6 +4,7 @@ import { getUserId, OWNER_ID } from "@/lib/auth";
 import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
+import { saveBilling } from "@/lib/stripe";
 import { bannerForNotification } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
 
@@ -22,6 +23,11 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("resetcode"),
     userId: z.string().min(1).max(80),
   }),
+  z.object({
+    action: z.literal("freeaccess"),
+    userId: z.string().min(1).max(80),
+    grant: z.boolean(),
+  }),
 ]);
 
 /** Owner-only actions from the monitoring dashboard. */
@@ -37,6 +43,12 @@ export async function POST(request: Request) {
     const temp = await adminResetCode(data.userId);
     if (!temp) return NextResponse.json({ error: "Non posso resettare questo account" }, { status: 400 });
     return NextResponse.json({ ok: true, tempCode: temp });
+  }
+
+  if (data.action === "freeaccess") {
+    // Comp accounts: full access without a plan (owner-curated list).
+    await saveBilling({ userId: data.userId, plan: "free", status: data.grant ? "active" : "canceled" });
+    return NextResponse.json({ ok: true });
   }
 
   if (data.action === "intensity") {

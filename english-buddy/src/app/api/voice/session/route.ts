@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 
 export const maxDuration = 30;
@@ -16,6 +17,9 @@ const VOICE_MODEL = "gpt-realtime-mini";
 export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (billingEnforced() && !(await getEntitlement(userId)).access) {
+    return NextResponse.json({ error: PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+  }
   const body = (await request.json().catch(() => ({}))) as { mode?: string };
   const diary = body?.mode === "diary";
   // Voice minutes are the most expensive resource: keep a sane per-user cap.

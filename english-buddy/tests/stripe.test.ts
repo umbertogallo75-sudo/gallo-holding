@@ -61,14 +61,16 @@ describe("billing state and entitlement", () => {
     expect((await getEntitlement("owner", client)).reason).toBe("owner");
   });
 
-  it("active plan grants access; fresh users get a trial; old users without plan expire", async () => {
+  it("plan or comp access unlocks; everyone else is locked (no trial)", async () => {
     await client.execute("INSERT INTO auth_users (id, display_name, email, code_hmac, created_at) VALUES ('fresh', 'F', 'f@x.it', 'h1', datetime('now'))");
-    await client.execute("INSERT INTO auth_users (id, display_name, email, code_hmac, created_at) VALUES ('old', 'O', 'o@x.it', 'h2', datetime('now', '-30 days'))");
     await client.execute("INSERT INTO auth_users (id, display_name, email, code_hmac, created_at) VALUES ('payer', 'P', 'p@x.it', 'h3', datetime('now', '-30 days'))");
     await saveBilling({ userId: "payer", plan: "program", status: "active", currentPeriodEnd: new Date(Date.now() + 86_400_000).toISOString() }, client);
+    await saveBilling({ userId: "comp", plan: "free", status: "active" }, client);
 
-    expect((await getEntitlement("fresh", client))).toMatchObject({ access: true, reason: "trial" });
-    expect((await getEntitlement("old", client))).toMatchObject({ access: false, reason: "expired" });
+    expect((await getEntitlement("fresh", client))).toMatchObject({ access: false, reason: "locked" });
     expect((await getEntitlement("payer", client))).toMatchObject({ access: true, reason: "plan" });
+    expect((await getEntitlement("comp", client))).toMatchObject({ access: true, reason: "free" });
+    await saveBilling({ userId: "comp", status: "canceled" }, client);
+    expect((await getEntitlement("comp", client))).toMatchObject({ access: false, reason: "locked" });
   });
 });

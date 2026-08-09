@@ -42,6 +42,10 @@ export default async function AdminPage() {
   const funnelBy = new Map((funnel?.rows ?? []).map((r) => [String(r.name), r]));
   const f = (name: string, col: "d7" | "d30" | "visitors30") => Number(funnelBy.get(name)?.[col] ?? 0);
 
+  // Billing state per user (table may predate migration 0011 — then nobody has it).
+  const billingRows = await database.execute("SELECT user_id, plan, status FROM billing").catch(() => null);
+  const billingBy = new Map((billingRows?.rows ?? []).map((r) => [String(r.user_id), r]));
+
   const by = (result: { rows: ArrayLike<Record<string, unknown>> }) =>
     new Map(Array.from(result.rows).map((r) => [String(r.user_id), r]));
   const minutesBy = by(minutes);
@@ -74,6 +78,7 @@ export default async function AdminPage() {
       capCount: Number(capsBy.get(id)?.cap_count ?? 0),
       hasPush: Number(pushBy.get(id)?.sub_count ?? 0) > 0,
       notifCount: Number(notifBy.get(id)?.sent_count ?? 0),
+      plan: billingBy.get(id)?.status === "active" ? String(billingBy.get(id)?.plan ?? "") : "",
     };
   });
 
@@ -106,7 +111,10 @@ export default async function AdminPage() {
         <section className="card" key={r.id}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0 }}>{r.name} <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· {r.email ?? r.id}</span></h2>
-            {r.daysIdle !== null && r.daysIdle > 3 ? <span className="warnText" style={{ marginTop: 0 }}>fermo da {r.daysIdle} giorni</span> : <span className="chip">attivo</span>}
+            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {r.plan ? <span className="chip chipBrand">{r.plan === "free" ? "🎁 gratis" : `💳 ${r.plan}`}</span> : null}
+              {r.daysIdle !== null && r.daysIdle > 3 ? <span className="warnText" style={{ marginTop: 0 }}>fermo da {r.daysIdle} giorni</span> : <span className="chip">attivo</span>}
+            </span>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table className="adminTable">
@@ -125,7 +133,7 @@ export default async function AdminPage() {
                 ✉️ Scrivi email
               </a>
             ) : null}
-            <AdminActions userId={r.id} intensity={r.intensity} hasPush={r.hasPush} />
+            <AdminActions userId={r.id} intensity={r.intensity} hasPush={r.hasPush} hasFree={r.plan === "free"} />
           </div>
         </section>
       ))}

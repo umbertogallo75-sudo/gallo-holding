@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
-import { billingEnforced, getEntitlement } from "@/lib/stripe";
+import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
 import { runCoach } from "@/lib/ai/openai";
@@ -40,15 +40,6 @@ export async function POST(request: Request) {
   try {
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (billingEnforced()) {
-      const entitlement = await getEntitlement(userId);
-      if (!entitlement.access) {
-        return NextResponse.json(
-          { error: "Il periodo di prova è finito. Scegli un piano per continuare con Sam. (Prova gratuita terminata — vai su Profilo → Abbonamento)", upgradeUrl: "/abbonamento" },
-          { status: 402 }
-        );
-      }
-    }
 
     if (!rateLimit(clientKey(request, "coach"), 20, 60_000).allowed) {
       return NextResponse.json({ error: "Too many requests. Give it a few seconds." }, { status: 429 });
@@ -57,6 +48,15 @@ export async function POST(request: Request) {
     const parsed = bodySchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     const { message, mode } = parsed.data;
+
+    // The 3-minute level check promised on the landing stays free; every other
+    // activity requires a plan (or an admin-granted free account).
+    if (billingEnforced() && mode !== "levelcheck") {
+      const entitlement = await getEntitlement(userId);
+      if (!entitlement.access) {
+        return NextResponse.json({ error: PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+      }
+    }
 
     let sessionId = parsed.data.sessionId;
     if (!sessionId) {

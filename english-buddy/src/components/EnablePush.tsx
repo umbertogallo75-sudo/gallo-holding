@@ -11,6 +11,7 @@ const DISMISS_KEY = "buddy-push-banner-dismissed";
  */
 export function EnablePush() {
   const [state, setState] = useState<PushStatus | "checking" | "subscribing">("checking");
+  const [failed, setFailed] = useState(false);
   const [dismissed, setDismissed] = useState<boolean>(
     () => typeof window === "undefined" || sessionStorage.getItem(DISMISS_KEY) === "1"
   );
@@ -24,6 +25,7 @@ export function EnablePush() {
   async function enable() {
     setState("subscribing");
     const outcome = await subscribeToPush();
+    if (outcome !== "subscribed") setFailed(true);
     setState(outcome === "subscribed" ? "subscribed" : outcome === "denied" ? "denied" : "need-enable");
   }
 
@@ -59,8 +61,13 @@ export function EnablePush() {
             {state === "subscribing" ? "Enabling…" : "Enable notifications · Attiva le notifiche"}
           </button>
         ) : null}
-        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>Not now · Non ora</button>
-        <p className="warnText">⚠️ App non funzionante senza notifiche abilitate.</p>
+        {failed ? (
+          <p className="itHint" style={{ marginTop: 8 }}>
+            ⚠️ Su questo browser non sono riuscito ad attivarle (su Mac serve Safari recente o Chrome; su iPhone prima installa l&rsquo;app). Puoi continuare comunque: le attiverai dal telefono, dove contano davvero.
+          </p>
+        ) : null}
+        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche · Continue" : "Not now · Non ora"}</button>
+        <p className="warnText">⚠️ Senza notifiche il coach non può cercarti: l&rsquo;app perde la sua forza.</p>
       </div>
     </div>
   );

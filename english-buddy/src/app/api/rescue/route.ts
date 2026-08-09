@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { ensureProfile, saveExpression } from "@/lib/learning/service";
 
 export const maxDuration = 30;
@@ -17,6 +18,9 @@ const saveSchema = z.object({ expression: z.string().trim().min(1).max(300), mea
 export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (billingEnforced() && !(await getEntitlement(userId)).access) {
+    return NextResponse.json({ error: PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+  }
   if (!rateLimit(clientKey(request, "rescue"), 15, 60_000).allowed) {
     return NextResponse.json({ error: "Too many requests. Give it a few seconds." }, { status: 429 });
   }

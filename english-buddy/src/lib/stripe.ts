@@ -228,39 +228,30 @@ export async function userIdByCustomer(customerId: string, client: Client = db()
 
 // ---------- entitlement ----------
 
-export const TRIAL_DAYS = 7;
+export type Entitlement = { access: boolean; reason: "owner" | "plan" | "free" | "locked"; plan?: string | null };
 
-export type Entitlement = { access: boolean; reason: "owner" | "plan" | "trial" | "expired"; plan?: string | null; daysLeft?: number };
-
+/** Paywall is ON by default; BILLING_ENFORCED=0 switches it off for testing. */
 export function billingEnforced(): boolean {
-  return process.env.BILLING_ENFORCED === "1";
+  return process.env.BILLING_ENFORCED !== "0";
 }
 
 /**
- * Who gets in: the owner always; anyone with an active plan (3-day grace past
- * the period end); everyone else for TRIAL_DAYS after registration. Users
- * created before billing existed simply restart the trial window from their
- * registration date.
+ * Who trains with Sam: the owner always; anyone with an active plan (3-day
+ * grace past the period end); accounts granted free access ("comp") from the
+ * admin dashboard. Everyone else can browse the app but starting an activity
+ * requires a plan — except the free level-check promised on the landing.
  */
 export async function getEntitlement(userId: string, client: Client = db()): Promise<Entitlement> {
   if (userId === OWNER_ID) return { access: true, reason: "owner" };
 
   const billing = await getBilling(userId, client);
   if (billing?.status === "active") {
+    if (billing.plan === "free") return { access: true, reason: "free", plan: "free" };
     const end = billing.currentPeriodEnd ? Date.parse(billing.currentPeriodEnd) : null;
     if (!end || end + 3 * 86_400_000 > Date.now()) return { access: true, reason: "plan", plan: billing.plan };
   }
-
-  try {
-    const result = await client.execute({ sql: "SELECT created_at FROM auth_users WHERE id = ? LIMIT 1", args: [userId] });
-    const createdAt = result.rows[0]?.created_at ? Date.parse(String(result.rows[0].created_at)) : null;
-    if (createdAt) {
-      const daysUsed = (Date.now() - createdAt) / 86_400_000;
-      if (daysUsed < TRIAL_DAYS) return { access: true, reason: "trial", daysLeft: Math.max(1, Math.ceil(TRIAL_DAYS - daysUsed)) };
-      return { access: false, reason: "expired", plan: billing?.plan ?? null };
-    }
-  } catch {
-    // auth_users unavailable — never lock anyone out on infrastructure errors.
-  }
-  return { access: true, reason: "trial", daysLeft: TRIAL_DAYS };
+  return { access: false, reason: "locked", plan: billing?.plan ?? null };
 }
+
+export const PAYWALL_MESSAGE =
+  "Per allenarti con Sam serve un piano attivo. Vai su Profilo → 💳 Abbonamento e piani (o inserisci lì il tuo codice aziendale).";
