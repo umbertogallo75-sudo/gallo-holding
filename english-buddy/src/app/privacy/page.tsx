@@ -15,7 +15,7 @@ export default function PrivacyPage() {
 
       <section className="card">
         <h2>Chi tratta i tuoi dati</h2>
-        <p>Il titolare del trattamento è <strong>VASP ITALIA SRL</strong>. Per qualsiasi richiesta sui tuoi dati scrivi a <a href="mailto:umberto.gallo75@gmail.com">umberto.gallo75@gmail.com</a>.</p>
+        <p>Il titolare del trattamento è <strong>VASP ITALIA SRL</strong> — Via M. Schipa 22, 80122 Napoli — P.IVA 03463400634, PEC vasp@pec.it. Per qualsiasi richiesta sui tuoi dati scrivi a <a href="mailto:ug@vaspitalia.com">ug@vaspitalia.com</a>.</p>
       </section>
 
       <section className="card">

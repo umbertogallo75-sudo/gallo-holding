@@ -15,7 +15,7 @@ export default function TerminiPage() {
 
       <section className="card">
         <h2>Cos&rsquo;è ExecLingo</h2>
-        <p>ExecLingo è un servizio di coaching linguistico basato su intelligenza artificiale, offerto da <strong>VASP ITALIA SRL</strong> e nato dall&rsquo;esperienza diretta di CEO, dirigenti e quadri d&rsquo;azienda. Sam, il coach, ti accompagna con sessioni scritte e vocali, notifiche durante il giorno e un percorso di tre mesi orientato all&rsquo;inglese di lavoro e di viaggio.</p>
+        <p>ExecLingo è un servizio di coaching linguistico basato su intelligenza artificiale, offerto da <strong>VASP ITALIA SRL</strong> (Via M. Schipa 22, 80122 Napoli — P.IVA 03463400634, PEC vasp@pec.it, contatto <a href="mailto:ug@vaspitalia.com">ug@vaspitalia.com</a>) e nato dall&rsquo;esperienza diretta di CEO, dirigenti e quadri d&rsquo;azienda. Sam, il coach, ti accompagna con sessioni scritte e vocali, notifiche durante il giorno e un percorso di tre mesi orientato all&rsquo;inglese di lavoro e di viaggio.</p>
       </section>
 
       <section className="card">
