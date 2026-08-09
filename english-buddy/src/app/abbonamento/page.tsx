@@ -54,7 +54,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         ) : (
           <p className="muted">Il periodo di prova è terminato. Scegli un piano per continuare con Sam.</p>
         )}
-        <p className="itHint">Pagamento sicuro con Stripe: carta, Apple Pay o Google Pay. Disdici quando vuoi i piani mensili.</p>
+        <p className="itHint">Pagamento sicuro con Stripe: carta, Apple Pay o Google Pay. Prezzi IVA inclusa. Disdici quando vuoi i piani mensili.</p>
       </section>
 
       {stripeConfigured() && stripeTestMode() ? (

@@ -49,6 +49,7 @@ export function Landing() {
       <section className="landShell landSection">
         <div className="kicker">Prezzi semplici</div>
         <h2 className="landH2">Meno di un&rsquo;ora di un coach umano. Al mese.</h2>
+        <p className="landHint" style={{ margin: "0 0 14px" }}>Tutti i prezzi sono IVA inclusa: quello che vedi è quello che paghi.</p>
         <div className="landPrices">
           <div className="landPrice"><div className="landPlanName">Mensile</div><div className="landAmount">39,90 €<span>/mese</span></div><p>Accesso completo a Sam, senza vincoli.</p></div>
           <div className="landPrice landStar"><div className="landFlag">La promessa</div><div className="landPlanName">Programma 3 mesi</div><div className="landAmount">99,90 €<span> una volta</span></div><p>Il percorso completo: da dove sei a operativo. ≈ 33 €/mese.</p></div>

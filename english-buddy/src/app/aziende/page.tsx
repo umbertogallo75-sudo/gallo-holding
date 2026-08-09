@@ -41,7 +41,7 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
             </tbody>
           </table>
         </div>
-        <p className="itHint" style={{ marginBottom: 0 }}>Prezzo pieno 99,90 € a persona, una tantum, programma completo di 3 mesi. Sconto applicato automaticamente al totale.</p>
+        <p className="itHint" style={{ marginBottom: 0 }}>Prezzi <strong>IVA inclusa</strong>: il totale che vedi è quello che paghi. Prezzo pieno 99,90 € a persona, una tantum, programma completo di 3 mesi. Sconto applicato automaticamente al totale.</p>
       </section>
 
       <CompanyForm />

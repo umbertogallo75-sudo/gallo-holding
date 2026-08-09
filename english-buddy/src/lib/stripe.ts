@@ -62,6 +62,8 @@ export async function ensurePriceId(plan: Plan): Promise<string> {
       currency: "eur",
       unit_amount: String(def.amount),
       lookup_key: def.lookupKey,
+      // Italian consumer pricing: what you see is what you pay, VAT included.
+      tax_behavior: "inclusive",
     };
     if (def.interval) params["recurring[interval]"] = def.interval;
     const price = await stripeFetch("/prices", params);
@@ -135,6 +137,7 @@ export async function createTeamCheckout(
     "line_items[0][price_data][currency]": "eur",
     "line_items[0][price_data][product_data][name]": "ExecLingo — Programma 3 mesi · licenza team",
     "line_items[0][price_data][product_data][tax_code]": "txcd_10000000",
+    "line_items[0][price_data][tax_behavior]": "inclusive",
     "line_items[0][price_data][unit_amount]": String(order.unitAmount),
     "line_items[0][quantity]": String(order.quantity),
     customer_email: order.buyerEmail,

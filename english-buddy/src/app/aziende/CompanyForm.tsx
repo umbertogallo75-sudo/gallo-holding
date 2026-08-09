@@ -73,6 +73,7 @@ export function CompanyForm() {
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 18, marginTop: 6 }}>
           <span>Totale {validQty ? quantity : MIN} licenze</span><strong>{euro(unit * (validQty ? quantity : MIN))}</strong>
         </div>
+        <div style={{ fontSize: 13, marginTop: 4, textAlign: "right" }} className="muted">IVA inclusa — paghi esattamente questo importo</div>
       </div>
 
       {error ? <p className="warnText" style={{ margin: "4px 0 0" }}>{error}</p> : null}
