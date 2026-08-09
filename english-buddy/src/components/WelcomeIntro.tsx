@@ -43,8 +43,8 @@ export function WelcomeIntro() {
           <h1>Benvenuto in English&nbsp;Buddy</h1>
 
           <p className="welcomeLead">
-            <strong>English Buddy</strong> nasce da un&rsquo;idea di <strong>Umberto Gallo</strong>, imprenditore,
-            CEO e dirigente d&rsquo;impresa, con un obiettivo preciso: creare il coach di inglese che avrebbe
+            <strong>English Buddy</strong> nasce dall&rsquo;esperienza diretta di <strong>CEO, dirigenti e
+            quadri d&rsquo;azienda</strong>, con un obiettivo preciso: creare il coach di inglese che avrebbero
             sempre voluto avere.
           </p>
 

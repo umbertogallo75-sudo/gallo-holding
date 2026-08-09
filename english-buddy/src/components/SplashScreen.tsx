@@ -123,7 +123,7 @@ export function SplashScreen() {
         <div className="splashLoading" aria-hidden="true"><span /><span /><span /></div>
         {samComing ? <div className="samHint">🎧 Alza il volume o metti le cuffie: Sam sta per presentarsi a voce</div> : null}
         <div className="splashCta">TAP PER AVVIARE</div>
-        <div className="splashBy">by Umberto Gallo</div>
+        <div className="splashBy">Creata da CEO, dirigenti e quadri d&rsquo;azienda</div>
       </div>
     </div>
   );

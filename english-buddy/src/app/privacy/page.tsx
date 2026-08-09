@@ -15,7 +15,7 @@ export default function PrivacyPage() {
 
       <section className="card">
         <h2>Chi tratta i tuoi dati</h2>
-        <p>Il titolare del trattamento è <strong>Umberto Gallo</strong>. Per qualsiasi richiesta sui tuoi dati scrivi a <a href="mailto:umberto.gallo75@gmail.com">umberto.gallo75@gmail.com</a>.</p>
+        <p>Il titolare del trattamento è <strong>VASP ITALIA SRL</strong>. Per qualsiasi richiesta sui tuoi dati scrivi a <a href="mailto:umberto.gallo75@gmail.com">umberto.gallo75@gmail.com</a>.</p>
       </section>
 
       <section className="card">
