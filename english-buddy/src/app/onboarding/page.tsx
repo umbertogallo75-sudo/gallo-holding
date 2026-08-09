@@ -14,6 +14,12 @@ export default async function OnboardingPage() {
     args: [userId],
   });
   const row = result.rows[0];
+  // OAuth users arrive with no profile yet but a known name on the account.
+  let fallbackName = "";
+  if (!row?.display_name) {
+    const account = await db().execute({ sql: "SELECT display_name FROM auth_users WHERE id = ? LIMIT 1", args: [userId] });
+    fallbackName = account.rows[0]?.display_name ? String(account.rows[0].display_name) : "";
+  }
   let goals: string[] = [];
   try {
     goals = row?.learning_goals ? (JSON.parse(String(row.learning_goals)) as string[]) : [];
@@ -24,7 +30,7 @@ export default async function OnboardingPage() {
   return (
     <OnboardingForm
       initial={{
-        name: row?.display_name && String(row.display_name) !== "Friend" ? String(row.display_name) : "",
+        name: row?.display_name && String(row.display_name) !== "Friend" ? String(row.display_name) : fallbackName,
         startingLevel: row?.starting_level ? String(row.starting_level) : "",
         goals,
         context: row?.professional_context ? String(row.professional_context) : "",
