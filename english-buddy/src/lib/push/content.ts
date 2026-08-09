@@ -45,9 +45,29 @@ export function poolQuestion(seed: string): string {
   return POOL[hashCode(seed) % POOL.length];
 }
 
-/** 20 encouragement banners in rotation; the seed keeps each pick stable. */
+/** 20 generic encouragement banners in rotation; the seed keeps each pick stable. */
 export function pickBanner(seed: string): string {
   return `/banners/banner-${String((hashCode(seed) % 20) + 1).padStart(2, "0")}.png`;
+}
+
+/**
+ * Context-aware banner: matches the notification's topic (from its text) or
+ * time window; falls back to the generic rotation when nothing matches.
+ * Banners 21-27 are the themed ones (morning, lunch, evening, nudge, food,
+ * travel, meetings).
+ */
+export function bannerForNotification(opts: { question: string; window?: string; kind?: string; seed: string }): string {
+  const q = opts.question.toLowerCase();
+  if (opts.kind?.startsWith("nudge")) return "/banners/banner-24.png";
+  if (/restaurant|waiter|menu|the bill|order(ing)? food|dinner|breakfast|dish|eat/.test(q)) return "/banners/banner-25.png";
+  if (/airport|flight|hotel|taxi|travel|trip|luggage|check.?in|gate|abroad/.test(q)) return "/banners/banner-26.png";
+  if (/meeting|call|presentation|colleague|agenda|boardroom/.test(q)) return "/banners/banner-27.png";
+  if (/negotiat|price|deal|contract|discount|offer/.test(q)) return "/banners/banner-11.png";
+  if (/invest|revenue|cash|margin|bank|budget|acquisition|ebitda/.test(q)) return "/banners/banner-10.png";
+  if (opts.window === "morning") return "/banners/banner-21.png";
+  if (opts.window === "lunch") return "/banners/banner-22.png";
+  if (opts.window === "evening") return "/banners/banner-23.png";
+  return pickBanner(opts.seed);
 }
 
 export type QuestionContext = {

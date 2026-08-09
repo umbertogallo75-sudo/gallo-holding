@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { shouldSend, type Intensity } from "@/lib/push/windows";
-import { generateBuddyQuestion, pickBanner } from "@/lib/push/content";
+import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 
 export const maxDuration = 60;
@@ -92,7 +92,7 @@ async function run(request: Request) {
       const delivered = await sendPushToUser(userId, {
         title: "Sam · English Buddy",
         body: question,
-        image: pickBanner(notificationId),
+        image: bannerForNotification({ question, window: due.window, kind: due.kind, seed: notificationId }),
         data: {
           url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`,
           nid: notificationId,

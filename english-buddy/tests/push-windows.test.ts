@@ -62,3 +62,22 @@ describe("notification windows", () => {
     expect(shouldSend({ now: night, timeZone: "Europe/Rome", intensity: "immersive", quietStart: 22, quietEnd: 7, alreadySentKinds: new Set() })).toBeNull();
   });
 });
+
+import { bannerForNotification } from "@/lib/push/content";
+
+describe("context-aware notification banners", () => {
+  const seed = "user:buddy:morning:2026-08-09";
+  it("matches topic first, then time window, then rotation", () => {
+    expect(bannerForNotification({ question: "You're at a restaurant and the waiter arrives. What do you say?", seed })).toBe("/banners/banner-25.png");
+    expect(bannerForNotification({ question: "You land at the airport and need a taxi. What do you ask?", seed })).toBe("/banners/banner-26.png");
+    expect(bannerForNotification({ question: "How do you open a difficult meeting?", seed })).toBe("/banners/banner-27.png");
+    expect(bannerForNotification({ question: "How do you usually start a difficult negotiation?", seed })).toBe("/banners/banner-11.png");
+    expect(bannerForNotification({ question: "Would you invest in a company with weak margins?", seed })).toBe("/banners/banner-10.png");
+    expect(bannerForNotification({ question: "Sam misses you!", kind: "nudge:manual", seed })).toBe("/banners/banner-24.png");
+    expect(bannerForNotification({ question: "What made you smile today?", window: "morning", seed })).toBe("/banners/banner-21.png");
+    expect(bannerForNotification({ question: "What made you smile today?", window: "lunch", seed })).toBe("/banners/banner-22.png");
+    expect(bannerForNotification({ question: "What made you smile today?", window: "evening", seed })).toBe("/banners/banner-23.png");
+    const generic = bannerForNotification({ question: "What made you smile today?", window: "afternoon", seed });
+    expect(generic).toMatch(/\/banners\/banner-(0[1-9]|1[0-9]|20)\.png/);
+  });
+});
