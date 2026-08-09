@@ -68,6 +68,9 @@ export default async function ProfilePage() {
         <div className="stat"><strong>{caps}/{CAPABILITIES.length}</strong><span>abilities</span><div className="itHint">abilità reali</div></div>
       </section>
 
+      <Link href="/abbonamento" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
+        💳 Abbonamento e piani
+      </Link>
       <Link href="/onboarding" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         ⚙️ Cambia livello, obiettivi o notifiche
       </Link>

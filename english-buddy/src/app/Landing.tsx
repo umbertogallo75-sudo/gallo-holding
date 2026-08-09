@@ -52,7 +52,7 @@ export function Landing() {
         <div className="landPrices">
           <div className="landPrice"><div className="landPlanName">Mensile</div><div className="landAmount">39,90 €<span>/mese</span></div><p>Accesso completo a Sam, senza vincoli.</p></div>
           <div className="landPrice landStar"><div className="landFlag">La promessa</div><div className="landPlanName">Programma 3 mesi</div><div className="landAmount">99,90 €<span> una volta</span></div><p>Il percorso completo: da dove sei a operativo. ≈ 33 €/mese.</p></div>
-          <div className="landPrice"><div className="landPlanName">Mantenimento</div><div className="landAmount">19,90 €<span>/mese</span></div><p>Dopo il programma: non perdere quello che hai costruito.</p></div>
+          <div className="landPrice"><div className="landPlanName">Mantenimento</div><div className="landAmount">29,90 €<span>/mese</span></div><p>Dopo il programma: non perdere quello che hai costruito.</p></div>
         </div>
         <p className="landHint" style={{ textAlign: "center" }}>Aziende: attivazione per il tuo team con report dei progressi per l&rsquo;HR — scrivici a <strong>ug@vaspitalia.com</strong></p>
       </section>
