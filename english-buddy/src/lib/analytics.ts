@@ -6,6 +6,7 @@ export type FunnelEvent =
   | "landing_view"
   | "landing_cta_register"
   | "landing_cta_login"
+  | "landing_cta_aziende"
   | "register_done"
   | "onboarding_done";
 

@@ -4,7 +4,7 @@ import { trackEvent } from "@/lib/analytics";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
-  name: z.enum(["landing_view", "landing_cta_register", "landing_cta_login"]),
+  name: z.enum(["landing_view", "landing_cta_register", "landing_cta_login", "landing_cta_aziende"]),
   visitorId: z.string().min(8).max(64).optional(),
   ref: z.string().max(200).optional(),
 });

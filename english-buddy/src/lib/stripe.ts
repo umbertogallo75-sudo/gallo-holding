@@ -118,6 +118,34 @@ export function verifyStripeSignature(payload: string, header: string | null, se
   });
 }
 
+/**
+ * Team checkout: one payment for N seats at the tiered unit price. The
+ * webhook turns the completed order into license codes.
+ */
+export async function createTeamCheckout(
+  order: { companyName: string; buyerEmail: string; quantity: number; unitAmount: number },
+  baseUrl: string
+): Promise<string> {
+  const params: Record<string, string> = {
+    mode: "payment",
+    "line_items[0][price_data][currency]": "eur",
+    "line_items[0][price_data][product_data][name]": "ExecLingo — Programma 3 mesi · licenza team",
+    "line_items[0][price_data][unit_amount]": String(order.unitAmount),
+    "line_items[0][quantity]": String(order.quantity),
+    customer_email: order.buyerEmail,
+    "metadata[b2b]": "1",
+    "metadata[company]": order.companyName.slice(0, 200),
+    "metadata[qty]": String(order.quantity),
+    success_url: `${baseUrl}/aziende?esito=ok`,
+    cancel_url: `${baseUrl}/aziende?esito=annullato`,
+    locale: "it",
+    billing_address_collection: "required",
+    "tax_id_collection[enabled]": "true",
+  };
+  const session = await stripeFetch("/checkout/sessions", params);
+  return String(session.url);
+}
+
 // ---------- billing state (self-healing schema, like analytics) ----------
 
 const BILLING_SCHEMA = `CREATE TABLE IF NOT EXISTS billing (

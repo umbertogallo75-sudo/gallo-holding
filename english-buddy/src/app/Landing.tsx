@@ -54,7 +54,12 @@ export function Landing() {
           <div className="landPrice landStar"><div className="landFlag">La promessa</div><div className="landPlanName">Programma 3 mesi</div><div className="landAmount">99,90 €<span> una volta</span></div><p>Il percorso completo: da dove sei a operativo. ≈ 33 €/mese.</p></div>
           <div className="landPrice"><div className="landPlanName">Mantenimento</div><div className="landAmount">29,90 €<span>/mese</span></div><p>Dopo il programma: non perdere quello che hai costruito.</p></div>
         </div>
-        <p className="landHint" style={{ textAlign: "center" }}>Aziende: attivazione per il tuo team con report dei progressi per l&rsquo;HR — scrivici a <strong>ug@vaspitalia.com</strong></p>
+        <div className="landCard" style={{ marginTop: 14, textAlign: "center" }}>
+          <div className="landIco">🏢</div>
+          <h3>ExecLingo per aziende</h3>
+          <p>Licenze team con sconti volume: <strong>10+ −5%</strong> · <strong>50+ −10%</strong> · <strong>150+ −15%</strong>. Codici subito via email, ogni collega attiva il suo percorso in un minuto.</p>
+          <p style={{ marginTop: 12 }}><Link href="/aziende" className="landCta2" style={{ borderColor: "var(--accent)", color: "var(--brandText)" }} data-track="landing_cta_aziende">Attiva il tuo team →</Link></p>
+        </div>
       </section>
 
       <section className="landShell landSection landFinal">

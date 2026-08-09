@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, stripeConfigured, stripeTestMode, TRIAL_DAYS } from "@/lib/stripe";
 import { PlanButton } from "./PlanButton";
+import { RedeemBox } from "./RedeemBox";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Abbonamento · ExecLingo" };
@@ -79,8 +80,10 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         <PlanButtonWrap plan="maintenance" label="Attiva il mantenimento — 29,90 €/mese" />
       </section>
 
+      {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
+
       <p className="itHint" style={{ margin: "14px 4px 24px" }}>
-        Aziende: attivazione per team con report HR — scrivi a ug@vaspitalia.com · <Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link>
+        Aziende: licenze team con sconti volume su <Link href="/aziende">execlingo.it/aziende</Link> · <Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link>
       </p>
     </main>
   );
