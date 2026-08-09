@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { tuneSamUtterance } from "@/lib/voice-prefs";
 
 const SHOWN_KEY = "buddy-splash-shown";
@@ -15,14 +16,23 @@ export function SplashScreen() {
   const [stage, setStage] = useState<"hidden" | "splash" | "sam">("hidden");
   const [leaving, setLeaving] = useState(false);
   const [samComing, setSamComing] = useState(false);
+  const pathname = usePathname();
+  const onPublicLanding = pathname === "/";
 
   useEffect(() => {
     (async () => {
+      // The public marketing landing IS the introduction: an ad visitor must
+      // see the page instantly, with no tap-to-start gate in between.
+      if (onPublicLanding) {
+        sessionStorage.setItem(SHOWN_KEY, "1");
+        return;
+      }
       if (sessionStorage.getItem(SHOWN_KEY) !== "1") {
         setStage("splash");
         if (localStorage.getItem(SAM_KEY) !== "1") setSamComing(true);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (stage === "hidden") return null;

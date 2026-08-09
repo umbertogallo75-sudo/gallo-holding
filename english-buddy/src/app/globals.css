@@ -238,3 +238,46 @@ p { line-height:1.55; font-size:16px; }
 .adminTable th, .adminTable td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
 .adminTable th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
 .sheet { width:min(540px, calc(100% - 20px)); margin-bottom:16px; background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:20px; box-shadow:0 14px 44px rgba(0,0,0,.3); }
+
+/* ---------- Public marketing landing ("/", logged-out) ---------- */
+.landing { min-height:100dvh; background:var(--bg); }
+.landShell { width:min(760px, 100%); margin:0 auto; padding:0 22px; }
+.landHero { position:relative; overflow:hidden; background:#0a100c; color:#f4f6f0; padding:64px 0 58px; text-align:center; }
+.landHero::before { content:""; position:absolute; inset:0; background:radial-gradient(60% 50% at 18% 0%, rgba(47,143,99,.34), transparent 62%), radial-gradient(52% 44% at 88% 12%, rgba(230,169,78,.2), transparent 60%), radial-gradient(70% 60% at 50% 110%, rgba(47,143,99,.16), transparent 70%); pointer-events:none; }
+.landHero .landShell { position:relative; }
+.landBrand { display:inline-flex; align-items:center; gap:9px; font-size:15px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; color:#cfd6c9; }
+.landDot { width:11px; height:11px; border-radius:50%; background:linear-gradient(135deg, #5ec79a, #e6a94e); box-shadow:0 0 14px rgba(94,199,154,.8); }
+.landH1 { margin:26px 0 0; font-size:clamp(34px, 8.5vw, 52px); font-weight:830; letter-spacing:-.04em; line-height:1.06; color:#f4f6f0; }
+.landGrad { background:linear-gradient(90deg, #5ec79a, #e6a94e); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.landLead { margin:20px auto 0; max-width:560px; font-size:18px; line-height:1.6; color:#cfd6c9; }
+.landLead strong { color:#f4f6f0; }
+.landCtas { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:30px; }
+.landCta { display:inline-block; border-radius:999px; background:linear-gradient(135deg, #2f8f63, #37a774); color:#fff; font-size:17px; font-weight:800; padding:17px 30px; text-decoration:none; box-shadow:0 6px 28px rgba(47,143,99,.5); transition:transform .1s ease; }
+.landCta:active { transform:scale(.97); }
+.landCta2 { display:inline-block; border-radius:999px; border:1.5px solid rgba(238,240,233,.32); color:#eef0e9; font-size:16px; font-weight:680; padding:16px 26px; text-decoration:none; transition:transform .1s ease; }
+.landCta2:active { transform:scale(.97); }
+.landHint { margin:18px auto 0; max-width:480px; font-size:14px; line-height:1.5; color:#8d968a; }
+.landSection { padding:52px 22px 8px; }
+.landSection .kicker { margin-bottom:6px; }
+.landH2 { margin:0 0 22px; font-size:clamp(25px, 6vw, 34px); font-weight:800; letter-spacing:-.035em; line-height:1.12; }
+.landGrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:14px; }
+.landCard { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 3px 14px rgba(0,0,0,.06); }
+.landCard h3 { margin:10px 0 8px; font-size:18px; letter-spacing:-.015em; }
+.landCard p { margin:0; font-size:15px; line-height:1.55; color:var(--muted); }
+.landIco { font-size:30px; line-height:1; }
+.landPhases { display:flex; flex-direction:column; gap:14px; }
+.landPhase { display:flex; gap:16px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:18px 20px; }
+.landPhase h3 { margin:2px 0 6px; font-size:17.5px; }
+.landPhase p { margin:0; font-size:15px; line-height:1.55; color:var(--muted); }
+.landNum { flex-shrink:0; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), #37a774); box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.landPrices { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; align-items:stretch; }
+.landPrice { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:22px 20px; text-align:center; }
+.landPrice p { margin:10px 0 0; font-size:14.5px; line-height:1.5; color:var(--muted); }
+.landStar { border:2px solid color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow:0 8px 30px color-mix(in srgb, var(--accent) 22%, transparent); }
+.landFlag { position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, var(--accent), #37a774); color:#fff; font-size:12.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:5px 14px; white-space:nowrap; }
+.landPlanName { font-size:14px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; color:var(--brandText); }
+.landAmount { margin-top:10px; font-size:34px; font-weight:830; letter-spacing:-.04em; }
+.landAmount span { font-size:15px; font-weight:600; letter-spacing:0; color:var(--muted); }
+.landFinal { padding-bottom:40px; }
+.landFinal .landCta { background:linear-gradient(135deg, var(--accent), #37a774); }
+.landFoot { margin:34px 0 0; padding:18px 0 8px; border-top:1px solid var(--line); font-size:13px; line-height:1.5; color:var(--muted); text-align:center; }
