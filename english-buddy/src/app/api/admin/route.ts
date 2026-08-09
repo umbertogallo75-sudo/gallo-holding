@@ -47,11 +47,12 @@ export async function POST(request: Request) {
   }
 
   // Nudge: one motivational push, recorded in history so the scheduler sees it.
-  const question = data.message || "Sam here — I miss our English! One quick question: how was your day? Answer in English, even one line counts.";
+  const question = data.message || "Sam qui, mi manchi! Una domanda veloce: How was your day? (Com\u2019\u00e8 andata la tua giornata?) Rispondi in inglese, anche una riga conta.";
   const notificationId = randomUUID();
   const delivered = await sendPushToUser(data.userId, {
     title: "Sam · English Buddy",
     body: question,
+    image: "/notification-banner.png",
     data: { url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`, nid: notificationId },
   });
   if (delivered > 0) {

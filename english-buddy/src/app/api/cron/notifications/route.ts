@@ -92,6 +92,7 @@ async function run(request: Request) {
       const delivered = await sendPushToUser(userId, {
         title: "Sam · English Buddy",
         body: question,
+        image: "/notification-banner.png",
         data: {
           url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`,
           nid: notificationId,

@@ -56,7 +56,11 @@ export type QuestionContext = {
 
 export async function generateBuddyQuestion(context: QuestionContext, seed: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return poolQuestion(seed);
+  // Beginners can't yet read an English-only notification: give them an
+  // Italian lead-in and translation so every notification is understandable.
+  const beginner = !context.level || ["A1", "A2"].includes(context.level);
+  const fallback = () => (beginner ? `Prova a rispondere in inglese 💪 ${poolQuestion(seed)}` : poolQuestion(seed));
+  if (!apiKey) return fallback();
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -65,7 +69,11 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5-mini",
         instructions: `You are Sam, the user's English coach and English-speaking friend who texts short questions during the day to help an ${context.level || "intermediate"}-level professional practice English naturally.
-Write ONE question, max 22 words, plain text only (no quotes, no emoji).
+${
+  beginner
+    ? "THEY ARE A BEGINNER and may not understand English-only messages. Format the notification EXACTLY as: a tiny friendly Italian lead-in (2-5 words, e.g. 'Domanda veloce per te:'), then ONE short English question (max 12 words), then its Italian translation in parentheses. Total under 40 words, plain text only (no quotes, no emoji)."
+    : "Write ONE question, max 22 words, plain text only (no quotes, no emoji)."
+}
 Vary topics across: daily life, opinions, travel, food, business, investments, leadership, negotiation, strategy. Never feel like homework.
 Occasionally (about one time in five) ask a practical "essentials" question instead: a real-life situation like ordering at a restaurant, taking a taxi, or checking into a hotel, asking how they would say it in English.
 ${context.dueExpression ? `They are due to review the expression "${context.dueExpression}": about half the time, shape the question so answering naturally invites using it — without saying it's a review.` : ""}
@@ -78,12 +86,12 @@ Avoid repeating these recent questions: ${JSON.stringify(context.recentQuestions
         max_output_tokens: 700,
       }),
     });
-    if (!response.ok) return poolQuestion(seed);
+    if (!response.ok) return fallback();
     const json = (await response.json()) as { output_text?: string; output?: { content?: { text?: string }[] }[] };
     const text = (json.output_text || json.output?.flatMap((o) => o.content || []).map((c) => c.text || "").join(" ") || "").trim();
-    if (!text || text.length > 220) return poolQuestion(seed);
+    if (!text || text.length > 260) return fallback();
     return text.replace(/^"|"$/g, "");
   } catch {
-    return poolQuestion(seed);
+    return fallback();
   }
 }

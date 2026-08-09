@@ -17,6 +17,7 @@ function ensureConfigured() {
 export type PushPayload = {
   title: string;
   body: string;
+  image?: string;
   data: { url: string; nid?: string };
 };
 
