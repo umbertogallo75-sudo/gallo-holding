@@ -55,7 +55,8 @@ export async function ensurePriceId(plan: Plan): Promise<string> {
   const rows = (found.data as Array<{ id: string }> | undefined) ?? [];
   let id = rows[0]?.id;
   if (!id) {
-    const product = await stripeFetch("/products", { name: def.name });
+    // Managed Payments requires a product tax code (electronically supplied services).
+    const product = await stripeFetch("/products", { name: def.name, tax_code: "txcd_10000000" });
     const params: Record<string, string> = {
       product: String(product.id),
       currency: "eur",
@@ -133,6 +134,7 @@ export async function createTeamCheckout(
     mode: "payment",
     "line_items[0][price_data][currency]": "eur",
     "line_items[0][price_data][product_data][name]": "ExecLingo — Programma 3 mesi · licenza team",
+    "line_items[0][price_data][product_data][tax_code]": "txcd_10000000",
     "line_items[0][price_data][unit_amount]": String(order.unitAmount),
     "line_items[0][quantity]": String(order.quantity),
     customer_email: order.buyerEmail,
