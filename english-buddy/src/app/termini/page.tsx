@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export const metadata = { title: "Termini di servizio · English Buddy" };
+export const metadata = { title: "Termini di servizio · ExecLingo" };
 
 /** Termini di servizio — public page, linked from landing and register. */
 export default function TerminiPage() {
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">English Buddy</div><Link className="chip" href="/">← Indietro</Link></div>
+      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
       <section className="hero">
         <div className="kicker">Termini di servizio</div>
         <h1>Le regole, semplici.</h1>
@@ -14,8 +14,8 @@ export default function TerminiPage() {
       </section>
 
       <section className="card">
-        <h2>Cos&rsquo;è English Buddy</h2>
-        <p>English Buddy è un servizio di coaching linguistico basato su intelligenza artificiale, offerto da <strong>VASP ITALIA SRL</strong> e nato dall&rsquo;esperienza diretta di CEO, dirigenti e quadri d&rsquo;azienda. Sam, il coach, ti accompagna con sessioni scritte e vocali, notifiche durante il giorno e un percorso di tre mesi orientato all&rsquo;inglese di lavoro e di viaggio.</p>
+        <h2>Cos&rsquo;è ExecLingo</h2>
+        <p>ExecLingo è un servizio di coaching linguistico basato su intelligenza artificiale, offerto da <strong>VASP ITALIA SRL</strong> e nato dall&rsquo;esperienza diretta di CEO, dirigenti e quadri d&rsquo;azienda. Sam, il coach, ti accompagna con sessioni scritte e vocali, notifiche durante il giorno e un percorso di tre mesi orientato all&rsquo;inglese di lavoro e di viaggio.</p>
       </section>
 
       <section className="card">

@@ -11,7 +11,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "English Buddy <onboarding@resend.dev>",
+        from: process.env.EMAIL_FROM || "ExecLingo <onboarding@resend.dev>",
         to: [to],
         subject,
         html,

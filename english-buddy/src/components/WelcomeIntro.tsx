@@ -36,14 +36,14 @@ export function WelcomeIntro() {
 
   if (page === 1) {
     return (
-      <div className="welcomeOverlay" role="dialog" aria-label="Benvenuto in English Buddy">
+      <div className="welcomeOverlay" role="dialog" aria-label="Benvenuto in ExecLingo">
         <div className="welcomeInner">
           <div className="welcomeMark">🇬🇧</div>
           <div className="kicker">Il tuo coach personale</div>
-          <h1>Benvenuto in English&nbsp;Buddy</h1>
+          <h1>Benvenuto in ExecLingo</h1>
 
           <p className="welcomeLead">
-            <strong>English Buddy</strong> nasce dall&rsquo;esperienza diretta di <strong>CEO, dirigenti e
+            <strong>ExecLingo</strong> nasce dall&rsquo;esperienza diretta di <strong>CEO, dirigenti e
             quadri d&rsquo;azienda</strong>, con un obiettivo preciso: creare il coach di inglese che avrebbero
             sempre voluto avere.
           </p>
@@ -61,12 +61,12 @@ export function WelcomeIntro() {
           </div>
 
           <div className="welcomeNote">
-            <strong>In continua evoluzione.</strong> English Buddy è in continuo aggiornamento: si nutre delle
+            <strong>In continua evoluzione.</strong> ExecLingo è in continuo aggiornamento: si nutre delle
             esperienze e delle informazioni degli stessi manager che la utilizzano, e migliora ogni settimana.
           </div>
 
           <div className="welcomeNote" style={{ borderColor: "color-mix(in srgb, #1d6b4c 45%, var(--line))" }}>
-            <strong>🎯 La promessa.</strong> Segui il tuo Buddy anche solo pochi minuti al giorno e <strong>in 3 mesi sarai operativo in inglese</strong>: riunioni, call, negoziazioni e trasferte.
+            <strong>🎯 La promessa.</strong> Segui Sam anche solo pochi minuti al giorno e <strong>in 3 mesi sarai operativo in inglese</strong>: riunioni, call, negoziazioni e trasferte.
           </div>
 
           <p className="welcomeQuote">Il tuo tempo è prezioso. Anche il tuo inglese dovrebbe esserlo.</p>
@@ -79,7 +79,7 @@ export function WelcomeIntro() {
   }
 
   return (
-    <div className="welcomeOverlay" role="dialog" aria-label="Come funziona English Buddy">
+    <div className="welcomeOverlay" role="dialog" aria-label="Come funziona ExecLingo">
       <div className="welcomeInner">
         <div className="welcomeMark">🧭</div>
         <div className="kicker">Come funziona</div>
@@ -92,19 +92,19 @@ export function WelcomeIntro() {
 
         <div className="welcomeGrid">
           <div className="welcomeItem"><span className="modeIcon">✍︎</span><div><strong>Scegli il tempo, non la lezione</strong><p className="muted">2 o 5 minuti di conversazione, 20 minuti guidati, oppure &ldquo;Surprise me&rdquo;: decide il coach cosa ti serve oggi.</p></div></div>
-          <div className="welcomeItem"><span className="modeIcon">☕︎</span><div><strong>Il Buddy ti scrive lui</strong><p className="muted">Attiva le notifiche: riceverai brevi domande in inglese nei momenti naturali della giornata. Rispondi quando vuoi.</p></div></div>
+          <div className="welcomeItem"><span className="modeIcon">☕︎</span><div><strong>Sam ti scrive lui</strong><p className="muted">Attiva le notifiche: riceverai brevi domande in inglese nei momenti naturali della giornata. Rispondi quando vuoi.</p></div></div>
           <div className="welcomeItem"><span className="modeIcon">🧠</span><div><strong>Una memoria che si adatta</strong><p className="muted">L&rsquo;app ricorda i tuoi errori e le espressioni imparate e le ripropone al momento giusto. Conta la costanza, non la durata.</p></div></div>
           <div className="welcomeItem"><span className="modeIcon">🍽️</span><div><strong>Anche le basi, quando servono</strong><p className="muted">Ogni tanto il coach ti insegna parole essenziali per viaggiare, ordinare al ristorante e cavartela ovunque.</p></div></div>
         </div>
 
         <div className="welcomeNote">
-          <strong>📲 English Buddy è un&rsquo;app: installala sul tuo dispositivo.</strong><br />
+          <strong>📲 ExecLingo è un&rsquo;app: installala sul tuo dispositivo.</strong><br />
           Su <strong>iPhone</strong>: apri questo sito in Safari, tocca <strong>Condividi</strong> (il quadrato
           con la freccia) e poi <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>.<br />
           Su <strong>Android</strong>: in Chrome tocca il menu <strong>⋮</strong> e poi
           <strong> &ldquo;Installa app&rdquo;</strong>.<br />
-          Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche del Buddy.<br />
-          📶 <strong>Serve Internet</strong>: English Buddy funziona con una connessione attiva (Wi-Fi o dati). Senza connessione il coach non può risponderti.
+          Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche di Sam.<br />
+          📶 <strong>Serve Internet</strong>: ExecLingo funziona con una connessione attiva (Wi-Fi o dati). Senza connessione il coach non può risponderti.
         </div>
 
         {dots}

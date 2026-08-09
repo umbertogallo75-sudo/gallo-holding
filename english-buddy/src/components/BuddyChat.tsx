@@ -10,7 +10,7 @@ const openers: Record<string,string> = {
   "text-5": "Start a short natural English conversation with me.",
   guided: "Start today's guided Business English session using my learning memory.",
   surprise: "Choose the most useful English exercise for me right now and start immediately.",
-  buddy: "Send me your Buddy question for this moment of the day.",
+  buddy: "Send me your quick question for this moment of the day.",
   essentials: "Teach me essential everyday English. Pick a real situation — like a restaurant, airport or hotel — and start the role-play.",
   zero: "Start today's Start-from-Zero guided micro-lesson. Teach me one useful sentence pattern step by step.",
   mission: "Give me a real-life mission I haven't completed yet and role-play it with me.",

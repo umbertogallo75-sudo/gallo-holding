@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="shell authWrap">
       <section className="authCard" style={{ textAlign: "center" }}>
-        <div className="brand" style={{ justifyContent: "center" }}>English Buddy</div>
+        <div className="brand" style={{ justifyContent: "center" }}>ExecLingo</div>
         <div className="hero">
           <div className="kicker">404</div>
           <h1>Lost in translation.</h1>

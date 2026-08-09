@@ -5,10 +5,10 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { SplashScreen } from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
-  title: "English Buddy",
+  title: "ExecLingo",
   description: "Your adaptive AI English coach.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "English Buddy" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "ExecLingo" },
   icons: {
     apple: "/apple-touch-icon.png",
   },

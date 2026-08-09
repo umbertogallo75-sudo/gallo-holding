@@ -33,7 +33,7 @@ export function EnablePush() {
   }
 
   if (state === "subscribed") {
-    return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Buddy notifications are on. <span className="itHint">Le notifiche del Buddy sono attive.</span></p>;
+    return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Sam&rsquo;s notifications are on. <span className="itHint">Le notifiche di Sam sono attive.</span></p>;
   }
 
   // The persistent NotificationReminder bar handles every other state once
@@ -43,11 +43,11 @@ export function EnablePush() {
   return (
     <div className="sheetBackdrop" role="dialog" aria-label="Enable notifications">
       <div className="sheet">
-        <h2>🔔 Hear from your Buddy</h2>
+        <h2>🔔 Hear from Sam</h2>
         <p className="muted">
           {state === "need-install"
-            ? "To get Buddy questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there."
-            : "English Buddy was born to give you a coach who texts you during the day — short questions at natural moments, like a friend. Answer when you want; no streaks, no guilt."}
+            ? "To get Sam's questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there."
+            : "ExecLingo was born to give you a coach who texts you during the day — short questions at natural moments, like a friend. Answer when you want; no streaks, no guilt."}
         </p>
         <p className="itHint">
           {state === "need-install"

@@ -27,12 +27,12 @@ export async function POST(request: Request) {
     const link = `${base}/reset?token=${reset.token}`;
     await sendEmail(
       parsed.data.email,
-      "English Buddy — recupera il tuo codice di accesso",
+      "ExecLingo — recupera il tuo codice di accesso",
       `<p>Ciao ${reset.name || ""},</p>
-       <p>hai chiesto di reimpostare il tuo codice di accesso a <strong>English Buddy</strong>.</p>
+       <p>hai chiesto di reimpostare il tuo codice di accesso a <strong>ExecLingo</strong>.</p>
        <p><a href="${link}" style="display:inline-block;background:#1d6b4c;color:#fff;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:bold">Scegli un nuovo codice</a></p>
        <p>Il link vale 30 minuti. Se non sei stato tu, ignora questa email: il tuo codice resta invariato.</p>
-       <p>— English Buddy</p>`
+       <p>— ExecLingo</p>`
     );
   }
   return NextResponse.json({ ok: true, emailConfigured: true });

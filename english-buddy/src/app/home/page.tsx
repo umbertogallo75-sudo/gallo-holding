@@ -25,7 +25,7 @@ export default async function HomePage() {
   const name = profile?.display_name ? String(profile.display_name) : "there";
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
-    <div className="topbar"><div className="brand">English Buddy</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
+    <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <NotificationReminder />
     <section className="hero"><div className="kicker">Hello, {name}</div><h1>What can you do right now?</h1><p className="muted">Pick the smallest thing that fits. A useful two minutes still counts.</p><p className="itHint">Cosa riesci a fare adesso? Scegli l&rsquo;attività più piccola che entra nel tuo tempo: anche 2 minuti contano.</p></section>
     {isFirstTime ? (

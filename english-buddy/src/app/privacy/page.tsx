@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export const metadata = { title: "Privacy · English Buddy" };
+export const metadata = { title: "Privacy · ExecLingo" };
 
 /** Informativa privacy (GDPR) — public page, linked from landing and register. */
 export default function PrivacyPage() {
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">English Buddy</div><Link className="chip" href="/">← Indietro</Link></div>
+      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
       <section className="hero">
         <div className="kicker">Informativa privacy</div>
         <h1>I tuoi dati, in chiaro.</h1>

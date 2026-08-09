@@ -90,7 +90,7 @@ async function run(request: Request) {
 
       const notificationId = randomUUID();
       const delivered = await sendPushToUser(userId, {
-        title: "Sam · English Buddy",
+        title: "Sam · ExecLingo",
         body: question,
         image: bannerForNotification({ question, window: due.window, kind: due.kind, seed: notificationId }),
         data: {

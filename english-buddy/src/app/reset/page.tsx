@@ -5,7 +5,7 @@ export default function ResetPage() {
   return (
     <main className="shell authWrap">
       <section className="authCard">
-        <div className="brand">English Buddy</div>
+        <div className="brand">ExecLingo</div>
         <div className="hero">
           <div className="kicker">New code</div>
           <h1>Choose a new code.</h1>

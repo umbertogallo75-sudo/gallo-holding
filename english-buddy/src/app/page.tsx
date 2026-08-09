@@ -5,11 +5,11 @@ import { db } from "@/lib/db";
 import { Landing } from "./Landing";
 
 export const metadata: Metadata = {
-  title: "English Buddy — In 3 mesi sei operativo in inglese",
+  title: "ExecLingo — In 3 mesi sei operativo in inglese",
   description:
     "Sam, il tuo coach personale d'inglese con intelligenza artificiale: pochi minuti al giorno, nei ritagli veri della giornata. Business e viaggi, anche partendo da zero. Prova gratis.",
   openGraph: {
-    title: "English Buddy — In 3 mesi sei operativo in inglese",
+    title: "ExecLingo — In 3 mesi sei operativo in inglese",
     description: "Sam, il tuo coach personale d'inglese con AI: pochi minuti al giorno, business e viaggi, anche partendo da zero.",
     images: ["/banners/banner-01.png"],
     locale: "it_IT",

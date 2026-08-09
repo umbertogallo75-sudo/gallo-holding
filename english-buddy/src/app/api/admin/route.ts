@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const question = data.message || "Sam qui, mi manchi! Una domanda veloce: How was your day? (Com\u2019\u00e8 andata la tua giornata?) Rispondi in inglese, anche una riga conta.";
   const notificationId = randomUUID();
   const delivered = await sendPushToUser(data.userId, {
-    title: "Sam · English Buddy",
+    title: "Sam · ExecLingo",
     body: question,
     image: bannerForNotification({ question, kind: "nudge", seed: notificationId }),
     data: { url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`, nid: notificationId },

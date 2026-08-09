@@ -21,13 +21,13 @@ export function LoginForm({ oauth }: { oauth: React.ReactNode }) {
   }
 
   return <main className="shell authWrap"><WelcomeIntro /><section className="authCard">
-    <div className="brand">English Buddy</div>
+    <div className="brand">ExecLingo</div>
     <div className="hero"><div className="kicker">Private AI coach</div><h1>English that fits your day.</h1><p className="muted">This first version is private. Enter your personal access code.</p><p className="itHint">Inserisci il tuo codice personale di accesso per entrare.</p></div>
     {oauth}<form onSubmit={submit}><input className="field" type="password" autoComplete="current-password" required placeholder="Personal access code" value={code} onChange={e=>setCode(e.target.value)} />
     <p className="itHint" style={{margin:"0 4px 6px"}}>Il tuo codice segreto di accesso</p>
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
-    <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open English Buddy"}</button>
-    <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri English Buddy</p></form>
+    <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open ExecLingo"}</button>
+    <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri ExecLingo</p></form>
     <p style={{textAlign:"center", margin:"10px 0 0"}}><a href="/forgot" className="itHint" style={{textDecoration:"underline", fontSize:14.5}}>Forgot your code? · Hai dimenticato il codice? Recuperalo qui</a></p>
     <div style={{display:"flex", alignItems:"center", gap:10, margin:"18px 0 12px"}}>
       <span style={{flex:1, height:1, background:"var(--line)"}} />

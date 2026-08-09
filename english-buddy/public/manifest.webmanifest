@@ -1,6 +1,6 @@
 {
-  "name": "English Buddy",
-  "short_name": "English Buddy",
+  "name": "ExecLingo",
+  "short_name": "ExecLingo",
   "description": "An adaptive AI English coach for real-life and business conversations.",
   "start_url": "/home",
   "display": "standalone",

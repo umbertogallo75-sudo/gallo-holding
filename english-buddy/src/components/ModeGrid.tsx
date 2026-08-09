@@ -23,16 +23,16 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
   return <div className="modeGrid">
     {beginner ? <>
       <Wide href="/buddy?mode=zero" icon="🌱" title="Start from Zero · guided path" meta="Today's step-by-step micro-lesson: listen, read, repeat, use" it="Il percorso guidato di oggi: ascolta, leggi, ripeti, usa — un passo alla volta" color="#1d6b4c" />
-      <Wide href="/buddy?mode=mission" icon="🎯" title="Real-life mission" meta="Introduce yourself, order food, survive the airport…" it="Una missione reale: presentarti, ordinare, cavartela in viaggio…" color="#d98e2b" />
+      <Wide href="/buddy?mode=mission" icon="🎯" title="Business Mission" meta="Introduce yourself, order food, survive the airport…" it="Una missione reale: presentarti, ordinare, cavartela in viaggio…" color="#d98e2b" />
     </> : null}
     {modes.map(m =>
       <Link href={m.href ?? `/buddy?mode=${m.mode}`} className="mode" key={m.mode} style={cardTint(m.color)}><span className="modeIcon" style={tint(m.color)}>{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div><div className="itHint">{m.it}</div></div></Link>)}
     {!beginner ? <>
       <Wide href="/buddy?mode=guided" icon="↗" title="20 min guided session" meta="Business English, correction and adaptive review" it="Sessione guidata di 20 minuti: business English, correzioni e ripasso" color="#1d6b4c" />
-      <Wide href="/buddy?mode=mission" icon="🎯" title="Real-life mission" meta="Meetings, calls, negotiation, travel — one goal per scene" it="Una missione reale: riunioni, telefonate, trattative, viaggi" color="#d98e2b" />
+      <Wide href="/buddy?mode=mission" icon="🎯" title="Business Mission" meta="Meetings, calls, negotiation, travel — one goal per scene" it="Una missione reale: riunioni, telefonate, trattative, viaggi" color="#d98e2b" />
     </> : <Wide href="/buddy?mode=guided" icon="↗" title="20 min guided session" meta="A longer guided lesson when you have time" it="Una lezione guidata più lunga, quando hai tempo" color="#1d6b4c" />}
     <Wide href="/buddy?mode=essentials" icon="🍽️" title="Everyday essentials" meta="Basic words for restaurants, travel and getting around" it="Parole di base per ristorante, viaggi e situazioni quotidiane" color="#c07a3a" />
-    <Wide href="/buddy?mode=buddy" icon="☕︎" title="Buddy question" meta="One quick question from your English-speaking friend" it="Una domanda veloce dal tuo amico che parla inglese" color="#8a6d3b" />
+    <Wide href="/buddy?mode=buddy" icon="☕︎" title="Question from Sam" meta="One quick question from your English-speaking friend" it="Una domanda veloce da Sam, il tuo amico che parla inglese" color="#8a6d3b" />
     <Wide href="/rescue" icon="🆘" title="English Rescue" meta="I need English now — say it right, right now" it="Mi serve l'inglese adesso: scrivi in italiano, te lo do in inglese con l'audio" color="#c4483a" />
     <Wide href="/buddy?mode=surprise" icon="✦" title="Surprise me" meta="Let the coach choose what matters most today" it="Sorprendimi: lascia scegliere al coach cosa ti serve oggi" color="#7a5aa0" />
     <div className="kicker" style={{ gridColumn: "1 / -1", margin: "14px 2px 2px" }}>Accelerators · Acceleratori</div>

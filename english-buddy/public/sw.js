@@ -31,7 +31,7 @@ self.addEventListener("push", event => {
   };
   // Encouragement banner (shown where the platform supports big images).
   if (payload.image) options.image = payload.image;
-  event.waitUntil(self.registration.showNotification(payload.title || "English Buddy", options));
+  event.waitUntil(self.registration.showNotification(payload.title || "ExecLingo", options));
 });
 
 self.addEventListener("notificationclick", event => {

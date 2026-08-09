@@ -79,7 +79,7 @@ export default async function AdminPage() {
 
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">English Buddy · Admin</div><a className="chip" href="/home">← App</a></div>
+      <div className="topbar"><div className="brand">ExecLingo · Admin</div><a className="chip" href="/home">← App</a></div>
       <section className="hero">
         <div className="kicker">Solo per te</div>
         <h1>Chi sta imparando?</h1>
@@ -121,7 +121,7 @@ export default async function AdminPage() {
           <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
             {r.email ? (
               <a className="pill" style={{ alignSelf: "flex-start", textDecoration: "none" }}
-                href={`mailto:${r.email}?subject=${encodeURIComponent("English Buddy — come va il tuo inglese?")}&body=${encodeURIComponent(`Ciao ${r.name},\n\nho visto che è un po' che non pratichi su English Buddy. Anche 2 minuti oggi contano!\n\nApri l'app: https://english-buddy-hxvi.vercel.app\n\nIl team di English Buddy`)}`}>
+                href={`mailto:${r.email}?subject=${encodeURIComponent("ExecLingo — come va il tuo inglese?")}&body=${encodeURIComponent(`Ciao ${r.name},\n\nho visto che è un po' che non pratichi su ExecLingo. Anche 2 minuti oggi contano!\n\nApri l'app: https://english-buddy-hxvi.vercel.app\n\nIl team di ExecLingo`)}`}>
                 ✉️ Scrivi email
               </a>
             ) : null}

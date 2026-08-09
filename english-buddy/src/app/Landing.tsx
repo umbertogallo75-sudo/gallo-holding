@@ -11,7 +11,7 @@ export function Landing() {
       <LandingTracker />
       <section className="landHero">
         <div className="landShell">
-          <div className="landBrand"><span className="landDot" /> English Buddy</div>
+          <div className="landBrand"><span className="landDot" /> ExecLingo</div>
           <h1 className="landH1">In 3 mesi sei <span className="landGrad">operativo in inglese</span>.</h1>
           <p className="landLead">Riunioni, call, negoziazioni, trasferte. <strong>Sam</strong>, il tuo coach personale con intelligenza artificiale, ti allena pochi minuti al giorno — nei ritagli veri della tua giornata, anche partendo da zero.</p>
           <div className="landCtas">
@@ -36,7 +36,7 @@ export function Landing() {
       </section>
 
       <section className="landShell landSection">
-        <div className="kicker">Il percorso</div>
+        <div className="kicker">3-Month Executive Path</div>
         <h2 className="landH2">Tre mesi, un piano, capacità reali.</h2>
         <div className="landPhases">
           <div className="landPhase"><div className="landNum">1</div><div><h3>Mese 1 — Fondamenta</h3><p>Presentarti, i numeri, il viaggio, sopravvivere in riunione. Con l&rsquo;italiano di supporto se parti da zero.</p></div></div>
@@ -62,7 +62,7 @@ export function Landing() {
         <div className="landCtas" style={{ justifyContent: "center" }}>
           <Link href="/register" className="landCta" data-track="landing_cta_register">Inizia ora — il test è gratis</Link>
         </div>
-        <p className="landFoot">English Buddy · creata da CEO, dirigenti e quadri d&rsquo;azienda · un servizio VASP ITALIA SRL<br />L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.<br /><a href="/privacy">Privacy</a> · <a href="/termini">Termini di servizio</a></p>
+        <p className="landFoot">ExecLingo · creata da CEO, dirigenti e quadri d&rsquo;azienda · un servizio VASP ITALIA SRL<br />L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.<br /><a href="/privacy">Privacy</a> · <a href="/termini">Termini di servizio</a></p>
       </section>
     </main>
   );

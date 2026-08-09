@@ -110,11 +110,11 @@ export function SplashScreen() {
   }
 
   return (
-    <div className={`splash ${leaving ? "splashLeave" : ""}`} onClick={dismissSplash} role="button" aria-label="Tap per avviare English Buddy" tabIndex={0}>
+    <div className={`splash ${leaving ? "splashLeave" : ""}`} onClick={dismissSplash} role="button" aria-label="Tap per avviare ExecLingo" tabIndex={0}>
       <div className="splashSky" aria-hidden="true" />
       <div className="splashCenter">
-        <div className="splashOrb" aria-hidden="true"><span>EB</span></div>
-        <div className="splashWordmark">English&nbsp;Buddy</div>
+        <div className="splashOrb" aria-hidden="true"><span>EL</span></div>
+        <div className="splashWordmark">ExecLingo</div>
         <div className="splashRule" aria-hidden="true" />
         <p className="splashTagline">Business English. On your time.</p>
         <p className="splashTaglineIt">Segui Sam: in 3 mesi sei operativo in inglese.</p>

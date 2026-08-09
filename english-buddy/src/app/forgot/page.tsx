@@ -21,7 +21,7 @@ export default function ForgotPage() {
   return (
     <main className="shell authWrap">
       <section className="authCard">
-        <div className="brand">English Buddy</div>
+        <div className="brand">ExecLingo</div>
         <div className="hero">
           <div className="kicker">Recover access</div>
           <h1>Forgot your code?</h1>

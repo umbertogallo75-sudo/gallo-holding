@@ -31,10 +31,10 @@ export function NotificationReminder() {
   return (
     <div className="alertBar" role="alert">
       <strong>⚠️ App non funzionante senza notifiche abilitate.</strong>{" "}
-      English Buddy nasce per darti un <strong>coach che ti scrive durante il giorno</strong> — senza notifiche il coach non può raggiungerti.
+      ExecLingo nasce per darti un <strong>coach che ti scrive durante il giorno</strong> — senza notifiche il coach non può raggiungerti.
       {status === "need-install" ? (
         <span style={{ display: "block", marginTop: 4 }}>
-          📲 Installa l&rsquo;app: tocca <strong>Condividi</strong> (il quadrato con la freccia ⬆️) → <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>, poi aprila dall&rsquo;icona: avrai lo schermo intero e potrai attivare le notifiche del Buddy.
+          📲 Installa l&rsquo;app: tocca <strong>Condividi</strong> (il quadrato con la freccia ⬆️) → <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>, poi aprila dall&rsquo;icona: avrai lo schermo intero e potrai attivare le notifiche di Sam.
         </span>
       ) : null}
       {status === "need-enable" ? (
@@ -44,7 +44,7 @@ export function NotificationReminder() {
       ) : null}
       {status === "denied" ? (
         <span style={{ display: "block", marginTop: 4 }}>
-          Le notifiche sono bloccate: vai in <strong>Impostazioni → Notifiche → English Buddy</strong> e consentile.
+          Le notifiche sono bloccate: vai in <strong>Impostazioni → Notifiche → ExecLingo</strong> e consentile.
         </span>
       ) : null}
     </div>

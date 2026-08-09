@@ -32,7 +32,7 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
     <main className="shell authWrap">
       <WelcomeIntro />
       <section className="authCard">
-        <div className="brand">English Buddy</div>
+        <div className="brand">ExecLingo</div>
         <div className="hero">
           <div className="kicker">Get started</div>
           <h1>Create your access.</h1>

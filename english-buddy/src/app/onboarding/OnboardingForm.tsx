@@ -61,7 +61,7 @@ export function OnboardingForm({ initial }: { initial: OnboardingInitial }) {
   return (
     <main className="shell authWrap">
       <section className="authCard">
-        <div className="brand">English Buddy</div>
+        <div className="brand">ExecLingo</div>
         {step === 0 && (
           <>
             <div className="hero"><div className="kicker">Step 1 of 3</div><h1>Where do you start from?</h1><p className="muted">Da dove parti? Scegli quella più vicina a te — poi mi calibro dalle conversazioni reali.</p></div>
