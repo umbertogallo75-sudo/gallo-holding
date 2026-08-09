@@ -4,6 +4,7 @@ import { getUserId, OWNER_ID } from "@/lib/auth";
 import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
+import { pickBanner } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
 
 const bodySchema = z.discriminatedUnion("action", [
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   const delivered = await sendPushToUser(data.userId, {
     title: "Sam · English Buddy",
     body: question,
-    image: "/notification-banner.png",
+    image: pickBanner(notificationId),
     data: { url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`, nid: notificationId },
   });
   if (delivered > 0) {

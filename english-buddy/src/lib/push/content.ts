@@ -45,6 +45,11 @@ export function poolQuestion(seed: string): string {
   return POOL[hashCode(seed) % POOL.length];
 }
 
+/** 20 encouragement banners in rotation; the seed keeps each pick stable. */
+export function pickBanner(seed: string): string {
+  return `/banners/banner-${String((hashCode(seed) % 20) + 1).padStart(2, "0")}.png`;
+}
+
 export type QuestionContext = {
   name?: string | null;
   level?: string | null;
