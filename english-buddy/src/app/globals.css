@@ -147,7 +147,7 @@ p { line-height:1.55; font-size:16px; }
 
 .oauthBtn { display:flex; align-items:center; justify-content:center; gap:10px; min-height:50px; border-radius:14px; font-size:16px; font-weight:700; text-decoration:none; box-shadow:0 2px 8px rgba(0,0,0,.1); transition:transform .1s ease; }
 .oauthBtn:active { transform:scale(.97); }
-.oauthApple { background:#000; color:#fff; }
+.oauthApple { background:#000; color:#fff; border:1.5px solid rgba(255,255,255,.4); }
 .oauthGoogle { background:#fff; color:#1f1f1f; border:1.5px solid #dadce0; }
 
 .firstStep { border-width:2px !important; border-color:var(--accent) !important; box-shadow:0 4px 18px color-mix(in srgb, var(--accent) 25%, transparent) !important; animation:firstStepGlow 2.4s ease-in-out infinite; }
