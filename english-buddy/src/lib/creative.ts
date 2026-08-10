@@ -247,13 +247,13 @@ export function buildCreativeSvg(input: {
   const withQr = Boolean(format.qr && input.qrInner);
 
   const headLines = wrap(input.headline, landscape ? 17 : 18, 4);
-  const headShrink = headLines.length >= 4 ? 0.82 : headLines.length === 3 ? 0.94 : 1;
+  const headShrink = headLines.length >= 4 ? (landscape ? 0.72 : 0.82) : headLines.length === 3 ? 0.94 : 1;
   const headSize = Math.round((landscape ? 62 : story ? 84 : 78) * u * (landscape ? 1.18 : 1) * headShrink);
   const headline = headLines
     .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
   const subSize = Math.round((landscape ? 29 : 33) * u);
-  const headY = story ? h * 0.145 : landscape ? h * (headLines.length >= 4 ? 0.235 : 0.3) : h * 0.19;
+  const headY = story ? h * 0.145 : landscape ? h * (headLines.length >= 4 ? 0.27 : 0.3) : h * 0.19;
   const subY = headY + headLines.length * headSize * 1.08 + subSize * (landscape ? 1.2 : 1.5);
   // Landscape: the sub shares the row with the scene, so wrap it inside the left column.
   const subLines = landscape ? wrap(input.sub, 30, 2) : [input.sub];
