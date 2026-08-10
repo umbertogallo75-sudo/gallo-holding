@@ -122,32 +122,33 @@ export async function GET(request: Request) {
   const u = w / 1080; // scale unit
   const pad = Math.round(w * (landscape ? 0.055 : 0.074));
 
-  const headLines = wrap(campaign.headline, landscape ? 24 : 18, 4);
+  const headLines = wrap(campaign.headline, landscape ? 17 : 18, 4);
   const headShrink = headLines.length >= 4 ? 0.82 : headLines.length === 3 ? 0.94 : 1;
-  const headSize = Math.round((landscape ? 64 : story ? 86 : 82) * u * (landscape ? 1.35 : 1) * headShrink);
+  const headSize = Math.round((landscape ? 62 : story ? 86 : 82) * u * (landscape ? 1.18 : 1) * headShrink);
   const headline = headLines
     .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
   const subSize = Math.round((landscape ? 26 : 34) * u * (landscape ? 1.35 : 1));
 
-  const headY = story ? h * 0.2 : landscape ? h * 0.34 : h * 0.26;
+  const headY = story ? h * 0.2 : landscape ? h * 0.36 : h * 0.26;
   const subY = headY + headLines.length * headSize * 1.08 + subSize * 1.7;
 
-  // Motif placement: upper-right of the free zone, clear of text and QR card.
-  const motifW = landscape ? w * 0.24 : w * 0.32;
-  const motifX = landscape ? w * 0.68 : w * 0.6;
-  const motifY = story ? h * 0.52 : landscape ? h * 0.14 : h * 0.42;
+  // Motif placement: clear of text and QR card.
+  const motifW = landscape ? w * 0.15 : w * 0.32;
+  const motifX = landscape ? w * 0.52 : w * 0.6;
+  const motifY = story ? h * 0.52 : landscape ? h * 0.66 : h * 0.42;
 
-  // QR card
-  const qrSize = Math.round(w * (landscape ? 0.16 : story ? 0.2 : 0.18));
-  const fontScale = (landscape ? 1.15 : 1.25) * u;
+  // QR card: bottom-left on vertical formats, right-center on landscape.
+  const qrSize = Math.round(landscape ? h * 0.36 : w * (story ? 0.2 : 0.18));
+  const fontScale = (landscape ? 1.0 : 1.25) * u;
+  const cardW = qrSize * 1.18;
   const cardH = qrSize + qrSize * 0.18 + 30 * fontScale;
-  const qrX = landscape ? w - pad - qrSize * 1.18 : pad;
-  const qrY = h - pad - cardH;
+  const qrX = landscape ? w - pad - cardW : pad;
+  const qrY = landscape ? (h - cardH) / 2 : h - pad - cardH;
 
-  // CTA pill next to QR
-  const ctaY = qrY + cardH * 0.18;
-  const pillX = qrX + qrSize * 1.18 + pad * 0.5;
+  // CTA pill + link block: next to QR on vertical, bottom-left on landscape.
+  const ctaY = landscape ? h - pad - 118 * fontScale : qrY + cardH * 0.18;
+  const pillX = landscape ? pad : qrX + cardW + pad * 0.5;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
