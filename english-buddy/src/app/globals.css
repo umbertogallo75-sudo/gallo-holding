@@ -80,8 +80,13 @@ p { line-height:1.55; font-size:16px; }
 .stat span { color:var(--muted); font-size:14.5px; }
 
 .bottomNav { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); width:min(520px, calc(100% - 24px)); background:rgba(20,22,18,.93); backdrop-filter:blur(20px); border-radius:20px; padding:9px; display:grid; grid-template-columns:repeat(4,1fr); z-index:20; }
-.bottomNav a { color:#d9dccf; text-align:center; padding:12px 4px; font-size:14px; font-weight:600; border-radius:13px; }
+.bottomNav a { color:#d9dccf; text-align:center; padding:12px 4px; font-size:14px; font-weight:600; border-radius:13px; touch-action:manipulation; -webkit-tap-highlight-color:transparent; transition:transform .08s ease, background .15s ease; }
+.bottomNav a:active { transform:scale(.93); background:rgba(255,255,255,.09); }
 .bottomNav a.active { background:var(--accent); color:#fff; font-weight:750; }
+.navIcon { display:inline-block; min-width:18px; }
+.navSpin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }
+.pageSpin { width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spinround .8s linear infinite; }
+@keyframes spinround { to { transform:rotate(360deg); } }
 
 .chat { display:flex; flex-direction:column; gap:10px; margin:20px 0 130px; }
 .bubble { padding:15px 17px; max-width:88%; line-height:1.5; font-size:16.5px; white-space:pre-wrap; }
