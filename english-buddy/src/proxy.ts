@@ -12,6 +12,8 @@ export function proxy(request: NextRequest) {
     path === "/termini" ||
     path === "/aziende" ||
     path === "/partner" ||
+    path === "/scarica" ||
+    path === "/app" ||
     path.startsWith("/r/") ||
     path.startsWith("/.well-known/") ||
     path === "/api/billing/company-checkout" ||

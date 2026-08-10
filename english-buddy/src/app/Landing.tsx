@@ -18,7 +18,7 @@ export function Landing() {
             <Link href="/register" className="landCta" data-track="landing_cta_register">Prova Sam gratis — test di 3 minuti</Link>
             <Link href="/login" className="landCta2" data-track="landing_cta_login">Ho già un account</Link>
           </div>
-          <p className="landHint">Niente lezioni fisse. Niente esercizi da scuola. Nessuna carta di credito per iniziare.</p>
+          <p className="landHint">Niente lezioni fisse. Niente esercizi da scuola. Nessuna carta di credito per iniziare. <Link href="/scarica" data-track="landing_download" style={{ color: "inherit" }}>📲 Installa l&rsquo;app sul telefono</Link></p>
         </div>
       </section>
 
@@ -68,7 +68,7 @@ export function Landing() {
         <div className="landCtas" style={{ justifyContent: "center" }}>
           <Link href="/register" className="landCta" data-track="landing_cta_register">Inizia ora — il test è gratis</Link>
         </div>
-        <p className="landFoot">ExecLingo · creata da CEO, dirigenti e quadri d&rsquo;azienda · un servizio VASP ITALIA SRL<br />L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.<br /><a href="/privacy">Privacy</a> · <a href="/termini">Termini di servizio</a> · <a href="/partner">Diventa Partner</a></p>
+        <p className="landFoot">ExecLingo · creata da CEO, dirigenti e quadri d&rsquo;azienda · un servizio VASP ITALIA SRL<br />L&rsquo;app funziona su iPhone, Android e computer, senza installazioni complicate.<br /><a href="/privacy">Privacy</a> · <a href="/termini">Termini di servizio</a> · <a href="/partner">Diventa Partner</a> · <a href="/scarica">Scarica l&rsquo;app</a></p>
       </section>
     </main>
   );
