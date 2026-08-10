@@ -88,6 +88,8 @@ export async function createCheckout(userId: string, email: string | null, plan:
     "metadata[plan]": plan,
     locale: "it",
     allow_promotion_codes: "true",
+    // Professionals with a VAT number get a correctly addressed invoice.
+    "tax_id_collection[enabled]": "true",
   };
   if (email) params.customer_email = email;
   if (def.interval) {
