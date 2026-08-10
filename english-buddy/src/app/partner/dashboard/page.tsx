@@ -110,7 +110,7 @@ export default async function PartnerDashboardPage() {
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>🎨 Marketing Kit</h2>
-        <p className="muted" style={{ marginTop: 0 }}>Scarica contenuti pronti per promuovere ExecLingo e condividili con il tuo network. Ogni immagine include il <strong>tuo QR personale</strong>: chi lo inquadra è attribuito a te.</p>
+        <p className="muted" style={{ marginTop: 0 }}>Immagini professionali pronte da pubblicare: condividile con il testo qui sotto, che contiene il <strong>tuo link personale</strong> — chi clicca è attribuito a te. Il <strong>Volantino con QR</strong> è pensato per la stampa e gli incontri di persona.</p>
         {CAMPAIGNS.map((c) => (
           <div key={c.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: 12 }}>
             <strong>{c.title}</strong>

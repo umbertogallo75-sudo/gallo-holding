@@ -88,9 +88,4 @@ export const CAMPAIGNS: Campaign[] = [
   },
 ];
 
-export const FORMATS = [
-  { id: "ig", label: "Instagram Post", w: 1080, h: 1080 },
-  { id: "story", label: "Instagram Story", w: 1080, h: 1920 },
-  { id: "li", label: "LinkedIn", w: 1200, h: 1200 },
-  { id: "lih", label: "LinkedIn orizzontale", w: 1200, h: 627 },
-] as const;
+export { CREATIVE_FORMATS as FORMATS } from "./creative";
