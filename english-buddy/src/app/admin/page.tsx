@@ -3,6 +3,7 @@ import { getUserId, OWNER_ID } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CAPABILITIES } from "@/lib/learning/capabilities";
 import { AdminActions } from "./AdminActions";
+import { AdminTools } from "./AdminTools";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,7 @@ export default async function AdminPage() {
         <h1>Chi sta imparando?</h1>
         <p className="muted">{rows.length} utenti · Gli utenti fermi da più di 3 giorni sono evidenziati. Puoi stimolarli con una notifica o regolare quante ne ricevono.</p>
       </section>
+      <AdminTools />
       {funnel ? (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>📈 Funnel marketing</h2>

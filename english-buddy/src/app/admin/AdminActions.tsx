@@ -48,6 +48,17 @@ export function AdminActions({ userId, intensity, hasPush, hasFree }: { userId: 
           <button className="pill" disabled={busy} title="Genera un codice temporaneo se l'utente ha perso il suo" onClick={resetCode}>🔑 Reset codice</button>
         ) : null}
         {userId !== "owner" ? (
+          <button className="pill" disabled={busy} style={{ borderColor: "#b3362a", color: "#b3362a" }}
+            title="Elimina definitivamente l'account e tutti i suoi dati"
+            onClick={() => {
+              if (!window.confirm("Eliminare DEFINITIVAMENTE questo utente e tutti i suoi dati? L'operazione non è reversibile.")) return;
+              if (!window.confirm("Confermi? Questa è l'ultima richiesta.")) return;
+              void call({ action: "deleteuser", userId }, "Utente eliminato ✓ (ricarica la pagina)");
+            }}>
+            🗑 Elimina
+          </button>
+        ) : null}
+        {userId !== "owner" ? (
           <button className="pill" disabled={busy} style={free ? { borderColor: "var(--accent)", fontWeight: 700 } : undefined}
             title={free ? "Questo utente usa l'app gratis: tocca per revocare" : "Concedi accesso completo gratuito (senza pagamento)"}
             onClick={() => {

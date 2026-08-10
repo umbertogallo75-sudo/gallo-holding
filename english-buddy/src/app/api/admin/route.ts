@@ -28,6 +28,13 @@ const bodySchema = z.discriminatedUnion("action", [
     userId: z.string().min(1).max(80),
     grant: z.boolean(),
   }),
+  z.object({
+    action: z.literal("deleteuser"),
+    userId: z.string().min(1).max(80),
+  }),
+  z.object({
+    action: z.literal("voidtestlicenses"),
+  }),
 ]);
 
 /** Owner-only actions from the monitoring dashboard. */
@@ -43,6 +50,30 @@ export async function POST(request: Request) {
     const temp = await adminResetCode(data.userId);
     if (!temp) return NextResponse.json({ error: "Non posso resettare questo account" }, { status: 400 });
     return NextResponse.json({ ok: true, tempCode: temp });
+  }
+
+  if (data.action === "deleteuser") {
+    if (data.userId === OWNER_ID) return NextResponse.json({ error: "Non puoi eliminare il tuo account" }, { status: 400 });
+    const target = data.userId;
+    // Full cascade across every table that references the user.
+    const tables = [
+      ["messages", "user_id"], ["sessions", "user_id"], ["mistakes", "user_id"], ["expressions", "user_id"],
+      ["daily_metrics", "user_id"], ["push_subscriptions", "user_id"], ["notification_history", "user_id"],
+      ["user_capabilities", "user_id"], ["learning_state", "user_id"], ["billing", "user_id"],
+      ["analytics_events", "user_id"], ["profiles", "id"], ["auth_users", "id"],
+    ];
+    for (const [table, column] of tables) {
+      await db().execute({ sql: `DELETE FROM ${table} WHERE ${column} = ?`, args: [target] }).catch(() => {});
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (data.action === "voidtestlicenses") {
+    // One-time sandbox cleanup: unused codes become unredeemable.
+    const result = await db()
+      .execute("UPDATE licenses SET status = 'void' WHERE status = 'unused'")
+      .catch(() => null);
+    return NextResponse.json({ ok: true, voided: Number(result?.rowsAffected ?? 0) });
   }
 
   if (data.action === "freeaccess") {
