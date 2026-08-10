@@ -270,7 +270,9 @@ export function buildCreativeSvg(input: {
 
   // Bottom-left CTA block
   const fontScale = (landscape ? 1.0 : 1.2) * u;
-  const ctaY = landscape ? subY + (subLines.length - 1) * subSize * 1.25 + 26 * fontScale : h - pad - 92 * fontScale;
+  const ctaY = landscape
+    ? Math.min(subY + (subLines.length - 1) * subSize * 1.25 + 26 * fontScale, h - pad * 0.6 - 52 * fontScale)
+    : h - pad - 92 * fontScale;
 
   // Flyer QR card bottom-right
   const qrSize = Math.round(w * 0.17);
