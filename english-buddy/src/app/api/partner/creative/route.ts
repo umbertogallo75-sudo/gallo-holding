@@ -168,7 +168,7 @@ export async function GET(request: Request) {
     <circle cx="${pad + 12 * u}" cy="${pad + 10 * u}" r="${11 * u}" fill="url(#dot)"/>
     <text x="${pad + 34 * u}" y="${pad + 20 * u}" font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial" font-size="${30 * u}" font-weight="800" letter-spacing="${5 * u}" fill="#f4f6f0">EXECLINGO</text>
   </g>
-  <text x="${pad}" y="${headY - headSize * 0.9}" font-family="-apple-system, Helvetica, Arial" font-size="${Math.round(24 * u * (landscape ? 1.2 : 1))}" font-weight="700" letter-spacing="${4 * u}" fill="${accent.b}">${accent.kicker}</text>
+  <text x="${pad}" y="${headY - headSize * 0.9}" font-family="-apple-system, Helvetica, Arial" font-size="${Math.round(24 * u * (landscape ? 1.2 : 1))}" font-weight="700" letter-spacing="${4 * u}" fill="${accent.b}">${esc(accent.kicker)}</text>
   <text x="${pad}" y="${headY}" font-family="'New York', Georgia, 'Times New Roman', serif" font-size="${headSize}" font-weight="700" fill="#f4f6f0">${headline}</text>
   <rect x="${pad}" y="${subY - subSize * 1.35}" width="${86 * u}" height="${5 * u}" rx="${2.5 * u}" fill="url(#rule)"/>
   <text x="${pad}" y="${subY}" font-family="-apple-system, Helvetica, Arial" font-size="${subSize}" fill="#c3cabe">${esc(campaign.sub)}</text>
