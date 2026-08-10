@@ -136,6 +136,18 @@ export function validClaims(claims: IdTokenClaims | null, audience: string, issu
   );
 }
 
+/**
+ * Normalizes APPLE_PRIVATE_KEY into valid PEM: accepts the full .p8 content,
+ * a value with literal \n, or just the base64 body without BEGIN/END armor.
+ */
+export function applePrivateKeyPem(): string {
+  const raw = (process.env.APPLE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n").trim();
+  if (raw.includes("BEGIN")) return raw;
+  const body = raw.replace(/\s+/g, "");
+  const wrapped = body.match(/.{1,64}/g)?.join("\n") ?? body;
+  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----`;
+}
+
 /** Sign in with Apple requires a client secret that is itself an ES256 JWT. */
 export function appleClientSecret(now = Date.now()): string {
   const header = Buffer.from(JSON.stringify({ alg: "ES256", kid: process.env.APPLE_KEY_ID })).toString("base64url");
@@ -149,7 +161,7 @@ export function appleClientSecret(now = Date.now()): string {
     })
   ).toString("base64url");
   const signingInput = `${header}.${claims}`;
-  const key = createPrivateKey((process.env.APPLE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"));
+  const key = createPrivateKey(applePrivateKeyPem());
   const signature = cryptoSign("sha256", Buffer.from(signingInput), { key, dsaEncoding: "ieee-p1363" }).toString("base64url");
   return `${signingInput}.${signature}`;
 }

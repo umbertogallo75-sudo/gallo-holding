@@ -1,6 +1,6 @@
 import { createPrivateKey } from "node:crypto";
 import { NextResponse } from "next/server";
-import { appleClientSecret } from "@/lib/oauth";
+import { appleClientSecret, applePrivateKeyPem } from "@/lib/oauth";
 
 /**
  * Configuration self-check for Sign in with Apple. Returns only booleans,
@@ -8,7 +8,7 @@ import { appleClientSecret } from "@/lib/oauth";
  */
 export async function GET() {
   const raw = process.env.APPLE_PRIVATE_KEY ?? "";
-  const normalized = raw.replace(/\\n/g, "\n");
+  const normalized = applePrivateKeyPem();
   const report: Record<string, unknown> = {
     clientId: Boolean(process.env.APPLE_CLIENT_ID),
     teamIdLength: (process.env.APPLE_TEAM_ID ?? "").trim().length,
