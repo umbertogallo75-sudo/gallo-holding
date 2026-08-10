@@ -13,6 +13,7 @@ export function proxy(request: NextRequest) {
     path === "/aziende" ||
     path === "/partner" ||
     path.startsWith("/r/") ||
+    path.startsWith("/.well-known/") ||
     path === "/api/billing/company-checkout" ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
