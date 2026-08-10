@@ -18,18 +18,29 @@ export async function POST(request: Request) {
   const state = form?.get("state")?.toString() ?? null;
   if (!code || !verifyOauthState(state)) return loginRedirect("state");
 
+  let clientSecret = "";
+  try {
+    clientSecret = appleClientSecret();
+  } catch (error) {
+    console.error("apple client secret error:", error);
+    return loginRedirect("secret");
+  }
+
   const tokenResponse = await fetch("https://appleid.apple.com/auth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
       client_id: process.env.APPLE_CLIENT_ID ?? "",
-      client_secret: appleClientSecret(),
+      client_secret: clientSecret,
       redirect_uri: `${baseUrl()}/api/auth/apple/callback`,
       grant_type: "authorization_code",
     }),
   });
-  if (!tokenResponse.ok) return loginRedirect("exchange");
+  if (!tokenResponse.ok) {
+    console.error("apple token exchange failed:", tokenResponse.status, (await tokenResponse.text()).slice(0, 300));
+    return loginRedirect("exchange");
+  }
   const tokens = (await tokenResponse.json()) as { id_token?: string };
   const claims = decodeIdToken(tokens.id_token ?? "");
   if (!validClaims(claims, process.env.APPLE_CLIENT_ID ?? "", ["https://appleid.apple.com"])) {

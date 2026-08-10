@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 
-export function LoginForm({ oauth }: { oauth: React.ReactNode }) {
+export function LoginForm({ oauth, oauthError }: { oauth: React.ReactNode; oauthError?: string | null }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,6 +23,7 @@ export function LoginForm({ oauth }: { oauth: React.ReactNode }) {
   return <main className="shell authWrap"><WelcomeIntro /><section className="authCard">
     <div className="brand">ExecLingo</div>
     <div className="hero"><div className="kicker">Private AI coach</div><h1>English that fits your day.</h1><p className="muted">This first version is private. Enter your personal access code.</p><p className="itHint">Inserisci il tuo codice personale di accesso per entrare.</p></div>
+    {oauthError ? <div className="notice" style={{marginBottom:8}}>⚠️ {oauthError}</div> : null}
     {oauth}<form onSubmit={submit}><input className="field" type="password" autoComplete="current-password" required placeholder="Personal access code" value={code} onChange={e=>setCode(e.target.value)} />
     <p className="itHint" style={{margin:"0 4px 6px"}}>Il tuo codice segreto di accesso</p>
     {error ? <div className="notice" style={{marginBottom:8}}>{error}</div> : null}
