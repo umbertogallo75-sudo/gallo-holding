@@ -7,7 +7,7 @@ import { CAMPAIGNS, FORMATS } from "@/lib/marketing-kit";
 import { JoinForm } from "./JoinForm";
 import { LeadForm } from "./LeadForm";
 import { PayoutForm } from "./PayoutForm";
-import { CopyButton, DownloadPng, SavePhoto, ShareImage, ShareLink, SharePhotoWithText, WhatsAppShare } from "./KitTools";
+import { CopyButton, DownloadPng, SavePhoto, ShareImage, ShareLink, SharePhotoWithText, WhatsAppPhotoShare, WhatsAppShare } from "./KitTools";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner Dashboard · ExecLingo" };
@@ -133,7 +133,11 @@ export default async function PartnerDashboardPage() {
               <img src={`/api/partner/creative?campaign=${c.id}&format=ig&inline=1`} alt={`Anteprima campagna ${c.title}`} loading="lazy" style={{ width: "100%", maxWidth: 320, borderRadius: 14, border: "1px solid var(--line)", marginBottom: 8, display: "block" }} />
             )}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <WhatsAppShare text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
+              {c.photos?.length ? (
+                <WhatsAppPhotoShare src={c.photos[0].src} name={`execlingo-${c.photos[0].src.split("/").pop() ?? `${c.id}.jpg`}`} text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
+              ) : (
+                <WhatsAppShare text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
+              )}
               <ShareImage campaign={c.id} format="ig" w={1080} h={1080} caption={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
               {FORMATS.map((f) => (
                 <DownloadPng key={f.id} campaign={c.id} format={f.id} w={f.w} h={f.h} label={`⬇️ ${f.label}`} />

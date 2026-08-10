@@ -77,6 +77,43 @@ async function saveImageToDevice(blob: Blob, name: string, caption?: string): Pr
 }
 
 /**
+ * WhatsApp with the photo attached. wa.me links can only carry text, so on
+ * phones this goes through the OS share sheet with the file + caption
+ * (choose WhatsApp there and the photo is already attached). The text is
+ * also on the clipboard for apps that drop captions. Desktop falls back to
+ * text-only wa.me — the web offers no other route into WhatsApp.
+ */
+export function WhatsAppPhotoShare({ src, name, text }: { src: string; name: string; text: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "copied">("idle");
+  return (
+    <button
+      type="button"
+      className="pill"
+      style={{ borderColor: "#25D366" }}
+      disabled={state === "busy"}
+      onClick={async () => {
+        setState("busy");
+        try {
+          try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable */ }
+          const blob = await (await fetch(src)).blob();
+          const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            setState("copied");
+            setTimeout(() => setState("idle"), 2600);
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+            setState("idle");
+          }
+        } catch { setState("idle"); }
+      }}
+    >
+      {state === "busy" ? "…" : state === "copied" ? "Foto allegata ✓ testo copiato" : "🟢 WhatsApp: foto + testo"}
+    </button>
+  );
+}
+
+/**
  * Shares a photo WITH its accompanying copy (partner link included) via the
  * OS share sheet — pick WhatsApp, LinkedIn, Instagram… Some apps drop the
  * text when a file is attached, so the copy is also placed on the clipboard
