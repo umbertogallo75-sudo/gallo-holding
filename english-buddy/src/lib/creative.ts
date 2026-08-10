@@ -131,9 +131,9 @@ function sceneTime(x: number, y: number, w: number, h: number, a: string, b: str
     <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - R * 0.55}" stroke="${b}" stroke-width="${R * 0.05}" stroke-linecap="round"/>
     <line x1="${cx}" y1="${cy}" x2="${cx + R * 0.38}" y2="${cy + R * 0.12}" stroke="#f4f6f0" stroke-width="${R * 0.035}" stroke-linecap="round"/>
     <circle cx="${cx}" cy="${cy}" r="${R * 0.06}" fill="${b}"/>
-    ${chip("2'", -R * 1.25, -R * 0.4, false)}
-    ${chip("5'", -R * 1.45, R * 0.45, false)}
-    ${chip("20'", R * 1.35, R * 0.1, true)}
+    ${chip("2'", -R * 1.05, -R * 0.55, false)}
+    ${chip("5'", -R * 1.18, R * 0.5, false)}
+    ${chip("20'", R * 1.15, -R * 0.05, true)}
   </g>`;
 }
 
@@ -152,10 +152,10 @@ function scenePath(x: number, y: number, w: number, h: number, a: string, b: str
     ${step(0, h * 0.24, "MESE 1")}
     ${step(1, h * 0.44, "MESE 2")}
     ${step(2, h * 0.62, "MESE 3")}
-    ${avatar(figX, figY - h * 0.05, h * 0.085, "#e8ebe4", b)}
+    ${avatar(figX, figY - h * 0.05, h * 0.105, "#e8ebe4", b)}
     <line x1="${flagX}" y1="${flagY}" x2="${flagX}" y2="${flagY - h * 0.16}" stroke="#e8ebe4" stroke-width="${h * 0.012}" stroke-linecap="round"/>
-    <path d="M ${flagX} ${flagY - h * 0.16} l ${w * 0.11} ${h * 0.035} l ${-w * 0.11} ${h * 0.035} z" fill="${b}"/>
-    <text x="${flagX + w * 0.028}" y="${flagY - h * 0.1}" font-family="${SANS}" font-size="${h * 0.038}" font-weight="800" fill="#0a100c">EN</text>
+    <path d="M ${flagX} ${flagY - h * 0.16} l ${w * 0.1} ${h * 0.035} l ${-w * 0.1} ${h * 0.035} z" fill="${b}"/>
+    <text x="${flagX + w * 0.02}" y="${flagY - h * 0.112}" font-family="${SANS}" font-size="${h * 0.032}" font-weight="800" fill="#0a100c">EN</text>
   </g>`;
 }
 
@@ -173,10 +173,12 @@ function sceneListen(x: number, y: number, w: number, h: number, a: string, b: s
     Array.from({ length: keys }, (_, i) =>
       `<rect x="${px + pw * (0.1 + off) + i * pw * ((0.8 - 2 * off) / keys)}" y="${ky}" width="${pw * ((0.8 - 2 * off) / keys) * 0.82}" height="${ph * 0.055}" rx="${pw * 0.012}" fill="#232b25"/>`
     ).join("");
+  const cupY = py + ph * 0.3;
+  const arcR = Math.min(pw * 0.62, (cupY - y) * 0.92);
   return `<g>
-    <path d="M ${cx - pw * 0.62} ${py + ph * 0.18} a ${pw * 0.62} ${pw * 0.62} 0 0 1 ${pw * 1.24} 0" fill="none" stroke="${a}" stroke-width="${pw * 0.035}" stroke-linecap="round" opacity=".9"/>
-    <rect x="${cx - pw * 0.7}" y="${py + ph * 0.14}" width="${pw * 0.1}" height="${ph * 0.22}" rx="${pw * 0.05}" fill="${a}"/>
-    <rect x="${cx + pw * 0.6}" y="${py + ph * 0.14}" width="${pw * 0.1}" height="${ph * 0.22}" rx="${pw * 0.05}" fill="${a}"/>
+    <path d="M ${cx - arcR} ${cupY} a ${arcR} ${arcR} 0 0 1 ${arcR * 2} 0" fill="none" stroke="${a}" stroke-width="${pw * 0.035}" stroke-linecap="round" opacity=".9"/>
+    <rect x="${cx - arcR - pw * 0.05}" y="${cupY - ph * 0.04}" width="${pw * 0.1}" height="${ph * 0.22}" rx="${pw * 0.05}" fill="${a}"/>
+    <rect x="${cx + arcR - pw * 0.05}" y="${cupY - ph * 0.04}" width="${pw * 0.1}" height="${ph * 0.22}" rx="${pw * 0.05}" fill="${a}"/>
     <rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="${pw * 0.1}" fill="#10150f" stroke="#2a332c" stroke-width="${pw * 0.012}"/>
     <text x="${cx}" y="${py + ph * 0.16}" text-anchor="middle" font-family="${SANS}" font-size="${ph * 0.06}" font-weight="700" fill="#cfd6c9">Listen&#8230;</text>
     ${bars}
@@ -207,7 +209,10 @@ function sceneTravel(x: number, y: number, w: number, h: number, a: string, b: s
     <path d="M ${x + w * 0.12} ${y + h * 0.92} Q ${x + w * 0.5} ${y + h * 0.62} ${x + w * 0.88} ${y + h * 0.78}" fill="none" stroke="${a}" stroke-width="${h * 0.012}" stroke-dasharray="${h * 0.03} ${h * 0.025}" stroke-linecap="round"/>
     ${avatar(x + w * 0.16, y + h * 0.84, h * 0.075, "#e8ebe4", b)}
     <rect x="${x + w * 0.205}" y="${y + h * 0.83}" width="${h * 0.05}" height="${h * 0.085}" rx="${h * 0.012}" fill="#2a332c" stroke="#3c463e" stroke-width="1.5"/>
-    <path d="M ${x + w * 0.82} ${y + h * 0.72} l ${w * 0.05} ${h * 0.025} l ${-w * 0.018} ${h * 0.011} l ${w * 0.018} ${h * 0.028} l ${-w * 0.014} ${h * 0.007} l ${-w * 0.028} ${-h * 0.024} l ${-w * 0.022} ${h * 0.01} l ${-w * 0.003} ${h * 0.021} l ${-w * 0.011} ${h * 0.003} l ${-w * 0.004} ${-h * 0.028} l ${-w * 0.025} ${-h * 0.014} z" fill="#f4f6f0"/>
+    <g transform="translate(${x + w * 0.86} ${y + h * 0.76}) rotate(24)">
+      <path d="M 0 0 L ${-w * 0.075} ${-h * 0.016} L ${-w * 0.062} 0 L ${-w * 0.075} ${h * 0.016} z" fill="#f4f6f0"/>
+      <path d="M ${-w * 0.062} 0 L ${-w * 0.07} ${h * 0.03} L ${-w * 0.055} ${h * 0.008} z" fill="#c3cabe"/>
+    </g>
   </g>`;
 }
 
@@ -250,6 +255,11 @@ export function buildCreativeSvg(input: {
   const subSize = Math.round((landscape ? 29 : 33) * u);
   const headY = story ? h * 0.145 : landscape ? h * 0.3 : h * 0.19;
   const subY = headY + headLines.length * headSize * 1.08 + subSize * (landscape ? 1.2 : 1.5);
+  // Landscape: the sub shares the row with the scene, so wrap it inside the left column.
+  const subLines = landscape ? wrap(input.sub, 30, 2) : [input.sub];
+  const subTspans = subLines
+    .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : subSize * 1.25}">${esc(l)}</tspan>`)
+    .join("");
 
   // Scene box
   const sceneX = landscape ? w * 0.52 : pad * 0.6;
@@ -260,7 +270,7 @@ export function buildCreativeSvg(input: {
 
   // Bottom-left CTA block
   const fontScale = (landscape ? 1.0 : 1.2) * u;
-  const ctaY = landscape ? subY + 26 * fontScale : h - pad - 92 * fontScale;
+  const ctaY = landscape ? subY + (subLines.length - 1) * subSize * 1.25 + 26 * fontScale : h - pad - 92 * fontScale;
 
   // Flyer QR card bottom-right
   const qrSize = Math.round(w * 0.17);
@@ -291,7 +301,7 @@ export function buildCreativeSvg(input: {
   <text x="${pad}" y="${headY - headSize * 0.9}" font-family="${SANS}" font-size="${Math.round(24 * u * (landscape ? 1.2 : 1))}" font-weight="700" letter-spacing="${4 * u}" fill="${accent.b}">${esc(accent.kicker)}</text>
   <text x="${pad}" y="${headY}" font-family="${SERIF}" font-size="${headSize}" font-weight="700" fill="#f4f6f0">${headline}</text>
   <rect x="${pad}" y="${subY - subSize * 1.3}" width="${86 * u}" height="${5 * u}" rx="${2.5 * u}" fill="url(#rule)"/>
-  <text x="${pad}" y="${subY}" font-family="${SANS}" font-size="${subSize}" fill="#c3cabe">${esc(input.sub)}</text>
+  <text x="${pad}" y="${subY}" font-family="${SANS}" font-size="${subSize}" fill="#c3cabe">${subTspans}</text>
 
   ${sceneFor(input.campaignId, sceneX, sceneY, sceneW, Math.max(sceneH, 100), accent.a, accent.b)}
 
