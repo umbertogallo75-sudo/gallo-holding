@@ -115,6 +115,8 @@ export default async function PartnerDashboardPage() {
           <div key={c.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: 12 }}>
             <strong>{c.title}</strong>
             <p className="muted" style={{ margin: "2px 0 8px", fontSize: 14 }}>&ldquo;{c.headline}&rdquo;</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/partner/creative?campaign=${c.id}&format=ig&inline=1`} alt={`Anteprima campagna ${c.title}`} loading="lazy" style={{ width: "100%", maxWidth: 320, borderRadius: 14, border: "1px solid var(--line)", marginBottom: 8, display: "block" }} />
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <WhatsAppShare text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
               <ShareImage campaign={c.id} format="ig" w={1080} h={1080} caption={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />

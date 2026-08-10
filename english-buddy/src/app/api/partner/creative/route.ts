@@ -5,9 +5,99 @@ import { getPartner } from "@/lib/partners";
 import { CAMPAIGNS, FORMATS } from "@/lib/marketing-kit";
 
 /**
- * Branded campaign creative as SVG with the partner's personal QR embedded.
- * ?campaign=<id>&format=ig|story|li — the dashboard converts to PNG client-side.
+ * Premium branded campaign creatives as SVG, personalized with the partner's
+ * QR. Art direction: dark editorial canvas, layered light, campaign-specific
+ * accent + motif, display serif headline, glass QR card. The dashboard
+ * rasterizes to PNG client-side; ?inline=1 serves for <img> previews.
  */
+
+const ACCENTS: Record<string, { a: string; b: string; kicker: string }> = {
+  "business-english": { a: "#2f8f63", b: "#e6a94e", kicker: "BUSINESS ENGLISH" },
+  "percorso-3-mesi": { a: "#c98a2d", b: "#5ec79a", kicker: "3-MONTH EXECUTIVE PATH" },
+  "poco-tempo": { a: "#3b6ea5", b: "#5ec79a", kicker: "ON YOUR TIME" },
+  "call-meeting": { a: "#4a72b0", b: "#e6a94e", kicker: "CALL & MEETING" },
+  "listen-type": { a: "#7a5aa0", b: "#5ec79a", kicker: "LISTEN + TYPE" },
+  "business-travel": { a: "#b0567a", b: "#e6a94e", kicker: "BUSINESS + TRAVEL" },
+};
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+function wrap(text: string, max: number, lines: number): string[] {
+  const words = text.split(" ");
+  const out: string[] = [];
+  let line = "";
+  for (const w of words) {
+    if ((line + " " + w).trim().length > max && line) {
+      out.push(line.trim());
+      line = w;
+    } else line = `${line} ${w}`;
+  }
+  if (line.trim()) out.push(line.trim());
+  return out.slice(0, lines);
+}
+
+/** Campaign-specific decorative motif, drawn inside a given box. */
+function motif(id: string, x: number, y: number, w: number, a: string, b: string): string {
+  const s = w / 100;
+  switch (id) {
+    case "business-english": {
+      // rising bars — growth
+      const bars = [28, 44, 36, 58, 50, 74].map((h, i) =>
+        `<rect x="${x + i * 16 * s}" y="${y + (80 - h) * s}" width="10${""} " height="${h * s}" rx="${4 * s}" fill="${i === 5 ? b : a}" opacity="${0.25 + i * 0.12}"/>`.replace('width="10 "', `width="${10 * s}"`)
+      );
+      return bars.join("");
+    }
+    case "percorso-3-mesi": {
+      const step = (i: number, cx: number, filled: boolean) =>
+        `<circle cx="${x + cx * s}" cy="${y + 40 * s}" r="${16 * s}" fill="${filled ? a : "none"}" stroke="${filled ? a : "#4a544c"}" stroke-width="${2.5 * s}"/>
+         <text x="${x + cx * s}" y="${y + 47 * s}" text-anchor="middle" font-family="Georgia, serif" font-size="${18 * s}" font-weight="700" fill="${filled ? "#0a100c" : "#8d968a"}">${i}</text>`;
+      return `<line x1="${x + 16 * s}" y1="${y + 40 * s}" x2="${x + 96 * s}" y2="${y + 40 * s}" stroke="#4a544c" stroke-width="${2 * s}" stroke-dasharray="${5 * s} ${5 * s}"/>
+        ${step(1, 16, true)}${step(2, 56, true)}${step(3, 96, false)}
+        <text x="${x + 96 * s}" y="${y + 76 * s}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${10 * s}" letter-spacing="${1.5 * s}" fill="${b}">OPERATIVO</text>`;
+    }
+    case "poco-tempo": {
+      const chip = (t: string, cx: number, big: boolean) =>
+        `<rect x="${x + cx * s}" y="${y + (big ? 18 : 26) * s}" width="${(big ? 44 : 34) * s}" height="${(big ? 44 : 34) * s}" rx="${12 * s}" fill="none" stroke="${big ? a : "#4a544c"}" stroke-width="${2.5 * s}"/>
+         <text x="${x + (cx + (big ? 22 : 17)) * s}" y="${y + (big ? 47 : 50) * s}" text-anchor="middle" font-family="Georgia, serif" font-size="${(big ? 22 : 16) * s}" font-weight="700" fill="${big ? b : "#aeb6a9"}">${t}</text>`;
+      return `${chip("2'", 0, false)}${chip("5'", 42, false)}${chip("20'", 84, true)}`;
+    }
+    case "call-meeting": {
+      return `<rect x="${x}" y="${y + 14 * s}" width="${86 * s}" height="${54 * s}" rx="${10 * s}" fill="none" stroke="${a}" stroke-width="${2.5 * s}"/>
+        <circle cx="${x + 22 * s}" cy="${y + 36 * s}" r="${8 * s}" fill="${a}" opacity=".8"/>
+        <circle cx="${x + 44 * s}" cy="${y + 36 * s}" r="${8 * s}" fill="${b}" opacity=".8"/>
+        <circle cx="${x + 66 * s}" cy="${y + 36 * s}" r="${8 * s}" fill="#5ec79a" opacity=".8"/>
+        <rect x="${x + 14 * s}" y="${y + 52 * s}" width="${58 * s}" height="${5 * s}" rx="${2.5 * s}" fill="#4a544c"/>
+        <circle cx="${x + 96 * s}" cy="${y + 22 * s}" r="${7 * s}" fill="${b}"/>
+        <text x="${x + 96 * s}" y="${y + 26 * s}" text-anchor="middle" font-family="-apple-system, Helvetica" font-size="${9 * s}" font-weight="700" fill="#0a100c">EN</text>`;
+    }
+    case "listen-type": {
+      const heights = [18, 34, 52, 68, 52, 38, 58, 44, 26, 14];
+      return heights
+        .map((h, i) => `<rect x="${x + i * 11 * s}" y="${y + (80 - h) * s / 1.15}" width="${6 * s}" height="${h * s}" rx="${3 * s}" fill="${i % 3 === 0 ? a : i % 3 === 1 ? "#5ec79a" : b}" opacity="${0.5 + (h / 140)}"/>`)
+        .join("");
+    }
+    case "business-travel": {
+      return `<path d="M ${x} ${y + 64 * s} Q ${x + 50 * s} ${y - 6 * s} ${x + 100 * s} ${y + 30 * s}" fill="none" stroke="${a}" stroke-width="${2.5 * s}" stroke-dasharray="${7 * s} ${6 * s}"/>
+        <circle cx="${x}" cy="${y + 64 * s}" r="${5 * s}" fill="${b}"/>
+        <circle cx="${x + 100 * s}" cy="${y + 30 * s}" r="${5 * s}" fill="${b}"/>
+        <path d="M ${x + 52 * s} ${y + 14 * s} l ${14 * s} ${7 * s} l ${-5 * s} ${3 * s} l ${5 * s} ${8 * s} l ${-4 * s} ${2 * s} l ${-8 * s} ${-7 * s} l ${-6 * s} ${3 * s} l ${-1 * s} ${6 * s} l ${-3 * s} ${1 * s} l ${-1 * s} ${-8 * s} l ${-7 * s} ${-4 * s} z" fill="#f4f6f0" opacity=".92"/>`;
+    }
+    default:
+      return "";
+  }
+}
+
+function glassQr(x: number, y: number, size: number, qrInner: string, qrViewBox: string, refCode: string, fontScale: number): string {
+  const pad = size * 0.09;
+  const cardW = size + pad * 2;
+  const cardH = size + pad * 2 + 30 * fontScale;
+  return `<g>
+    <rect x="${x}" y="${y}" width="${cardW}" height="${cardH}" rx="${size * 0.12}" fill="#ffffff" opacity=".97"/>
+    <svg x="${x + pad}" y="${y + pad}" width="${size}" height="${size}" viewBox="${qrViewBox}">${qrInner}</svg>
+    <text x="${x + cardW / 2}" y="${y + size + pad * 1.7 + 12 * fontScale}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${13 * fontScale}" font-weight="700" letter-spacing="${0.8 * fontScale}" fill="#1c241e">INQUADRA · PROVA GRATIS</text>
+  </g>`;
+}
+
 export async function GET(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,62 +107,86 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const campaign = CAMPAIGNS.find((c) => c.id === url.searchParams.get("campaign")) ?? CAMPAIGNS[0];
   const format = FORMATS.find((f) => f.id === url.searchParams.get("format")) ?? FORMATS[0];
+  const inline = url.searchParams.get("inline") === "1";
+  const accent = ACCENTS[campaign.id] ?? ACCENTS["business-english"];
 
   const base = (process.env.APP_BASE_URL || "https://www.execlingo.it").replace(/\/$/, "");
   const target = `${base}/r/${partner.refCode}?campaign=${encodeURIComponent(campaign.id)}`;
-  const qrSvg = await QRCode.toString(target, { type: "svg", margin: 0, color: { dark: "#0a100c", light: "#ffffff" } });
+  const qrSvg = await QRCode.toString(target, { type: "svg", margin: 0, color: { dark: "#101511", light: "#ffffff" } });
   const qrInner = qrSvg.replace(/<\?xml[^>]*\?>/, "").replace(/<svg[^>]*>/, "").replace("</svg>", "");
   const qrViewBox = qrSvg.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 33 33";
 
   const { w, h } = format;
-  const story = format.id === "story";
-  const pad = Math.round(w * 0.08);
-  const qrSize = Math.round(w * 0.26);
-  const headSize = Math.round(w * 0.062);
-  const subSize = Math.round(w * 0.034);
+  const landscape = w > h;
+  const story = h / w > 1.4;
+  const u = w / 1080; // scale unit
+  const pad = Math.round(w * (landscape ? 0.055 : 0.074));
 
-  // Wrap the headline into up to 3 lines.
-  const words = campaign.headline.split(" ");
-  const lines: string[] = [];
-  let line = "";
-  for (const word of words) {
-    if ((line + " " + word).trim().length > 22 && line) {
-      lines.push(line.trim());
-      line = word;
-    } else line = `${line} ${word}`;
-  }
-  if (line.trim()) lines.push(line.trim());
-  const headline = lines
-    .slice(0, 3)
-    .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.18}">${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</tspan>`)
+  const headSize = Math.round((landscape ? 64 : story ? 86 : 82) * u * (landscape ? 1.35 : 1));
+  const headLines = wrap(campaign.headline, landscape ? 20 : 16, 3);
+  const headline = headLines
+    .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
+  const subSize = Math.round((landscape ? 26 : 34) * u * (landscape ? 1.35 : 1));
 
-  const headY = story ? h * 0.34 : h * 0.3;
+  const headY = story ? h * 0.2 : landscape ? h * 0.34 : h * 0.26;
+  const subY = headY + headLines.length * headSize * 1.08 + subSize * 1.7;
+
+  // Motif placement
+  const motifW = landscape ? w * 0.26 : w * 0.4;
+  const motifX = landscape ? w * 0.66 : pad;
+  const motifY = story ? h * 0.47 : landscape ? h * 0.16 : h * 0.5;
+
+  // QR card
+  const qrSize = Math.round(w * (landscape ? 0.16 : story ? 0.2 : 0.18));
+  const fontScale = (landscape ? 1.15 : 1.25) * u;
+  const cardH = qrSize + qrSize * 0.18 + 30 * fontScale;
+  const qrX = landscape ? w - pad - qrSize * 1.18 : pad;
+  const qrY = h - pad - cardH;
+
+  // CTA pill next to QR
+  const ctaY = qrY + cardH * 0.18;
+  const pillX = qrX + qrSize * 1.18 + pad * 0.5;
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
-    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2f8f63" stop-opacity=".38"/><stop offset="1" stop-color="#e6a94e" stop-opacity=".14"/>
-    </linearGradient>
-    <linearGradient id="dot" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5ec79a"/><stop offset="1" stop-color="#e6a94e"/>
-    </linearGradient>
+    <radialGradient id="g1" cx="0.14" cy="0.02" r="1"><stop offset="0" stop-color="${accent.a}" stop-opacity=".5"/><stop offset=".55" stop-color="${accent.a}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g2" cx="0.95" cy="0.2" r="0.9"><stop offset="0" stop-color="${accent.b}" stop-opacity=".32"/><stop offset=".6" stop-color="${accent.b}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g3" cx="0.5" cy="1.1" r="1"><stop offset="0" stop-color="${accent.a}" stop-opacity=".25"/><stop offset=".6" stop-color="${accent.a}" stop-opacity="0"/></radialGradient>
+    <linearGradient id="dot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ec79a"/><stop offset="1" stop-color="${accent.b}"/></linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${accent.a}"/><stop offset="1" stop-color="${accent.b}"/></linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.028 0"/><feComposite operator="over" in2="SourceGraphic"/></filter>
   </defs>
   <rect width="${w}" height="${h}" fill="#0a100c"/>
-  <ellipse cx="${w * 0.15}" cy="${h * 0.05}" rx="${w * 0.6}" ry="${h * 0.3}" fill="url(#glow)"/>
-  <circle cx="${pad + headSize * 0.3}" cy="${h * 0.12}" r="${headSize * 0.28}" fill="url(#dot)"/>
-  <text x="${pad + headSize * 0.8}" y="${h * 0.12 + headSize * 0.22}" font-family="Helvetica, Arial, sans-serif" font-size="${subSize}" font-weight="800" letter-spacing="4" fill="#f4f6f0">EXECLINGO</text>
-  <text x="${pad}" y="${headY}" font-family="Georgia, 'Times New Roman', serif" font-size="${headSize}" font-weight="700" fill="#f4f6f0">${headline}</text>
-  <text x="${pad}" y="${headY + lines.length * headSize * 1.18 + subSize * 1.6}" font-family="Helvetica, Arial, sans-serif" font-size="${subSize}" fill="#cfd6c9">${campaign.sub.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>
-  <rect x="${pad - 4}" y="${h - pad - qrSize - subSize * 3.4 - 4}" width="${qrSize + 8}" height="${qrSize + 8}" rx="14" fill="#ffffff"/>
-  <svg x="${pad}" y="${h - pad - qrSize - subSize * 3.4}" width="${qrSize}" height="${qrSize}" viewBox="${qrViewBox}">${qrInner}</svg>
-  <text x="${pad}" y="${h - pad - subSize * 1.5}" font-family="Helvetica, Arial, sans-serif" font-size="${subSize}" font-weight="700" fill="#5ec79a">execlingo.it/r/${partner.refCode}</text>
-  <text x="${pad}" y="${h - pad}" font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(subSize * 0.82)}" fill="#8d968a">In 3 mesi sei operativo in inglese · Inquadra il QR per iniziare</text>
+  <rect width="${w}" height="${h}" fill="url(#g1)"/>
+  <rect width="${w}" height="${h}" fill="url(#g2)"/>
+  <rect width="${w}" height="${h}" fill="url(#g3)"/>
+  <rect width="${w}" height="${h}" fill="transparent" filter="url(#grain)"/>
+
+  <g>
+    <circle cx="${pad + 12 * u}" cy="${pad + 10 * u}" r="${11 * u}" fill="url(#dot)"/>
+    <text x="${pad + 34 * u}" y="${pad + 20 * u}" font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial" font-size="${30 * u}" font-weight="800" letter-spacing="${5 * u}" fill="#f4f6f0">EXECLINGO</text>
+  </g>
+  <text x="${pad}" y="${headY - headSize * 0.9}" font-family="-apple-system, Helvetica, Arial" font-size="${Math.round(24 * u * (landscape ? 1.2 : 1))}" font-weight="700" letter-spacing="${4 * u}" fill="${accent.b}">${accent.kicker}</text>
+  <text x="${pad}" y="${headY}" font-family="'New York', Georgia, 'Times New Roman', serif" font-size="${headSize}" font-weight="700" fill="#f4f6f0">${headline}</text>
+  <rect x="${pad}" y="${subY - subSize * 1.35}" width="${86 * u}" height="${5 * u}" rx="${2.5 * u}" fill="url(#rule)"/>
+  <text x="${pad}" y="${subY}" font-family="-apple-system, Helvetica, Arial" font-size="${subSize}" fill="#c3cabe">${esc(campaign.sub)}</text>
+
+  <g>${motif(campaign.id, motifX, motifY, motifW, accent.a, accent.b)}</g>
+
+  ${glassQr(qrX, qrY, qrSize, qrInner, qrViewBox, partner.refCode, fontScale)}
+  <g>
+    <rect x="${pillX}" y="${ctaY}" rx="${26 * fontScale}" width="${300 * fontScale}" height="${52 * fontScale}" fill="${accent.a}"/>
+    <text x="${pillX + 150 * fontScale}" y="${ctaY + 34 * fontScale}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${20 * fontScale}" font-weight="800" fill="#ffffff">Test gratuito di 3 minuti</text>
+    <text x="${pillX}" y="${ctaY + 52 * fontScale + 38 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${19 * fontScale}" font-weight="700" fill="#5ec79a">execlingo.it/r/${esc(partner.refCode)}</text>
+    <text x="${pillX}" y="${ctaY + 52 * fontScale + 72 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${14 * fontScale}" fill="#8d968a">In 3 mesi sei operativo in inglese</text>
+  </g>
 </svg>`;
 
   return new NextResponse(svg, {
     headers: {
       "Content-Type": "image/svg+xml",
-      "Content-Disposition": `attachment; filename="execlingo-${campaign.id}-${format.id}.svg"`,
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="execlingo-${campaign.id}-${format.id}.svg"`,
       "Cache-Control": "private, max-age=3600",
     },
   });
