@@ -23,7 +23,8 @@ export function proxy(request: NextRequest) {
     path === "/manifest.webmanifest" ||
     path === "/sw.js" ||
     path === "/apple-touch-icon.png" ||
-    path.startsWith("/banners/");
+    path.startsWith("/banners/") ||
+    path.startsWith("/marketing/");
 
   // Presence check only — cryptographic validation happens server-side in lib/auth.
   if (!isPublic && !request.cookies.get("english_buddy_session")) {

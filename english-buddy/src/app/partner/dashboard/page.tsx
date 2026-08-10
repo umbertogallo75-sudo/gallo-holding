@@ -7,7 +7,7 @@ import { CAMPAIGNS, FORMATS } from "@/lib/marketing-kit";
 import { JoinForm } from "./JoinForm";
 import { LeadForm } from "./LeadForm";
 import { PayoutForm } from "./PayoutForm";
-import { CopyButton, DownloadPng, ShareImage, ShareLink, WhatsAppShare } from "./KitTools";
+import { CopyButton, DownloadPng, SavePhoto, ShareImage, ShareLink, WhatsAppShare } from "./KitTools";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner Dashboard · ExecLingo" };
@@ -110,13 +110,25 @@ export default async function PartnerDashboardPage() {
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>🎨 Marketing Kit</h2>
-        <p className="muted" style={{ marginTop: 0 }}>Immagini professionali pronte da pubblicare: condividile con il testo qui sotto, che contiene il <strong>tuo link personale</strong> — chi clicca è attribuito a te. Il <strong>Volantino con QR</strong> è pensato per la stampa e gli incontri di persona.</p>
+        <p className="muted" style={{ marginTop: 0 }}>Immagini professionali pronte da pubblicare: condividile con il testo qui sotto, che contiene il <strong>tuo link personale</strong> — chi clicca è attribuito a te. Il <strong>Volantino con QR</strong> è pensato per la stampa e gli incontri di persona. Dal telefono, &ldquo;Salva&rdquo; apre la condivisione: tocca <strong>Salva immagine</strong> e la trovi nella galleria.</p>
         {CAMPAIGNS.map((c) => (
           <div key={c.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: 12 }}>
             <strong>{c.title}</strong>
             <p className="muted" style={{ margin: "2px 0 8px", fontSize: 14 }}>&ldquo;{c.headline}&rdquo;</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/partner/creative?campaign=${c.id}&format=ig&inline=1`} alt={`Anteprima campagna ${c.title}`} loading="lazy" style={{ width: "100%", maxWidth: 320, borderRadius: 14, border: "1px solid var(--line)", marginBottom: 8, display: "block" }} />
+            {c.photos?.length ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {c.photos.map((p) => (
+                  <div key={p.src} style={{ width: "100%", maxWidth: 320 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.src} alt={`${p.label} · ${c.title}`} loading="lazy" style={{ width: "100%", borderRadius: 14, border: "1px solid var(--line)", display: "block", marginBottom: 6 }} />
+                    <SavePhoto src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} label={`📲 Salva ${p.label.toLowerCase()}`} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={`/api/partner/creative?campaign=${c.id}&format=ig&inline=1`} alt={`Anteprima campagna ${c.title}`} loading="lazy" style={{ width: "100%", maxWidth: 320, borderRadius: 14, border: "1px solid var(--line)", marginBottom: 8, display: "block" }} />
+            )}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <WhatsAppShare text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
               <ShareImage campaign={c.id} format="ig" w={1080} h={1080} caption={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />

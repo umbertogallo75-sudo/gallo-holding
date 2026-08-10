@@ -56,6 +56,49 @@ export function ShareLink({ title, text, url }: { title: string; text: string; u
   );
 }
 
+/**
+ * Hands an image to the device. On phones the Web Share sheet is the only
+ * web-allowed route into the photo library ("Salva immagine" on iOS/Android),
+ * so we prefer it; on desktop we fall back to a normal file download.
+ */
+async function saveImageToDevice(blob: Blob, name: string, caption?: string): Promise<void> {
+  const file = new File([blob], name, { type: blob.type || "image/png" });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], ...(caption ? { text: caption } : {}) });
+      return;
+    } catch { /* sheet dismissed — fall through to download */ }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+}
+
+/** Official photographic creative: preview-sized button that saves to the gallery. */
+export function SavePhoto({ src, name, label }: { src: string; name: string; label: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      className="pill"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const blob = await (await fetch(src)).blob();
+          await saveImageToDevice(blob, name);
+        } catch { window.open(src, "_blank"); } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "…" : label}
+    </button>
+  );
+}
+
 async function creativeAsPng(campaign: string, format: string, w: number, h: number): Promise<Blob | null> {
   const response = await fetch(`/api/partner/creative?campaign=${campaign}&format=${format}`);
   const svgText = await response.text();
@@ -111,26 +154,9 @@ export function DownloadPng({ campaign, format, w, h, label }: { campaign: strin
   async function download() {
     setBusy(true);
     try {
-      const response = await fetch(`/api/partner/creative?campaign=${campaign}&format=${format}`);
-      const svgText = await response.text();
-      const blob = new Blob([svgText], { type: "image/svg+xml" });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("img"));
-        img.src = url;
-      });
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      const png = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = png;
-      a.download = `execlingo-${campaign}-${format}.png`;
-      a.click();
+      const blob = await creativeAsPng(campaign, format, w, h);
+      if (!blob) throw new Error("png");
+      await saveImageToDevice(blob, `execlingo-${campaign}-${format}.png`);
     } catch {
       window.open(`/api/partner/creative?campaign=${campaign}&format=${format}`, "_blank");
     } finally {

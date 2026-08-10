@@ -11,6 +11,8 @@ export type Campaign = {
   igCopy: string;
   liCopy: string;
   waCopy: string;
+  /** Official photographic creatives (static, ready to post as-is). */
+  photos?: { src: string; label: string }[];
 };
 
 export const CAMPAIGNS: Campaign[] = [
@@ -61,6 +63,7 @@ export const CAMPAIGNS: Campaign[] = [
       "La differenza tra subire una call in inglese e guidarla è la preparazione.\n\nExecLingo allena esattamente questo: simulazioni di meeting, negoziazioni, presentazioni e linguaggio finanziario, con un coach AI che corregge e adatta il livello. C'è anche il warm-up pre-call da 5 minuti.\n\n[LINK]",
     waCopy:
       "Se hai spesso call o riunioni in inglese, guarda ExecLingo: ha pure il 'riscaldamento' pre-meeting da 5 minuti con le frasi giuste. [LINK]",
+    photos: [{ src: "/marketing/call-meeting.jpg", label: "Foto ufficiale" }],
   },
   {
     id: "listen-type",
@@ -73,6 +76,7 @@ export const CAMPAIGNS: Campaign[] = [
       "Non sempre si può parlare ad alta voce — e non serve.\n\nLa modalità Listen + Type di ExecLingo allena la comprensione orale nei momenti 'silenziosi' della giornata: pendolarismo, attese, viaggi. Ascolti, scrivi, il coach corregge.\n\n[LINK]",
     waCopy:
       "C'è una modalità di ExecLingo perfetta per il treno: ascolti l'inglese e rispondi scrivendo, senza parlare. La uso nei tempi morti. [LINK]",
+    photos: [{ src: "/marketing/listen-type.jpg", label: "Foto ufficiale" }],
   },
   {
     id: "business-travel",
@@ -85,6 +89,10 @@ export const CAMPAIGNS: Campaign[] = [
       "L'inglese di lavoro non finisce in sala riunioni: continua in aeroporto, in hotel, a cena con i clienti.\n\nExecLingo copre entrambi i mondi — business e viaggio — con un coach AI e una funzione 'salvavita' (English Rescue) per le frasi che servono al momento.\n\n[LINK]",
     waCopy:
       "Per chi viaggia per lavoro: ExecLingo ti prepara ai meeting ma anche a check-in, ristoranti e imprevisti. Ha una funzione che ti traduce al volo quello che vuoi dire, con l'audio. [LINK]",
+    photos: [
+      { src: "/marketing/business-travel.jpg", label: "Foto ufficiale 1" },
+      { src: "/marketing/business-travel-donna.jpg", label: "Foto ufficiale 2" },
+    ],
   },
 ];
 
