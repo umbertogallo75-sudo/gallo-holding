@@ -128,15 +128,15 @@ export async function GET(request: Request) {
   const headline = headLines
     .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
-  const subSize = Math.round((landscape ? 26 : 34) * u * (landscape ? 1.35 : 1));
+  const subSize = Math.round((landscape ? 29 : 34) * u);
 
-  const headY = story ? h * 0.2 : landscape ? h * 0.36 : h * 0.26;
-  const subY = headY + headLines.length * headSize * 1.08 + subSize * 1.7;
+  const headY = story ? h * 0.2 : landscape ? h * 0.3 : h * 0.26;
+  const subY = headY + headLines.length * headSize * 1.08 + subSize * (landscape ? 1.2 : 1.7);
 
   // Motif placement: clear of text and QR card.
-  const motifW = landscape ? w * 0.15 : w * 0.32;
-  const motifX = landscape ? w * 0.52 : w * 0.6;
-  const motifY = story ? h * 0.52 : landscape ? h * 0.66 : h * 0.42;
+  const motifW = landscape ? w * 0.14 : w * 0.32;
+  const motifX = landscape ? w * 0.56 : w * 0.6;
+  const motifY = story ? h * 0.52 : landscape ? h * 0.08 : h * 0.42;
 
   // QR card: bottom-left on vertical formats, right-center on landscape.
   const qrSize = Math.round(landscape ? h * 0.36 : w * (story ? 0.2 : 0.18));
@@ -146,8 +146,8 @@ export async function GET(request: Request) {
   const qrX = landscape ? w - pad - cardW : pad;
   const qrY = landscape ? (h - cardH) / 2 : h - pad - cardH;
 
-  // CTA pill + link block: next to QR on vertical, bottom-left on landscape.
-  const ctaY = landscape ? h - pad - 118 * fontScale : qrY + cardH * 0.18;
+  // CTA pill + link block: next to QR on vertical, under the sub on landscape.
+  const ctaY = landscape ? subY + 26 * fontScale : qrY + cardH * 0.18;
   const pillX = landscape ? pad : qrX + cardW + pad * 0.5;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -180,8 +180,10 @@ export async function GET(request: Request) {
   <g>
     <rect x="${pillX}" y="${ctaY}" rx="${26 * fontScale}" width="${300 * fontScale}" height="${52 * fontScale}" fill="${accent.a}"/>
     <text x="${pillX + 150 * fontScale}" y="${ctaY + 34 * fontScale}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${20 * fontScale}" font-weight="800" fill="#ffffff">Test gratuito di 3 minuti</text>
-    <text x="${pillX}" y="${ctaY + 52 * fontScale + 38 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${19 * fontScale}" font-weight="700" fill="#5ec79a">execlingo.it/r/${esc(partner.refCode)}</text>
-    <text x="${pillX}" y="${ctaY + 52 * fontScale + 72 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${14 * fontScale}" fill="#8d968a">In 3 mesi sei operativo in inglese</text>
+    ${landscape
+      ? `<text x="${pillX + 320 * fontScale}" y="${ctaY + 34 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${19 * fontScale}" font-weight="700" fill="#5ec79a">execlingo.it/r/${esc(partner.refCode)}</text>`
+      : `<text x="${pillX}" y="${ctaY + 52 * fontScale + 38 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${19 * fontScale}" font-weight="700" fill="#5ec79a">execlingo.it/r/${esc(partner.refCode)}</text>
+    <text x="${pillX}" y="${ctaY + 52 * fontScale + 72 * fontScale}" font-family="-apple-system, Helvetica, Arial" font-size="${14 * fontScale}" fill="#8d968a">In 3 mesi sei operativo in inglese</text>`}
   </g>
 </svg>`;
 
