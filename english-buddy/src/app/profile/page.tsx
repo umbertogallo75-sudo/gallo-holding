@@ -71,6 +71,9 @@ export default async function ProfilePage() {
       <Link href="/abbonamento" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         💳 Abbonamento e piani
       </Link>
+      <Link href="/partner/dashboard" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10, borderColor: "color-mix(in srgb, var(--accent) 45%, var(--line))" }}>
+        🤝 Promuovi ExecLingo — guadagna il 5%
+      </Link>
       <Link href="/onboarding" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         ⚙️ Cambia livello, obiettivi o notifiche
       </Link>

@@ -7,7 +7,7 @@ import { CAMPAIGNS, FORMATS } from "@/lib/marketing-kit";
 import { JoinForm } from "./JoinForm";
 import { LeadForm } from "./LeadForm";
 import { PayoutForm } from "./PayoutForm";
-import { CopyButton, DownloadPng } from "./KitTools";
+import { CopyButton, DownloadPng, ShareImage, ShareLink, WhatsAppShare } from "./KitTools";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner Dashboard · ExecLingo" };
@@ -58,6 +58,8 @@ export default async function PartnerDashboardPage() {
           <div><span className="muted">Codice</span><strong style={{ userSelect: "all" }}>{partner.refCode}</strong></div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+          <WhatsAppShare text={`Ti consiglio ExecLingo: il coach AI di inglese per chi lavora, si adatta al tempo che hai (anche 2 minuti). Il test del livello è gratis: ${refUrl}`} />
+          <ShareLink title="ExecLingo" text="Prova ExecLingo, il coach AI di inglese per chi lavora. Il test del livello è gratis." url={refUrl} />
           <CopyButton text={refUrl} label="📋 Copia link" />
           <CopyButton text={partner.refCode} label="📋 Copia codice" />
           <a className="pill" href="/api/partner/qr" style={{ textDecoration: "none" }}>⬇️ Scarica QR</a>
@@ -114,6 +116,8 @@ export default async function PartnerDashboardPage() {
             <strong>{c.title}</strong>
             <p className="muted" style={{ margin: "2px 0 8px", fontSize: 14 }}>&ldquo;{c.headline}&rdquo;</p>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <WhatsAppShare text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
+              <ShareImage campaign={c.id} format="ig" w={1080} h={1080} caption={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
               {FORMATS.map((f) => (
                 <DownloadPng key={f.id} campaign={c.id} format={f.id} w={f.w} h={f.h} label={`⬇️ ${f.label}`} />
               ))}

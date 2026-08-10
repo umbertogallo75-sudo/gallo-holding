@@ -52,6 +52,14 @@ export default async function HomePage() {
     ) : null}
     <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
     <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
+    <a href="/partner/dashboard" className="mode wide" style={{ display: "flex", marginTop: 10 }}>
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>🤝</span>
+      <div>
+        <div className="modeTitle">Recommend ExecLingo, earn 5%</div>
+        <div className="modeMeta">Share your personal link — every sale pays you back</div>
+        <div className="itHint">Ti trovi bene? Consiglia ExecLingo con il tuo link personale e guadagni il 5% su ogni vendita: immagini pronte e condivisione WhatsApp in un tocco</div>
+      </div>
+    </a>
     <EnablePush />
     <WelcomeIntro />
     <BottomNav active="home" />
