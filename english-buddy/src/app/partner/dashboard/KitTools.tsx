@@ -76,6 +76,40 @@ async function saveImageToDevice(blob: Blob, name: string, caption?: string): Pr
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
 }
 
+/**
+ * Shares a photo WITH its accompanying copy (partner link included) via the
+ * OS share sheet — pick WhatsApp, LinkedIn, Instagram… Some apps drop the
+ * text when a file is attached, so the copy is also placed on the clipboard
+ * ready to paste. Desktop fallback: download the photo + copy the text.
+ */
+export function SharePhotoWithText({ src, name, text }: { src: string; name: string; text: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "copied">("idle");
+  return (
+    <button
+      type="button"
+      className="pill"
+      disabled={state === "busy"}
+      onClick={async () => {
+        setState("busy");
+        try {
+          try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable */ }
+          const blob = await (await fetch(src)).blob();
+          const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+          } else {
+            await saveImageToDevice(blob, name);
+          }
+          setState("copied");
+          setTimeout(() => setState("idle"), 2600);
+        } catch { setState("idle"); }
+      }}
+    >
+      {state === "busy" ? "…" : state === "copied" ? "Testo copiato ✓ incollalo nel post" : "📤 Condividi con testo"}
+    </button>
+  );
+}
+
 /** Official photographic creative: preview-sized button that saves to the gallery. */
 export function SavePhoto({ src, name, label }: { src: string; name: string; label: string }) {
   const [busy, setBusy] = useState(false);
@@ -128,6 +162,7 @@ export function ShareImage({ campaign, format, w, h, caption }: { campaign: stri
       onClick={async () => {
         setBusy(true);
         try {
+          try { await navigator.clipboard.writeText(caption); } catch { /* clipboard unavailable */ }
           const blob = await creativeAsPng(campaign, format, w, h);
           if (!blob) throw new Error("png");
           const file = new File([blob], `execlingo-${campaign}.png`, { type: "image/png" });
