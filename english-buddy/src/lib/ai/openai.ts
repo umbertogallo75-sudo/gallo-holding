@@ -30,7 +30,7 @@ export async function runCoach(instructions: string, input: string): Promise<Coa
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      model: process.env.OPENAI_MODEL || "gpt-5",
       instructions,
       input,
       reasoning: { effort: "low" },

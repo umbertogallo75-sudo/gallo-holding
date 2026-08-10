@@ -92,7 +92,7 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5-mini",
+        model: process.env.OPENAI_MODEL || "gpt-5",
         instructions: `You are Sam, the user's English coach and English-speaking friend who texts short questions during the day to help an ${context.level || "intermediate"}-level professional practice English naturally.
 ${
   beginner
