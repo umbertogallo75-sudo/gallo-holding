@@ -1,9 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
 
 type Msg = { role:"user"|"assistant"; content:string; correction?:string };
+
+function subscribeToNetwork(callback: () => void) {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
 
 const openers: Record<string,string> = {
   "text-2": "Ask me one quick English question. I only have two minutes.",
@@ -73,6 +82,24 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   const [failedMessage, setFailedMessage] = useState<string>();
   const started = useRef(Boolean(initialQuestion));
   const opener = useRef(initialQuestion);
+  const failedRef = useRef<string>(undefined);
+  failedRef.current = failedMessage;
+
+  // Weak-network safety net: live offline flag + automatic re-send of the
+  // pending message the moment the connection returns.
+  const offline = useSyncExternalStore(subscribeToNetwork, () => !navigator.onLine, () => false);
+  useEffect(() => {
+    const backOnline = () => {
+      const pending = failedRef.current;
+      if (pending) {
+        setFailedMessage(undefined);
+        void send(pending, false);
+      }
+    };
+    window.addEventListener("online", backOnline);
+    return () => window.removeEventListener("online", backOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listener binds once; pending message travels via ref
+  }, []);
 
   async function coachCall(message: string) {
     const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
@@ -84,7 +111,10 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   async function send(raw: string, visible = true) {
     const message = raw.trim(); if (!message || loading) return;
     if (visible) setMessages(v => [...v, { role:"user", content:message }]);
-    setText(""); setSuggestions([]); setFailedMessage(undefined); setLoading(true);
+    setText(""); setSuggestions([]); setFailedMessage(undefined);
+    // No network right now: park the message — the online listener re-sends it.
+    if (!navigator.onLine) { setFailedMessage(message); return; }
+    setLoading(true);
     try {
       let data;
       try {
@@ -130,6 +160,9 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
 
   return <>
+    {offline && (
+      <div className="offlineBar" role="status">📡 Sei offline — appena torna la rete riprendo io <span style={{ opacity: .75 }}>· You&rsquo;re offline</span></div>
+    )}
     <div className="chat">
       {messages.map((m,i) => <div key={i} style={{display:"contents"}}>
         <div className={`bubble ${m.role === "assistant" ? "ai" : "user"}`}>
@@ -140,9 +173,9 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
       {loading && <div className="bubble ai muted">Sam is thinking…</div>}
       {failedMessage && !loading && (
         <div className="bubble ai">
-          ⚠️ Connection problem — your answer was not lost.
-          <span className="itHint" style={{display:"block"}}>Problema di connessione: la tua risposta non è andata persa. Tocca Riprova.</span>
-          <button type="button" className="primary" style={{marginTop:8, padding:"8px 16px", minWidth:0}} onClick={retry}>Retry · Riprova</button>
+          ⚠️ {offline ? "Sei offline — la tua risposta è al sicuro." : "Problema di connessione — la tua risposta non è andata persa."}
+          <span className="itHint" style={{display:"block"}}>{offline ? "Appena torna la rete la invio automaticamente." : "Riprovo appena tocchi il pulsante — o da solo appena torna la rete."}</span>
+          {!offline ? <button type="button" className="primary" style={{marginTop:8, padding:"8px 16px", minWidth:0}} onClick={retry}>Riprova</button> : null}
         </div>
       )}
       {suggestions.length > 0 && (
@@ -162,6 +195,6 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         </button>
       )}
     </div>
-    <form className="composer" onSubmit={submit}><textarea aria-label="Your answer" placeholder="Answer in English…" value={text} onChange={e=>setText(e.target.value)} /><button className="primary" disabled={loading || !text.trim()}>Send</button></form>
+    <form className="composer" onSubmit={submit}><textarea aria-label="Your answer" placeholder="Answer in English…" value={text} onChange={e=>setText(e.target.value)} /><button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button></form>
   </>;
 }

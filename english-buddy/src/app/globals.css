@@ -87,6 +87,7 @@ p { line-height:1.55; font-size:16px; }
 .navSpin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }
 .pageSpin { width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spinround .8s linear infinite; }
 @keyframes spinround { to { transform:rotate(360deg); } }
+.offlineBar { position:sticky; top:8px; z-index:15; background:color-mix(in srgb, var(--amber) 22%, #17190f); border:1px solid color-mix(in srgb, var(--amber) 55%, var(--line)); color:#f2e6c8; border-radius:12px; padding:10px 14px; font-size:14px; margin:8px 0; text-align:center; }
 
 .chat { display:flex; flex-direction:column; gap:10px; margin:20px 0 130px; }
 .bubble { padding:15px 17px; max-width:88%; line-height:1.5; font-size:16.5px; white-space:pre-wrap; }
