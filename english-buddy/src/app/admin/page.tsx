@@ -92,6 +92,9 @@ export default async function AdminPage() {
         <p className="muted">{rows.length} utenti · Gli utenti fermi da più di 3 giorni sono evidenziati. Puoi stimolarli con una notifica o regolare quante ne ricevono.</p>
       </section>
       <AdminTools />
+      <a href="/admin/vendite" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
+        📊 Sales Control Center — partner, provvigioni, pagamenti
+      </a>
       {funnel ? (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>📈 Funnel marketing</h2>

@@ -8,6 +8,7 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [refCode, setRefCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -19,7 +20,7 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, code }),
+      body: JSON.stringify({ name, email, code, refCode: refCode.trim() || undefined }),
     });
     const data = await response.json().catch(() => ({}));
     setLoading(false);
@@ -46,6 +47,8 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
           <p className="itHint" style={{ margin: "0 4px 6px" }}>La tua email (per comunicazioni sul tuo percorso)</p>
           <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Choose a personal access code (min 8 characters)" value={code} onChange={(e) => setCode(e.target.value)} />
           <p className="itHint" style={{ margin: "0 4px 6px" }}>Scegli il tuo codice segreto di accesso (minimo 8 caratteri) — come una password</p>
+          <input className="field" placeholder="Partner code (optional)" value={refCode} onChange={(e) => setRefCode(e.target.value.toUpperCase())} />
+          <p className="itHint" style={{ margin: "0 4px 6px" }}>Codice partner (opzionale): se qualcuno ti ha presentato ExecLingo, inserisci qui il suo codice</p>
           {error ? <div className="notice" style={{ marginBottom: 8 }}>{error}</div> : null}
           <button className="primary full" disabled={loading}>{loading ? "Creating…" : "Create my access"}</button>
           <p className="itHint" style={{ margin: "6px 4px", textAlign: "center" }}>Crea il mio accesso</p>

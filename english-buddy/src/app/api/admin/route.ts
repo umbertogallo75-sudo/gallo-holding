@@ -5,6 +5,7 @@ import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
 import { saveBilling } from "@/lib/stripe";
+import { audit, MIN_PAYOUT_CENTS, promoteHeldCommissions, setPartnerRate, setPartnerStatus } from "@/lib/partners";
 import { bannerForNotification } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
 
@@ -35,6 +36,25 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("voidtestlicenses"),
   }),
+  z.object({
+    action: z.literal("partnerrate"),
+    partnerId: z.string().min(1).max(80),
+    rate: z.number(),
+  }),
+  z.object({
+    action: z.literal("partnerstatus"),
+    partnerId: z.string().min(1).max(80),
+    status: z.string().min(1).max(30),
+  }),
+  z.object({
+    action: z.literal("payoutcreate"),
+    partnerId: z.string().min(1).max(80),
+  }),
+  z.object({
+    action: z.literal("payoutpaid"),
+    payoutId: z.string().min(1).max(80),
+    reference: z.string().trim().max(120).optional(),
+  }),
 ]);
 
 /** Owner-only actions from the monitoring dashboard. */
@@ -50,6 +70,61 @@ export async function POST(request: Request) {
     const temp = await adminResetCode(data.userId);
     if (!temp) return NextResponse.json({ error: "Non posso resettare questo account" }, { status: 400 });
     return NextResponse.json({ ok: true, tempCode: temp });
+  }
+
+  if (data.action === "partnerrate") {
+    try {
+      await setPartnerRate(OWNER_ID, data.partnerId, data.rate);
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Errore" }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (data.action === "partnerstatus") {
+    try {
+      await setPartnerStatus(OWNER_ID, data.partnerId, data.status);
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Errore" }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (data.action === "payoutcreate") {
+    await promoteHeldCommissions();
+    const available = await db().execute({
+      sql: "SELECT SUM(amount_cents) AS total FROM commissions WHERE partner_id = ? AND status = 'available' AND payout_id IS NULL",
+      args: [data.partnerId],
+    });
+    const total = Number(available.rows[0]?.total ?? 0);
+    if (total < MIN_PAYOUT_CENTS) {
+      return NextResponse.json({ error: `Disponibile ${(total / 100).toFixed(2)} € — sotto il minimo di ${(MIN_PAYOUT_CENTS / 100).toFixed(0)} €` }, { status: 400 });
+    }
+    const docs = await db().execute({ sql: "SELECT payout_docs_status FROM partners WHERE user_id = ?", args: [data.partnerId] });
+    if (String(docs.rows[0]?.payout_docs_status) !== "complete") {
+      return NextResponse.json({ error: "Il partner non ha completato i dati di incasso" }, { status: 400 });
+    }
+    const payoutId = randomUUID();
+    await db().execute({ sql: "INSERT INTO payouts (id, partner_id, amount_cents) VALUES (?, ?, ?)", args: [payoutId, data.partnerId, total] });
+    await db().execute({
+      sql: "UPDATE commissions SET payout_id = ?, status = 'processing' WHERE partner_id = ? AND status = 'available' AND payout_id IS NULL",
+      args: [payoutId, data.partnerId],
+    });
+    await audit(OWNER_ID, "payout_created", data.partnerId, `${(total / 100).toFixed(2)} EUR payout=${payoutId}`);
+    return NextResponse.json({ ok: true, payoutId, amountCents: total });
+  }
+
+  if (data.action === "payoutpaid") {
+    await db().execute({
+      sql: "UPDATE payouts SET status = 'paid', paid_at = CURRENT_TIMESTAMP, reference = COALESCE(?, reference) WHERE id = ?",
+      args: [data.reference ?? null, data.payoutId],
+    });
+    await db().execute({
+      sql: "UPDATE commissions SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE payout_id = ?",
+      args: [data.payoutId],
+    });
+    await audit(OWNER_ID, "payout_marked_paid", data.payoutId, data.reference ?? null);
+    return NextResponse.json({ ok: true });
   }
 
   if (data.action === "deleteuser") {

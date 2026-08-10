@@ -3,6 +3,7 @@ import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { accessCodeInUse, createAuthUser } from "@/lib/auth-users";
 import { trackEvent } from "@/lib/analytics";
+import { attributeSignup } from "@/lib/partners";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
@@ -10,6 +11,7 @@ const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
   code: z.string().min(8, "The personal code must be at least 8 characters").max(200),
   inviteCode: z.string().max(200).optional(),
+  refCode: z.string().trim().max(40).optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,6 +39,21 @@ export async function POST(request: Request) {
 
   const userId = await createAuthUser(name, code, email);
   await trackEvent("register_done", { userId });
+
+  // Referral attribution: cookie set by /r/CODE, manual code, or offline lead.
+  try {
+    let refCode: string | null = parsed.data.refCode ?? null;
+    let campaign: string | null = null;
+    const cookie = request.headers.get("cookie")?.match(/eb_ref=([^;]+)/)?.[1];
+    if (!refCode && cookie) {
+      const decoded = JSON.parse(decodeURIComponent(cookie)) as { c?: string; k?: string };
+      refCode = decoded.c ?? null;
+      campaign = decoded.k ?? null;
+    }
+    await attributeSignup({ userId, email, refCode, campaign });
+  } catch {
+    // Attribution must never break a registration.
+  }
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, createSessionToken(userId), {

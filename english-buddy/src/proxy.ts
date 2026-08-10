@@ -11,6 +11,8 @@ export function proxy(request: NextRequest) {
     path === "/privacy" ||
     path === "/termini" ||
     path === "/aziende" ||
+    path === "/partner" ||
+    path.startsWith("/r/") ||
     path === "/api/billing/company-checkout" ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||

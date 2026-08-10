@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateLicenses } from "@/lib/licenses";
 import { renderEmail, sendEmail } from "@/lib/email";
+import { recordCommission, reverseCommission } from "@/lib/partners";
 import { saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
 
 export const maxDuration = 60;
@@ -15,6 +16,10 @@ type StripeObject = {
   mode?: string;
   status?: string;
   current_period_end?: number;
+  amount_total?: number;
+  currency?: string;
+  total_details?: { amount_tax?: number };
+  payment_intent?: string;
 };
 
 /** A completed team order becomes license codes, emailed to the buyer. */
@@ -80,6 +85,18 @@ export async function POST(request: Request) {
       // get their real period end from the subscription events that follow.
       const periodEnd = object.mode === "payment" ? new Date(Date.now() + 98 * 86_400_000).toISOString() : null;
       await saveBilling({ userId, stripeCustomerId: customer, plan, status: "active", currentPeriodEnd: periodEnd });
+      // Partner commission: idempotent on the session id, net of VAT, ≤5%.
+      if (object.amount_total) {
+        await recordCommission({
+          userId,
+          paymentRef: String(object.id ?? ""),
+          paymentIntent: object.payment_intent ? String(object.payment_intent) : null,
+          plan,
+          grossCents: Number(object.amount_total),
+          taxCents: object.total_details?.amount_tax ?? null,
+          currency: object.currency ?? "eur",
+        }).catch((error) => console.error("commission error:", error));
+      }
     }
   } else if (event.type.startsWith("customer.subscription.")) {
     const userId = metaUser || object.metadata?.userId || (customer ? await userIdByCustomer(customer) : null);
@@ -99,6 +116,10 @@ export async function POST(request: Request) {
   } else if (event.type === "invoice.payment_failed" && customer) {
     const userId = await userIdByCustomer(customer);
     if (userId) await saveBilling({ userId, status: "past_due" });
+  } else if (event.type === "charge.refunded" || event.type === "charge.dispute.created") {
+    // Refund/chargeback: reverse any pending or held partner commission.
+    const intent = object.payment_intent ? String(object.payment_intent) : null;
+    if (intent) await reverseCommission(intent, event.type).catch(() => {});
   }
 
   return NextResponse.json({ received: true });
