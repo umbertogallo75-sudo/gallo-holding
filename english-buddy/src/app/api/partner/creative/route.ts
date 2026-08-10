@@ -94,7 +94,7 @@ function glassQr(x: number, y: number, size: number, qrInner: string, qrViewBox:
   return `<g>
     <rect x="${x}" y="${y}" width="${cardW}" height="${cardH}" rx="${size * 0.12}" fill="#ffffff" opacity=".97"/>
     <svg x="${x + pad}" y="${y + pad}" width="${size}" height="${size}" viewBox="${qrViewBox}">${qrInner}</svg>
-    <text x="${x + cardW / 2}" y="${y + size + pad * 1.7 + 12 * fontScale}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${13 * fontScale}" font-weight="700" letter-spacing="${0.8 * fontScale}" fill="#1c241e">INQUADRA · PROVA GRATIS</text>
+    <text x="${x + cardW / 2}" y="${y + size + pad * 1.7 + 12 * fontScale}" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="${11 * fontScale}" font-weight="700" letter-spacing="${0.4 * fontScale}" fill="#1c241e">INQUADRA · PROVA GRATIS</text>
   </g>`;
 }
 
@@ -122,8 +122,9 @@ export async function GET(request: Request) {
   const u = w / 1080; // scale unit
   const pad = Math.round(w * (landscape ? 0.055 : 0.074));
 
-  const headSize = Math.round((landscape ? 64 : story ? 86 : 82) * u * (landscape ? 1.35 : 1));
-  const headLines = wrap(campaign.headline, landscape ? 20 : 16, 3);
+  const headLines = wrap(campaign.headline, landscape ? 24 : 18, 4);
+  const headShrink = headLines.length >= 4 ? 0.82 : headLines.length === 3 ? 0.94 : 1;
+  const headSize = Math.round((landscape ? 64 : story ? 86 : 82) * u * (landscape ? 1.35 : 1) * headShrink);
   const headline = headLines
     .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
@@ -132,10 +133,10 @@ export async function GET(request: Request) {
   const headY = story ? h * 0.2 : landscape ? h * 0.34 : h * 0.26;
   const subY = headY + headLines.length * headSize * 1.08 + subSize * 1.7;
 
-  // Motif placement
-  const motifW = landscape ? w * 0.26 : w * 0.4;
-  const motifX = landscape ? w * 0.66 : pad;
-  const motifY = story ? h * 0.47 : landscape ? h * 0.16 : h * 0.5;
+  // Motif placement: upper-right of the free zone, clear of text and QR card.
+  const motifW = landscape ? w * 0.24 : w * 0.32;
+  const motifX = landscape ? w * 0.68 : w * 0.6;
+  const motifY = story ? h * 0.52 : landscape ? h * 0.14 : h * 0.42;
 
   // QR card
   const qrSize = Math.round(w * (landscape ? 0.16 : story ? 0.2 : 0.18));
@@ -172,7 +173,7 @@ export async function GET(request: Request) {
   <rect x="${pad}" y="${subY - subSize * 1.35}" width="${86 * u}" height="${5 * u}" rx="${2.5 * u}" fill="url(#rule)"/>
   <text x="${pad}" y="${subY}" font-family="-apple-system, Helvetica, Arial" font-size="${subSize}" fill="#c3cabe">${esc(campaign.sub)}</text>
 
-  <g>${motif(campaign.id, motifX, motifY, motifW, accent.a, accent.b)}</g>
+  <g opacity=".9">${motif(campaign.id, motifX, motifY, motifW, accent.a, accent.b)}</g>
 
   ${glassQr(qrX, qrY, qrSize, qrInner, qrViewBox, partner.refCode, fontScale)}
   <g>
