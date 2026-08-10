@@ -7,7 +7,8 @@ import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 
 export const maxDuration = 30;
 
-const VOICE_MODEL = "gpt-realtime-mini";
+// Best-available speech model, per product decision: quality over cost.
+const VOICE_MODEL = process.env.VOICE_MODEL || "gpt-realtime";
 
 /**
  * Creates a short-lived OpenAI Realtime token so the browser can open a
@@ -67,7 +68,7 @@ Conversation rules:
         model: VOICE_MODEL,
         instructions,
         audio: {
-          input: { transcription: { model: "gpt-4o-mini-transcribe" } },
+          input: { transcription: { model: "gpt-4o-transcribe" } },
           // Sam is male with a warm, gentle delivery: cedar is the natural
           // male voice in the GA Realtime lineup.
           output: { voice: "cedar" },
