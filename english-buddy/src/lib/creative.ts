@@ -253,7 +253,7 @@ export function buildCreativeSvg(input: {
     .map((l, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : headSize * 1.08}">${esc(l)}</tspan>`)
     .join("");
   const subSize = Math.round((landscape ? 29 : 33) * u);
-  const headY = story ? h * 0.145 : landscape ? h * 0.3 : h * 0.19;
+  const headY = story ? h * 0.145 : landscape ? h * (headLines.length >= 4 ? 0.235 : 0.3) : h * 0.19;
   const subY = headY + headLines.length * headSize * 1.08 + subSize * (landscape ? 1.2 : 1.5);
   // Landscape: the sub shares the row with the scene, so wrap it inside the left column.
   const subLines = landscape ? wrap(input.sub, 30, 2) : [input.sub];
