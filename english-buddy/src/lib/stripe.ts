@@ -88,8 +88,6 @@ export async function createCheckout(userId: string, email: string | null, plan:
     "metadata[plan]": plan,
     locale: "it",
     allow_promotion_codes: "true",
-    // Italian product, euro only — no adaptive currency conversion.
-    "adaptive_pricing[enabled]": "false",
   };
   if (email) params.customer_email = email;
   if (def.interval) {
@@ -153,7 +151,6 @@ export async function createTeamCheckout(
     locale: "it",
     billing_address_collection: "required",
     "tax_id_collection[enabled]": "true",
-    "adaptive_pricing[enabled]": "false",
   };
   const session = await stripeFetch("/checkout/sessions", params);
   return String(session.url);
