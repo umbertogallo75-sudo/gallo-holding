@@ -113,6 +113,59 @@ export function WhatsAppPhotoShare({ src, name, text }: { src: string; name: str
   );
 }
 
+const SOCIAL_APPS = {
+  instagram: { label: "📸 Instagram", color: "#E1306C" },
+  facebook: { label: "🔵 Facebook", color: "#1877F2" },
+  linkedin: { label: "💼 LinkedIn", color: "#0A66C2" },
+} as const;
+
+/**
+ * Per-social share: photo attached + the right copy variant pre-loaded
+ * (IG caption for Instagram/Facebook, professional copy for LinkedIn).
+ * Phones: OS share sheet with the file — pick the app there (the web cannot
+ * jump straight into a specific app with an attachment). The text rides on
+ * the clipboard because these apps drop captions on file shares.
+ * Desktop fallbacks: LinkedIn/Facebook official share URLs with the partner
+ * link; Instagram has no web composer, so the photo downloads + text copies.
+ */
+export function SocialPhotoShare({ src, name, text, link, app }: { src: string; name: string; text: string; link: string; app: keyof typeof SOCIAL_APPS }) {
+  const [state, setState] = useState<"idle" | "busy" | "copied">("idle");
+  const meta = SOCIAL_APPS[app];
+  return (
+    <button
+      type="button"
+      className="pill"
+      style={{ borderColor: meta.color }}
+      disabled={state === "busy"}
+      onClick={async () => {
+        setState("busy");
+        try {
+          try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable */ }
+          const blob = await (await fetch(src)).blob();
+          const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            setState("copied");
+            setTimeout(() => setState("idle"), 2600);
+            return;
+          }
+          if (app === "linkedin") {
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`, "_blank", "noopener");
+          } else if (app === "facebook") {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(text)}`, "_blank", "noopener");
+          } else {
+            await saveImageToDevice(blob, name);
+          }
+          setState("copied");
+          setTimeout(() => setState("idle"), 2600);
+        } catch { setState("idle"); }
+      }}
+    >
+      {state === "busy" ? "…" : state === "copied" ? "Testo copiato ✓ incollalo" : meta.label}
+    </button>
+  );
+}
+
 /**
  * Shares a photo WITH its accompanying copy (partner link included) via the
  * OS share sheet — pick WhatsApp, LinkedIn, Instagram… Some apps drop the

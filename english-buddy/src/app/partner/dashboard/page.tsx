@@ -7,7 +7,7 @@ import { CAMPAIGNS, FORMATS } from "@/lib/marketing-kit";
 import { JoinForm } from "./JoinForm";
 import { LeadForm } from "./LeadForm";
 import { PayoutForm } from "./PayoutForm";
-import { CopyButton, DownloadPng, SavePhoto, ShareImage, ShareLink, SharePhotoWithText, WhatsAppPhotoShare, WhatsAppShare } from "./KitTools";
+import { CopyButton, DownloadPng, SavePhoto, ShareImage, ShareLink, SocialPhotoShare, WhatsAppPhotoShare, WhatsAppShare } from "./KitTools";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner Dashboard · ExecLingo" };
@@ -110,7 +110,7 @@ export default async function PartnerDashboardPage() {
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>🎨 Marketing Kit</h2>
-        <p className="muted" style={{ marginTop: 0 }}>Immagini professionali pronte da pubblicare: condividile con il testo qui sotto, che contiene il <strong>tuo link personale</strong> — chi clicca è attribuito a te. Il <strong>Volantino con QR</strong> è pensato per la stampa e gli incontri di persona. Dal telefono: <strong>&ldquo;Condividi con testo&rdquo;</strong> allega la foto e prepara il testo col tuo link (è anche copiato: se l&rsquo;app non lo mostra, tieni premuto e incolla); <strong>&ldquo;Salva&rdquo;</strong> apre la condivisione &rarr; tocca <strong>Salva immagine</strong> e la trovi nella galleria.</p>
+        <p className="muted" style={{ marginTop: 0 }}>Immagini professionali pronte da pubblicare: condividile con il testo qui sotto, che contiene il <strong>tuo link personale</strong> — chi clicca è attribuito a te. Il <strong>Volantino con QR</strong> è pensato per la stampa e gli incontri di persona. Dal telefono i pulsanti <strong>Instagram / Facebook / LinkedIn / WhatsApp</strong> allegano la foto e preparano il testo giusto per quel social, col tuo link: si apre la condivisione, scegli l&rsquo;app e pubblichi. Il testo è anche già copiato — se l&rsquo;app non lo mostra, tieni premuto e <strong>Incolla</strong>. <strong>&ldquo;Salva&rdquo;</strong> &rarr; <strong>Salva immagine</strong> mette la foto nella galleria.</p>
         {CAMPAIGNS.map((c) => (
           <div key={c.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: 12 }}>
             <strong>{c.title}</strong>
@@ -122,7 +122,9 @@ export default async function PartnerDashboardPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.src} alt={`${p.label} · ${c.title}`} loading="lazy" style={{ width: "100%", borderRadius: 14, border: "1px solid var(--line)", display: "block", marginBottom: 6 }} />
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      <SharePhotoWithText src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} text={c.waCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} />
+                      <SocialPhotoShare app="instagram" src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} text={c.igCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} link={`${refUrl}?campaign=${c.id}`} />
+                      <SocialPhotoShare app="facebook" src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} text={c.igCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} link={`${refUrl}?campaign=${c.id}`} />
+                      <SocialPhotoShare app="linkedin" src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} text={c.liCopy.replace("[LINK]", `${refUrl}?campaign=${c.id}`)} link={`${refUrl}?campaign=${c.id}`} />
                       <SavePhoto src={p.src} name={`execlingo-${p.src.split("/").pop() ?? `${c.id}.jpg`}`} label="📲 Salva" />
                     </div>
                   </div>
