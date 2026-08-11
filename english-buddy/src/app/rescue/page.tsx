@@ -17,7 +17,7 @@ export default async function RescuePage() {
 
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">English Rescue</div><span className="chip">🆘 Now</span></div>
+      <div className="topbar"><div className="brand">English Rescue</div><span style={{display:"flex",gap:6}}><span className="chip">🆘 Now</span><a className="chip" href="/home">← Home</a></span></div>
       <NotificationReminder />
       <section className="hero">
         <div className="kicker">I need English now</div>

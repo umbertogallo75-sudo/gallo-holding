@@ -13,7 +13,7 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">{diary ? "Diary" : "Voice"}</div><a className="chip" href="/home">← Today</a></div>
+      <div className="topbar"><div className="brand">{diary ? "Diary" : "Voice"}</div><a className="chip" href="/home">← Home</a></div>
       <NotificationReminder />
       <section className="hero">
         <div className="kicker">{diary ? "Spoken diary" : "Realtime voice"}</div>

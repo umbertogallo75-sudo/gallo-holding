@@ -40,7 +40,7 @@ export default async function ProfilePage() {
 
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">Profilo</div><span className="chip chipBrand">✓ Sei connesso</span></div>
+      <div className="topbar"><div className="brand">Profilo</div><span style={{display:"flex",gap:6}}><span className="chip chipBrand">✓ Sei connesso</span><a className="chip" href="/home">← Home</a></span></div>
       <NotificationReminder />
 
       <section className="card profileCard">
