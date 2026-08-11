@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, stripeConfigured, stripeTestMode } from "@/lib/stripe";
+import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
 import { RedeemBox } from "./RedeemBox";
 
@@ -45,6 +46,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano gestito sul web o con un codice aziendale.</p>
           )}
         </section>
+        {!hasPlan && userId !== OWNER_ID ? <NativePlans /> : null}
         {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
         <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
       </main>

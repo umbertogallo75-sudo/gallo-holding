@@ -21,6 +21,7 @@ export function proxy(request: NextRequest) {
     path.startsWith("/api/cron") ||
     path === "/api/track" ||
     path === "/api/stripe/webhook" ||
+    path === "/api/appstore/notifications" ||
     path.startsWith("/icons/") ||
     path === "/manifest.webmanifest" ||
     path === "/sw.js" ||
