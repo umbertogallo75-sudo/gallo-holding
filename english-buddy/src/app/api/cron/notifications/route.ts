@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { shouldSend, type Intensity } from "@/lib/push/windows";
 import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
+import { runUpgradeNudges } from "@/lib/nudges";
 
 export const maxDuration = 60;
 
@@ -114,7 +115,16 @@ async function run(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, results });
+  // Netflix-style upgrade emails for locked accounts (idempotent per user).
+  let nudges: Record<string, number | string> = {};
+  try {
+    nudges = await runUpgradeNudges(database, now);
+  } catch (error) {
+    console.error("upgrade nudges failed:", error);
+    nudges = { error: "failed" };
+  }
+
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, results, nudges });
 }
 
 export async function POST(request: Request) {
