@@ -5,6 +5,15 @@ import { Speak } from "@/components/Speak";
 
 type Msg = { role:"user"|"assistant"; content:string; correction?:string };
 
+/** Server said no (4xx/5xx) — very different from "the network dropped". */
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function subscribeToNetwork(callback: () => void) {
   window.addEventListener("online", callback);
   window.addEventListener("offline", callback);
@@ -80,6 +89,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string>();
+  const [blocked, setBlocked] = useState<{ kind: "plan" | "login"; text: string }>();
   const started = useRef(Boolean(initialQuestion));
   const opener = useRef(initialQuestion);
   const failedRef = useRef<string>(undefined);
@@ -103,8 +113,8 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
 
   async function coachCall(message: string) {
     const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Coach unavailable");
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new HttpError(r.status, data.error || "Coach unavailable");
     return data;
   }
 
@@ -119,15 +129,23 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
       let data;
       try {
         data = await coachCall(message);
-      } catch {
-        // Mobile networks drop long requests; one quiet retry fixes most cases.
+      } catch (error) {
+        // A server verdict (paywall, expired session) won't change on retry;
+        // only network drops deserve the quiet second attempt.
+        if (error instanceof HttpError) throw error;
         await new Promise(resolve => setTimeout(resolve, 1200));
         data = await coachCall(message);
       }
       setSessionId(data.sessionId);
       setMessages(v => [...v, { role:"assistant", content:data.reply, correction:data.correction }]);
-    } catch {
-      setFailedMessage(message);
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 402) {
+        setBlocked({ kind: "plan", text: error.message });
+      } else if (error instanceof HttpError && error.status === 401) {
+        setBlocked({ kind: "login", text: "La sessione è scaduta — accedi di nuovo per continuare." });
+      } else {
+        setFailedMessage(message);
+      }
     }
     finally { setLoading(false); }
   }
@@ -171,6 +189,14 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         {m.correction ? <div className="correction">Better: {m.correction}</div> : null}
       </div>)}
       {loading && <div className="bubble ai muted">Sam is thinking…</div>}
+      {blocked && !loading && (
+        <div className="bubble ai">
+          {blocked.kind === "plan" ? "🔓 " : "🔑 "}{blocked.text}
+          <a className="primary" style={{display:"inline-block", marginTop:10, padding:"9px 18px", minWidth:0, textDecoration:"none"}} href={blocked.kind === "plan" ? "/abbonamento" : "/login"}>
+            {blocked.kind === "plan" ? "Attiva un piano o inserisci il codice" : "Vai al login"}
+          </a>
+        </div>
+      )}
       {failedMessage && !loading && (
         <div className="bubble ai">
           ⚠️ {offline ? "Sei offline — la tua risposta è al sicuro." : "Problema di connessione — la tua risposta non è andata persa."}
