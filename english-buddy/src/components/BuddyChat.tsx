@@ -98,6 +98,8 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   // Weak-network safety net: live offline flag + automatic re-send of the
   // pending message the moment the connection returns.
   const offline = useSyncExternalStore(subscribeToNetwork, () => !navigator.onLine, () => false);
+  // Store-app wrappers show no purchase wording (reader-app rules).
+  const embedded = useSyncExternalStore(() => () => {}, () => navigator.userAgent.includes("ExecLingoApp"), () => false);
   useEffect(() => {
     const backOnline = () => {
       const pending = failedRef.current;
@@ -193,7 +195,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         <div className="bubble ai">
           {blocked.kind === "plan" ? "🔓 " : "🔑 "}{blocked.text}
           <a className="primary" style={{display:"inline-block", marginTop:10, padding:"9px 18px", minWidth:0, textDecoration:"none"}} href={blocked.kind === "plan" ? "/abbonamento" : "/login"}>
-            {blocked.kind === "plan" ? "Attiva un piano o inserisci il codice" : "Vai al login"}
+            {blocked.kind === "plan" ? (embedded ? "Vai ad Abbonamento" : "Attiva un piano o inserisci il codice") : "Vai al login"}
           </a>
         </div>
       )}
