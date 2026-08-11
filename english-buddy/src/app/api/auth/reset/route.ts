@@ -20,13 +20,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
   }
 
-  const userId = await resetCodeWithToken(parsed.data.token, parsed.data.code);
-  if (!userId) {
-    return NextResponse.json({ error: "Link scaduto o codice già in uso — richiedi un nuovo link o scegli un altro codice." }, { status: 400 });
+  const outcome = await resetCodeWithToken(parsed.data.token, parsed.data.code);
+  if (!outcome.ok) {
+    return NextResponse.json({
+      error: outcome.reason === "code-taken"
+        ? "Questo codice è già usato da un altro account: scegline uno diverso (più è personale, meglio è) e riprova subito qui sotto."
+        : "Il link è scaduto o è già stato utilizzato: torna su “Recuperalo qui” e richiedi un nuovo link.",
+    }, { status: 400 });
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, createSessionToken(userId), {
+  response.cookies.set(SESSION_COOKIE, createSessionToken(outcome.userId), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

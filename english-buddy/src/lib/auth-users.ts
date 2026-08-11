@@ -46,20 +46,24 @@ export async function createResetToken(email: string, client: Client = db()): Pr
 }
 
 /** Sets a new access code for a valid, unexpired reset token. Returns the user id. */
-export async function resetCodeWithToken(token: string, newCode: string, client: Client = db()): Promise<string | null> {
+export type ResetOutcome = { ok: true; userId: string } | { ok: false; reason: "token" | "code-taken" };
+
+export async function resetCodeWithToken(token: string, newCode: string, client: Client = db()): Promise<ResetOutcome> {
   const result = await client.execute({
     sql: "SELECT id, reset_expires_at FROM auth_users WHERE reset_hmac = ? LIMIT 1",
     args: [resetTokenHash(token)],
   });
   const row = result.rows[0];
-  if (!row) return null;
-  if (!row.reset_expires_at || Date.parse(String(row.reset_expires_at)) < Date.now()) return null;
-  if (await accessCodeInUse(newCode, client)) return null;
+  if (!row) return { ok: false, reason: "token" };
+  if (!row.reset_expires_at || Date.parse(String(row.reset_expires_at)) < Date.now()) return { ok: false, reason: "token" };
+  // The chosen code clashes with an existing account: the token stays valid
+  // so the user can simply try another code, without a new email round.
+  if (await accessCodeInUse(newCode, client)) return { ok: false, reason: "code-taken" };
   await client.execute({
     sql: "UPDATE auth_users SET code_hmac = ?, reset_hmac = NULL, reset_expires_at = NULL WHERE id = ?",
     args: [accessCodeHash(newCode), String(row.id)],
   });
-  return String(row.id);
+  return { ok: true, userId: String(row.id) };
 }
 
 /** Changes a registered user's code (the env-based owner code lives in Vercel). */

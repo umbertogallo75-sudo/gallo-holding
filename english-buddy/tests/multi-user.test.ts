@@ -77,11 +77,13 @@ describe("multi-user accounts and data separation", () => {
     expect(await createResetToken("sconosciuta@example.com", client)).toBeNull();
     const reset = (await createResetToken("marco@example.com", client))!;
     expect(reset.token.length).toBeGreaterThan(20);
-    expect(await resetCodeWithToken("token-sbagliato", "nuovo-codice-marco", client)).toBeNull();
-    expect(await resetCodeWithToken(reset.token, "nuovo-codice-marco", client)).toBe(marco);
+    expect(await resetCodeWithToken("token-sbagliato", "nuovo-codice-marco", client)).toEqual({ ok: false, reason: "token" });
+    // A clashing code reports "code-taken" and keeps the token alive for a retry.
+    expect(await resetCodeWithToken(reset.token, "codice-di-laura-456", client)).toEqual({ ok: false, reason: "code-taken" });
+    expect(await resetCodeWithToken(reset.token, "nuovo-codice-marco", client)).toEqual({ ok: true, userId: marco });
     expect(await findUserIdByAccessCode("codice-di-marco-123", client)).toBeNull(); // old code dead
     expect(await findUserIdByAccessCode("nuovo-codice-marco", client)).toBe(marco);
-    expect(await resetCodeWithToken(reset.token, "altro-codice-123", client)).toBeNull(); // token single-use
+    expect(await resetCodeWithToken(reset.token, "altro-codice-123", client)).toEqual({ ok: false, reason: "token" }); // token single-use
   });
 
   it("changes a code from the profile and via admin temp code", async () => {
