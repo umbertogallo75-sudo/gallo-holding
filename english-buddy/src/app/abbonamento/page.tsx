@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { PlanButton } from "./PlanButton";
@@ -19,8 +20,36 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
   if (!userId) redirect("/login");
   const { esito } = await searchParams;
 
-  const [billing, entitlement] = await Promise.all([getBilling(userId), getEntitlement(userId)]);
+  const [billing, entitlement, embedded] = await Promise.all([getBilling(userId), getEntitlement(userId), isEmbeddedApp()]);
   const hasPlan = entitlement.reason === "plan";
+
+  // Store-app wrappers: reader-app mode — plan status and corporate-code
+  // redemption only, no purchase options (Apple guideline 3.1.1).
+  if (embedded) {
+    return (
+      <main className="shell">
+        <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/home">← Home</Link></div>
+        <section className="hero">
+          <div className="kicker">Il tuo piano</div>
+          <h1>{hasPlan || entitlement.access ? "Sei operativo." : "Il tuo accesso."}</h1>
+          {userId === OWNER_ID ? (
+            <p className="muted">Account fondatore: accesso completo, per sempre.</p>
+          ) : entitlement.reason === "free" ? (
+            <p className="muted">Il tuo account ha l&rsquo;accesso completo gratuito. Buon allenamento con Sam!</p>
+          ) : hasPlan ? (
+            <p className="muted">
+              Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
+              {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
+            </p>
+          ) : (
+            <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano gestito sul web o con un codice aziendale.</p>
+          )}
+        </section>
+        {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
+        <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
+      </main>
+    );
+  }
 
   return (
     <main className="shell">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Landing } from "./Landing";
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const userId = await getUserId();
-  if (!userId) return <Landing />;
+  if (!userId) return <Landing hidePricing={await isEmbeddedApp()} />;
   const result = await db().execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
   redirect(result.rows.length ? "/home" : "/onboarding");
 }

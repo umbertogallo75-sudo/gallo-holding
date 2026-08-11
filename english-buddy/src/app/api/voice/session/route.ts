@@ -3,6 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
+import { EMBEDDED_PAYWALL_MESSAGE, isEmbeddedRequest } from "@/lib/appclient";
 import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 
 export const maxDuration = 30;
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (billingEnforced() && !(await getEntitlement(userId)).access) {
-    return NextResponse.json({ error: PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+    return NextResponse.json({ error: isEmbeddedRequest(request) ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
   }
   const body = (await request.json().catch(() => ({}))) as { mode?: string };
   const diary = body?.mode === "diary";

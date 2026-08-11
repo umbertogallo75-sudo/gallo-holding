@@ -5,7 +5,7 @@ import { LandingTracker } from "./LandingTracker";
  * Public marketing landing shown at "/" to logged-out visitors — the
  * destination for every ad click. One job: get the visitor to try Sam.
  */
-export function Landing() {
+export function Landing({ hidePricing = false }: { hidePricing?: boolean }) {
   return (
     <main className="landing">
       <LandingTracker />
@@ -46,7 +46,7 @@ export function Landing() {
         <p className="landHint" style={{ textAlign: "center" }}>I progressi non sono voti: sono capacità reali che Sam spunta quando le dimostri — «sai presentarti», «sai trattare un prezzo», «sai gestire una call».</p>
       </section>
 
-      <section className="landShell landSection">
+      {hidePricing ? null : <section className="landShell landSection">
         <div className="kicker">Prezzi semplici</div>
         <h2 className="landH2">Meno di un&rsquo;ora di un coach umano. Al mese.</h2>
         <p className="landHint" style={{ margin: "0 0 14px" }}>Tutti i prezzi sono IVA inclusa: quello che vedi è quello che paghi.</p>
@@ -61,7 +61,7 @@ export function Landing() {
           <p>Licenze team con sconti volume: <strong>10+ −5%</strong> · <strong>50+ −10%</strong> · <strong>150+ −15%</strong>. Codici subito via email, ogni collega attiva il suo percorso in un minuto.</p>
           <p style={{ marginTop: 12 }}><Link href="/aziende" className="landCta2" style={{ borderColor: "var(--accent)", color: "var(--brandText)" }} data-track="landing_cta_aziende">Attiva il tuo team →</Link></p>
         </div>
-      </section>
+      </section>}
 
       <section className="landShell landSection landFinal">
         <h2 className="landH2" style={{ textAlign: "center" }}>Il tuo tempo è prezioso.<br />Anche il tuo inglese dovrebbe esserlo.</h2>

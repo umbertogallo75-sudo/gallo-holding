@@ -4,6 +4,7 @@ import { EnablePush } from "@/components/EnablePush";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { ModeGrid } from "@/components/ModeGrid";
+import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { billingEnforced, getEntitlement } from "@/lib/stripe";
@@ -19,6 +20,7 @@ export default async function HomePage() {
   ]);
   const isFirstTime = Number(sessionsResult.rows[0]?.c ?? 0) === 0;
   const entitlement = billingEnforced() ? await getEntitlement(userId) : { access: true };
+  const embedded = await isEmbeddedApp();
   const profile = profileResult.rows[0];
   // The installed PWA starts here directly (manifest start_url), so this page
   // must route brand-new users through onboarding itself.
@@ -35,8 +37,8 @@ export default async function HomePage() {
         <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 22%, var(--surface))" }}>🔓</span>
         <div>
           <div className="modeTitle">Unlock your coach</div>
-          <div className="modeMeta">The 3-minute level check is free — training with Sam needs a plan</div>
-          <div className="itHint">Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il tuo codice aziendale → tocca qui</div>
+          <div className="modeMeta">The 3-minute level check is free — full training needs an active plan</div>
+          <div className="itHint">{embedded ? "Il test del livello (3 minuti) è gratis. Hai un codice aziendale? Inseriscilo qui" : "Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il tuo codice aziendale → tocca qui"}</div>
         </div>
       </a>
     ) : null}

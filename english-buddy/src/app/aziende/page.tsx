@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isEmbeddedApp } from "@/lib/appclient";
 import { CompanyForm } from "./CompanyForm";
 
 export const metadata = {
@@ -9,6 +10,22 @@ export const metadata = {
 /** Public self-service B2B page: buy N seats, get license codes by email. */
 export default async function AziendePage({ searchParams }: { searchParams: Promise<{ esito?: string }> }) {
   const { esito } = await searchParams;
+
+  // Store-app wrappers: reader-app mode — informational only, no purchase.
+  if (await isEmbeddedApp()) {
+    return (
+      <main className="shell">
+        <div className="topbar"><div className="brand">ExecLingo · Aziende</div><Link className="chip" href="/">← Indietro</Link></div>
+        <section className="hero">
+          <div className="kicker">ExecLingo per aziende</div>
+          <h1>Il tuo team operativo in inglese.</h1>
+          <p className="muted">Le aziende attivano licenze team per i propri dipendenti: ogni collega riceve un codice e attiva il percorso in un minuto dal proprio profilo.</p>
+          <p className="itHint">Hai ricevuto un codice dalla tua azienda? Vai su Profilo → 💳 Abbonamento e inseriscilo lì.</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <div className="topbar"><div className="brand">ExecLingo · Aziende</div><Link className="chip" href="/">← Sito</Link></div>
