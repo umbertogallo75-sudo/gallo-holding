@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 
-export function LoginForm({ oauth, oauthError }: { oauth: React.ReactNode; oauthError?: string | null }) {
+export function LoginForm({ oauth, oauthError, embedded = false }: { oauth: React.ReactNode; oauthError?: string | null; embedded?: boolean }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +30,7 @@ export function LoginForm({ oauth, oauthError }: { oauth: React.ReactNode; oauth
     <button className="primary full" disabled={loading}>{loading ? "Opening…" : "Open ExecLingo"}</button>
     <p className="itHint" style={{margin:"6px 4px", textAlign:"center"}}>Apri ExecLingo</p></form>
     <p style={{textAlign:"center", margin:"10px 0 0"}}><a href="/forgot" className="itHint" style={{textDecoration:"underline", fontSize:14.5}}>Forgot your code? · Hai dimenticato il codice? Recuperalo qui</a></p>
+    {embedded ? <p className="itHint" style={{textAlign:"center", margin:"10px 0 0"}}>Ti eri registrato con Google o Apple? Nessun problema: usa &ldquo;Recuperalo qui&rdquo; con la stessa email per creare il tuo codice di accesso.</p> : null}
     <div style={{display:"flex", alignItems:"center", gap:10, margin:"18px 0 12px"}}>
       <span style={{flex:1, height:1, background:"var(--line)"}} />
       <span className="muted" style={{fontSize:12}}>or · oppure</span>

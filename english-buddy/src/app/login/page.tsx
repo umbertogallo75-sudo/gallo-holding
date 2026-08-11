@@ -1,3 +1,4 @@
+import { isEmbeddedApp } from "@/lib/appclient";
 import { googleEnabled, appleEnabled } from "@/lib/oauth";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import { LoginForm } from "./LoginForm";
@@ -14,5 +15,9 @@ const OAUTH_ERRORS: Record<string, string> = {
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ oauth_error?: string }> }) {
   const { oauth_error } = await searchParams;
   const oauthError = oauth_error ? (OAUTH_ERRORS[oauth_error] ?? `Accesso non riuscito (codice: ${oauth_error}).`) : null;
-  return <LoginForm oauth={<OAuthButtons google={googleEnabled()} apple={appleEnabled()} />} oauthError={oauthError} />;
+  // Store-app wrappers: email/password only — Google forbids OAuth inside
+  // embedded webviews and Apple's web flow is clunky there. With no social
+  // login shown, Apple's Sign-in-with-Apple mandate (4.8) doesn't apply.
+  const embedded = await isEmbeddedApp();
+  return <LoginForm oauth={embedded ? null : <OAuthButtons google={googleEnabled()} apple={appleEnabled()} />} oauthError={oauthError} embedded={embedded} />;
 }
