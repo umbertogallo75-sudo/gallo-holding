@@ -24,14 +24,14 @@ export default function ForgotPage() {
         <div className="brand">ExecLingo</div>
         <div className="hero">
           <div className="kicker">Recover access</div>
-          <h1>Forgot your code?</h1>
+          <h1>Forgot your password?</h1>
           <p className="muted">Enter the email you registered with and we&rsquo;ll send you a link to choose a new code.</p>
-          <p className="itHint">Hai dimenticato il codice? Inserisci l&rsquo;email con cui ti sei registrato: ti invieremo un link per sceglierne uno nuovo.</p>
+          <p className="itHint">Hai dimenticato la password? Inserisci l&rsquo;email con cui ti sei registrato: ti invieremo un link per sceglierne una nuova.</p>
         </div>
         {state === "sent" ? (
           <div className="notice">If this email is registered, you&rsquo;ll receive a reset link within a minute. Check spam too.<span className="itHint" style={{ display: "block" }}>Se l&rsquo;email è registrata riceverai il link entro un minuto. Controlla anche lo spam. Il link vale 30 minuti.</span></div>
         ) : state === "manual" ? (
-          <div className="notice">Email recovery is not active yet. Contact the administrator: they can give you a temporary code right away.<span className="itHint" style={{ display: "block" }}>Il recupero via email non è ancora attivo. Contatta l&rsquo;amministratore (chi ti ha invitato): può darti subito un codice temporaneo, poi lo cambierai dal tuo Profilo.</span></div>
+          <div className="notice">Email recovery is not active yet. Contact the administrator: they can give you a temporary password right away.<span className="itHint" style={{ display: "block" }}>Il recupero via email non è ancora attivo. Contatta l&rsquo;amministratore: può darti subito una password temporanea, poi la cambierai dal tuo Profilo.</span></div>
         ) : (
           <form onSubmit={submit}>
             <input className="field" type="email" autoComplete="email" required placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -6,7 +6,7 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   token: z.string().min(20).max(120),
-  code: z.string().min(8, "The new code must be at least 8 characters").max(200),
+  code: z.string().min(8, "La nuova password deve avere almeno 8 caratteri").max(200),
 });
 
 /** Completes an email reset: valid token → new access code + fresh session. */
@@ -20,17 +20,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
   }
 
-  const outcome = await resetCodeWithToken(parsed.data.token, parsed.data.code);
-  if (!outcome.ok) {
-    return NextResponse.json({
-      error: outcome.reason === "code-taken"
-        ? "Questo codice è già usato da un altro account: scegline uno diverso (più è personale, meglio è) e riprova subito qui sotto."
-        : "Il link è scaduto o è già stato utilizzato: torna su “Recuperalo qui” e richiedi un nuovo link.",
-    }, { status: 400 });
+  const userId = await resetCodeWithToken(parsed.data.token, parsed.data.code);
+  if (!userId) {
+    return NextResponse.json({ error: "Il link è scaduto o è già stato utilizzato: torna su “Recuperala qui” e richiedi un nuovo link." }, { status: 400 });
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, createSessionToken(outcome.userId), {
+  response.cookies.set(SESSION_COOKIE, createSessionToken(userId), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

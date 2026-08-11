@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 process.env.SESSION_SECRET = "test-secret-that-is-definitely-32-characters-long";
 process.env.APP_ACCESS_CODE = "owner-secret-code";
 
-import { adminResetCode, createAuthUser, createResetToken, findUserIdByAccessCode, resetCodeWithToken, updateAccessCode } from "@/lib/auth-users";
+import { adminResetCode, createAuthUser, createResetToken, findUserIdByAccessCode, findUserIdByEmailPassword, resetCodeWithToken, updateAccessCode, verifyUserPassword } from "@/lib/auth-users";
 import { getRelevantLearningContext, saveMistake, startSession, saveMessage } from "@/lib/learning/service";
 
 let dir: string;
@@ -41,8 +41,43 @@ describe("multi-user accounts and data separation", () => {
     expect(await findUserIdByAccessCode("codice-inesistente", client)).toBeNull();
   });
 
-  it("rejects a duplicate personal code at the database level", async () => {
-    await expect(createAuthUser("Copia", "codice-di-marco-123", "copia@example.com", client)).rejects.toThrow();
+  it("logs in with email + password, scoped to the email's account", async () => {
+    const marco = (await findUserIdByAccessCode("codice-di-marco-123", client))!;
+    expect(await findUserIdByEmailPassword("marco@example.com", "codice-di-marco-123", client)).toBe(marco);
+    expect(await findUserIdByEmailPassword("MARCO@example.com", "codice-di-marco-123", client)).toBe(marco); // case-insensitive email
+    expect(await findUserIdByEmailPassword("marco@example.com", "password-sbagliata", client)).toBeNull();
+    expect(await findUserIdByEmailPassword("laura@example.com", "codice-di-marco-123", client)).toBeNull(); // right password, wrong account
+    expect(await findUserIdByEmailPassword("qualunque@example.com", "owner-secret-code", client)).toBe("owner");
+    expect(await verifyUserPassword(marco, "codice-di-marco-123", client)).toBe(true);
+    expect(await verifyUserPassword(marco, "no", client)).toBe(false);
+  });
+
+  it("allows the same password on different accounts (email disambiguates)", async () => {
+    const copia = await createAuthUser("Copia", "codice-di-marco-123", "copia@example.com", client);
+    const marco = (await findUserIdByEmailPassword("marco@example.com", "codice-di-marco-123", client))!;
+    expect(await findUserIdByEmailPassword("copia@example.com", "codice-di-marco-123", client)).toBe(copia);
+    expect(marco).not.toBe(copia);
+  });
+
+  it("keeps code login for grandfathered accounts without email", async () => {
+    const ghost = await createAuthUser("Ghost", "codice-fantasma-999", null, client);
+    expect(await findUserIdByEmailPassword("qualsiasi@example.com", "codice-fantasma-999", client)).toBe(ghost);
+  });
+
+  it("self-heals a legacy database that still has the UNIQUE password constraint", async () => {
+    const legacyDir = mkdtempSync(join(tmpdir(), "english-buddy-legacy-"));
+    const legacy = createClient({ url: `file:${join(legacyDir, "old.db")}` });
+    const migrations = join(__dirname, "..", "db", "migrations");
+    for (const file of readdirSync(migrations).filter((f) => f.endsWith(".sql") && f < "0015").sort()) {
+      await legacy.executeMultiple(readFileSync(join(migrations, file), "utf8"));
+    }
+    const a = await createAuthUser("A", "stessa-password-123", "a@example.com", legacy);
+    const b = await createAuthUser("B", "stessa-password-123", "b@example.com", legacy);
+    expect(a).not.toBe(b);
+    expect(await findUserIdByEmailPassword("a@example.com", "stessa-password-123", legacy)).toBe(a);
+    expect(await findUserIdByEmailPassword("b@example.com", "stessa-password-123", legacy)).toBe(b);
+    legacy.close();
+    rmSync(legacyDir, { recursive: true, force: true });
   });
 
   it("keeps each user's learning data fully separate", async () => {
@@ -72,30 +107,32 @@ describe("multi-user accounts and data separation", () => {
     expect(lauraContext.recentMessages).toHaveLength(0);
   });
 
-  it("recovers a lost code via email reset token", async () => {
-    const marco = (await findUserIdByAccessCode("codice-di-marco-123", client))!;
+  it("recovers a lost password via email reset token", async () => {
+    const marco = (await findUserIdByEmailPassword("marco@example.com", "codice-di-marco-123", client))!;
     expect(await createResetToken("sconosciuta@example.com", client)).toBeNull();
     const reset = (await createResetToken("marco@example.com", client))!;
     expect(reset.token.length).toBeGreaterThan(20);
-    expect(await resetCodeWithToken("token-sbagliato", "nuovo-codice-marco", client)).toEqual({ ok: false, reason: "token" });
-    // A clashing code reports "code-taken" and keeps the token alive for a retry.
-    expect(await resetCodeWithToken(reset.token, "codice-di-laura-456", client)).toEqual({ ok: false, reason: "code-taken" });
-    expect(await resetCodeWithToken(reset.token, "nuovo-codice-marco", client)).toEqual({ ok: true, userId: marco });
-    expect(await findUserIdByAccessCode("codice-di-marco-123", client)).toBeNull(); // old code dead
-    expect(await findUserIdByAccessCode("nuovo-codice-marco", client)).toBe(marco);
-    expect(await resetCodeWithToken(reset.token, "altro-codice-123", client)).toEqual({ ok: false, reason: "token" }); // token single-use
+    expect(await resetCodeWithToken("token-sbagliato", "nuovo-codice-marco", client)).toBeNull();
+    expect(await resetCodeWithToken(reset.token, "nuovo-codice-marco", client)).toBe(marco);
+    expect(await findUserIdByEmailPassword("marco@example.com", "codice-di-marco-123", client)).toBeNull(); // old password dead
+    expect(await findUserIdByEmailPassword("marco@example.com", "nuovo-codice-marco", client)).toBe(marco);
+    expect(await resetCodeWithToken(reset.token, "altro-codice-123", client)).toBeNull(); // token single-use
   });
 
-  it("changes a code from the profile and via admin temp code", async () => {
-    const marco = (await findUserIdByAccessCode("nuovo-codice-marco", client))!;
-    expect(await updateAccessCode(marco, "codice-di-laura-456", client)).toBe(false); // taken
+  it("changes a password from the profile and via admin temp password", async () => {
+    const marco = (await findUserIdByEmailPassword("marco@example.com", "nuovo-codice-marco", client))!;
+    const laura = (await findUserIdByEmailPassword("laura@example.com", "codice-di-laura-456", client))!;
+    // Duplicates are allowed now: taking Laura's password neither fails nor touches Laura.
+    expect(await updateAccessCode(marco, "codice-di-laura-456", client)).toBe(true);
+    expect(await findUserIdByEmailPassword("marco@example.com", "codice-di-laura-456", client)).toBe(marco);
+    expect(await findUserIdByEmailPassword("laura@example.com", "codice-di-laura-456", client)).toBe(laura);
     expect(await updateAccessCode(marco, "codice-scelto-da-me", client)).toBe(true);
-    expect(await findUserIdByAccessCode("codice-scelto-da-me", client)).toBe(marco);
+    expect(await findUserIdByEmailPassword("marco@example.com", "codice-scelto-da-me", client)).toBe(marco);
     expect(await updateAccessCode("owner", "qualsiasi-cosa-123", client)).toBe(false); // owner is env-based
 
     const temp = (await adminResetCode(marco, client))!;
     expect(temp).toMatch(/^buddy-/);
-    expect(await findUserIdByAccessCode(temp, client)).toBe(marco);
+    expect(await findUserIdByEmailPassword("marco@example.com", temp, client)).toBe(marco);
     expect(await adminResetCode("owner", client)).toBeNull();
   });
 });

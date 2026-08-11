@@ -8,9 +8,9 @@ export default function ResetPage() {
         <div className="brand">ExecLingo</div>
         <div className="hero">
           <div className="kicker">New code</div>
-          <h1>Choose a new code.</h1>
+          <h1>Choose a new password.</h1>
           <p className="muted">Pick a new personal access code — you&rsquo;ll use it every time you log in.</p>
-          <p className="itHint">Scegli il tuo nuovo codice personale di accesso: lo userai ogni volta per entrare. Custodiscilo bene.</p>
+          <p className="itHint">Scegli la tua nuova password: la userai con la tua email per entrare.</p>
         </div>
         <Suspense>
           <ResetForm />

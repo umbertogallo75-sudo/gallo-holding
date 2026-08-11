@@ -13,7 +13,7 @@ export function ResetForm() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (code !== confirm) return setError("I due codici non coincidono.");
+    if (code !== confirm) return setError("Le due password non coincidono.");
     setLoading(true); setError("");
     const response = await fetch("/api/auth/reset", {
       method: "POST",
@@ -33,10 +33,10 @@ export function ResetForm() {
 
   return (
     <form onSubmit={submit}>
-      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="New personal code (min 8 characters)" value={code} onChange={(e) => setCode(e.target.value)} />
-      <p className="itHint" style={{ margin: "0 4px 6px" }}>Il tuo nuovo codice segreto (minimo 8 caratteri)</p>
-      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Repeat the new code" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-      <p className="itHint" style={{ margin: "0 4px 6px" }}>Ripeti il nuovo codice</p>
+      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="New password (min 8 characters)" value={code} onChange={(e) => setCode(e.target.value)} />
+      <p className="itHint" style={{ margin: "0 4px 6px" }}>La tua nuova password (minimo 8 caratteri)</p>
+      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Repeat the new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      <p className="itHint" style={{ margin: "0 4px 6px" }}>Ripeti la nuova password</p>
       {error ? <div className="notice" style={{ marginBottom: 8 }}>{error}</div> : null}
       <button className="primary full" disabled={loading}>{loading ? "Saving…" : "Save and enter · Salva ed entra"}</button>
     </form>
