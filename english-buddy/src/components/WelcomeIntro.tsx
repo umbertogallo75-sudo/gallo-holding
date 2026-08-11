@@ -1,8 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const SEEN_KEY = "buddy-welcome-seen";
+
+/**
+ * True when ExecLingo is already running "as an app": inside the native
+ * store wrappers (User-Agent marker) or as an installed PWA (standalone
+ * display mode). In those contexts the install instructions make no sense.
+ */
+function useAlreadyInstalled(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () =>
+      navigator.userAgent.includes("ExecLingoApp") ||
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true,
+    () => false
+  );
+}
 
 /**
  * Two-page full-screen intro shown the first time the app opens on a device:
@@ -13,6 +29,7 @@ const SEEN_KEY = "buddy-welcome-seen";
 export function WelcomeIntro() {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState<1 | 2>(1);
+  const installed = useAlreadyInstalled();
 
   useEffect(() => {
     (async () => {
@@ -98,12 +115,20 @@ export function WelcomeIntro() {
         </div>
 
         <div className="welcomeNote">
-          <strong>📲 ExecLingo è un&rsquo;app: installala sul tuo dispositivo.</strong><br />
-          Su <strong>iPhone</strong>: apri questo sito in Safari, tocca <strong>Condividi</strong> (il quadrato
-          con la freccia) e poi <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>.<br />
-          Su <strong>Android</strong>: in Chrome tocca il menu <strong>⋮</strong> e poi
-          <strong> &ldquo;Installa app&rdquo;</strong>.<br />
-          Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche di Sam.<br />
+          {installed ? (
+            <>
+              <strong>✅ Sei nell&rsquo;app: perfetto.</strong> Aprila ogni giorno, anche solo per 2 minuti: è così che il metodo funziona.<br />
+            </>
+          ) : (
+            <>
+              <strong>📲 ExecLingo è un&rsquo;app: installala sul tuo dispositivo.</strong><br />
+              Su <strong>iPhone</strong>: apri questo sito in Safari, tocca <strong>Condividi</strong> (il quadrato
+              con la freccia) e poi <strong>&ldquo;Aggiungi alla schermata Home&rdquo;</strong>.<br />
+              Su <strong>Android</strong>: in Chrome tocca il menu <strong>⋮</strong> e poi
+              <strong> &ldquo;Installa app&rdquo;</strong>.<br />
+              Da quel momento aprila sempre dall&rsquo;icona sulla Home: solo così riceverai le notifiche di Sam.<br />
+            </>
+          )}
           📶 <strong>Serve Internet</strong>: ExecLingo funziona con una connessione attiva (Wi-Fi o dati). Senza connessione il coach non può risponderti.
         </div>
 

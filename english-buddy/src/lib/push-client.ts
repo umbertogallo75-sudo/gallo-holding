@@ -13,6 +13,9 @@ export type PushStatus = "unsupported" | "need-install" | "denied" | "need-enabl
 
 export async function getPushStatus(): Promise<PushStatus> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return "unsupported";
+  // Native store-app wrappers: no Web Push in their webviews — hide every
+  // notification banner there (native push is a post-launch feature).
+  if (navigator.userAgent.includes("ExecLingoApp")) return "unsupported";
   const supportsPush = "PushManager" in window && "Notification" in window;
   if (!supportsPush) {
     // On iOS, Web Push only exists inside an installed (Home Screen) app.
