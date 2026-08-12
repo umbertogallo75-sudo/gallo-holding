@@ -4,7 +4,7 @@ import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
-import { EMBEDDED_PAYWALL_MESSAGE, isEmbeddedRequest } from "@/lib/appclient";
+import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { ensureProfile, saveExpression } from "@/lib/learning/service";
 
 export const maxDuration = 30;
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (billingEnforced() && !(await getEntitlement(userId)).access) {
-    return NextResponse.json({ error: isEmbeddedRequest(request) ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+    return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
   }
   if (!rateLimit(clientKey(request, "rescue"), 15, 60_000).allowed) {
     return NextResponse.json({ error: "Too many requests. Give it a few seconds." }, { status: 429 });

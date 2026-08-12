@@ -55,6 +55,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           ) : (
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano sul tuo account ExecLingo o con un codice aziendale.</p>
           )}
+          {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iapOn ? (
+            <p className="itHint">📧 Ti abbiamo inviato una email all&rsquo;indirizzo del tuo account con i passaggi per attivare l&rsquo;accesso completo — controlla la posta (anche lo spam).</p>
+          ) : null}
         </section>
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}

@@ -86,9 +86,9 @@ p { line-height:1.55; font-size:16px; }
 .bottomNav a:active, .bottomNav button:active { transform:scale(.93); background:rgba(255,255,255,.09); }
 .bottomNav a.active, .bottomNav button.active { background:var(--accent); color:#fff; font-weight:750; }
 .sheetBack { position:fixed; inset:0; z-index:60; background:rgba(6,9,7,.62); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; }
-.sheet { width:min(520px, calc(100% - 24px)); margin-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); background:#141712; border:1px solid var(--line); border-radius:22px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.5); animation:sheetup .18s ease; }
+.sheet { width:min(520px, calc(100% - 24px)); margin-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.5); animation:sheetup .18s ease; }
 @keyframes sheetup { from { transform:translateY(14px); opacity:0; } to { transform:none; opacity:1; } }
-.sheetOpt { display:flex; gap:12px; align-items:center; width:100%; padding:15px 14px; margin-top:10px; border-radius:16px; border:1px solid var(--line); background:color-mix(in srgb, #1c2019 88%, transparent); color:var(--ink); font:inherit; font-size:16px; text-align:left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.sheetOpt { display:flex; gap:12px; align-items:center; width:100%; padding:15px 14px; margin-top:10px; border-radius:16px; border:1px solid var(--line); background:color-mix(in srgb, var(--ink) 5%, var(--surface)); color:var(--ink); font:inherit; font-size:16px; text-align:left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .sheetOpt:active { transform:scale(.98); }
 .navIcon { display:inline-block; min-width:18px; }
 .navSpin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }

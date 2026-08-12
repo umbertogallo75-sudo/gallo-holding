@@ -28,3 +28,18 @@ export function isEmbeddedRequest(request: Request): boolean {
 
 export const EMBEDDED_PAYWALL_MESSAGE =
   "Il tuo account non ha un piano attivo. Se hai un codice aziendale, inseriscilo nella pagina Abbonamento del tuo profilo.";
+
+/**
+ * Android variant: no purchase UI there, so point locked users at the email
+ * we sent them (a neutral "check your email" — no external-purchase steering,
+ * which Play forbids).
+ */
+export const ANDROID_PAYWALL_MESSAGE =
+  "Il tuo account non ha un piano attivo. Controlla la tua email: ti abbiamo scritto i passaggi per attivare l'accesso completo. Se hai un codice aziendale, inseriscilo nella pagina Abbonamento.";
+
+/** Which store shell is talking to us, when it matters for messaging. */
+export function embeddedShellOf(request: Request): "ios" | "android" | null {
+  if ((request.headers.get("user-agent") ?? "").includes(APP_MARKER)) return "ios";
+  if (new RegExp(`(?:^|;\\s*)${APP_COOKIE}=`).test(request.headers.get("cookie") ?? "")) return "android";
+  return null;
+}

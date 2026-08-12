@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
-import { EMBEDDED_PAYWALL_MESSAGE, isEmbeddedRequest } from "@/lib/appclient";
+import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
 import { runCoach } from "@/lib/ai/openai";
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     if (billingEnforced() && mode !== "levelcheck") {
       const entitlement = await getEntitlement(userId);
       if (!entitlement.access) {
-        return NextResponse.json({ error: isEmbeddedRequest(request) ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
+        return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
       }
     }
 
