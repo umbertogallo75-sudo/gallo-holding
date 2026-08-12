@@ -63,7 +63,7 @@ export function EnablePush() {
         ) : null}
         {failed ? (
           <p className="itHint" style={{ marginTop: 8 }}>
-            ⚠️ Su questo browser non sono riuscito ad attivarle (su Mac serve Safari recente o Chrome; su iPhone prima installa l&rsquo;app). Puoi continuare comunque: le attiverai dal telefono, dove contano davvero.
+            ⚠️ Non sono riuscito ad attivarle da qui. <strong>Su Android</strong>: apri Impostazioni → App → ExecLingo → Notifiche, attiva &ldquo;Consenti notifiche&rdquo; e poi riprova qui. <strong>Su Mac</strong> serve Safari recente o Chrome; <strong>su iPhone</strong> prima installa l&rsquo;app. Puoi continuare comunque e attivarle più tardi.
           </p>
         ) : null}
         <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche · Continue" : "Not now · Non ora"}</button>
