@@ -10,6 +10,7 @@ export function proxy(request: NextRequest) {
     path.startsWith("/reset") ||
     path === "/privacy" ||
     path === "/termini" ||
+    path === "/elimina-account" ||
     path === "/aziende" ||
     path === "/partner" ||
     path === "/scarica" ||
