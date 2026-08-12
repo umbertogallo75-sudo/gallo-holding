@@ -5,6 +5,7 @@ import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
 import { saveBilling } from "@/lib/stripe";
+import { generateLicenses } from "@/lib/licenses";
 import { audit, MIN_PAYOUT_CENTS, promoteHeldCommissions, setPartnerRate, setPartnerStatus } from "@/lib/partners";
 import { bannerForNotification } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
@@ -35,6 +36,11 @@ const bodySchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("voidtestlicenses"),
+  }),
+  z.object({
+    action: z.literal("makelicenses"),
+    quantity: z.number().int().min(1).max(5),
+    label: z.string().trim().max(60).optional(),
   }),
   z.object({
     action: z.literal("partnerrate"),
@@ -141,6 +147,17 @@ export async function POST(request: Request) {
       await db().execute({ sql: `DELETE FROM ${table} WHERE ${column} = ?`, args: [target] }).catch(() => {});
     }
     return NextResponse.json({ ok: true });
+  }
+
+  if (data.action === "makelicenses") {
+    // Gift codes: same license machinery as team seats, owner-issued.
+    const codes = await generateLicenses({
+      orderId: `gift-${randomUUID()}`,
+      companyName: data.label || "Omaggio ExecLingo",
+      buyerEmail: "owner",
+      quantity: data.quantity,
+    });
+    return NextResponse.json({ ok: true, codes });
   }
 
   if (data.action === "voidtestlicenses") {
