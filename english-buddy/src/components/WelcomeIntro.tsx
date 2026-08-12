@@ -6,14 +6,16 @@ const SEEN_KEY = "buddy-welcome-seen";
 
 /**
  * True when ExecLingo is already running "as an app": inside the native
- * store wrappers (User-Agent marker) or as an installed PWA (standalone
- * display mode). In those contexts the install instructions make no sense.
+ * store wrappers (iOS User-Agent marker, Android TWA cookie) or as an
+ * installed PWA (standalone display mode). In those contexts the install
+ * instructions make no sense.
  */
 function useAlreadyInstalled(): boolean {
   return useSyncExternalStore(
     () => () => {},
     () =>
       navigator.userAgent.includes("ExecLingoApp") ||
+      document.cookie.includes("eb_app=") ||
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true,
     () => false
