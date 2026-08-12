@@ -39,7 +39,15 @@ export let lastPushError = "";
 export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   try {
     lastPushError = "";
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    // Build-time inlined key, with a runtime fallback for bundles that were
+    // built without the NEXT_PUBLIC_ variable.
+    let publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicKey) {
+      publicKey = await fetch("/api/push/vapid")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d?.key ?? undefined)
+        .catch(() => undefined);
+    }
     if (!publicKey) { lastPushError = "no-vapid"; return "failed"; }
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
