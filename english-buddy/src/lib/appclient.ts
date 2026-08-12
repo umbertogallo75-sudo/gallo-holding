@@ -1,23 +1,29 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 /**
- * Detection of the native store-app wrappers (iOS/Android WebView shells),
- * which append "ExecLingoApp" to their User-Agent. Inside those shells the
- * site must behave as a reader app: no purchase flows or pricing (Apple
- * guideline 3.1.1) — accounts, free level check and corporate-code
- * redemption remain available.
+ * Detection of the native store-app wrappers. The iOS shell appends
+ * "ExecLingoApp" to its User-Agent; the Android TWA cannot alter the UA, so
+ * it launches on /home?app=twa and the proxy pins an "eb_app" cookie. Inside
+ * either shell the site behaves as a reader app: no purchase flows or
+ * pricing (Apple 3.1.1 / Play payments policy) — accounts, free level check
+ * and corporate-code redemption remain available. iOS additionally exposes
+ * the StoreKit bridge, which unlocks the native plans when APPSTORE_IAP_UI
+ * is on.
  */
 const APP_MARKER = "ExecLingoApp";
+export const APP_COOKIE = "eb_app";
 
 /** For server components / pages. */
 export async function isEmbeddedApp(): Promise<boolean> {
-  const ua = (await headers()).get("user-agent") ?? "";
-  return ua.includes(APP_MARKER);
+  const [requestHeaders, requestCookies] = await Promise.all([headers(), cookies()]);
+  if ((requestHeaders.get("user-agent") ?? "").includes(APP_MARKER)) return true;
+  return requestCookies.has(APP_COOKIE);
 }
 
 /** For route handlers that already hold the Request. */
 export function isEmbeddedRequest(request: Request): boolean {
-  return (request.headers.get("user-agent") ?? "").includes(APP_MARKER);
+  if ((request.headers.get("user-agent") ?? "").includes(APP_MARKER)) return true;
+  return new RegExp(`(?:^|;\\s*)${APP_COOKIE}=`).test(request.headers.get("cookie") ?? "");
 }
 
 export const EMBEDDED_PAYWALL_MESSAGE =

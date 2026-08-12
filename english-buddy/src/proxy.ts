@@ -30,15 +30,24 @@ export function proxy(request: NextRequest) {
     path.startsWith("/marketing/");
 
   // Presence check only — cryptographic validation happens server-side in lib/auth.
+  let response: NextResponse;
   if (!isPublic && !request.cookies.get("english_buddy_session")) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    response = NextResponse.redirect(url);
+  } else {
+    response = NextResponse.next();
   }
-  return NextResponse.next();
+
+  // The Android TWA launches on /home?app=twa: pin the reader-mode cookie so
+  // every later navigation (without the query) still counts as embedded.
+  if (request.nextUrl.searchParams.get("app") === "twa") {
+    response.cookies.set("eb_app", "twa", { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/" });
+  }
+  return response;
 }
 
 export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
