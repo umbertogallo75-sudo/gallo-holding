@@ -9,7 +9,8 @@ export type FunnelEvent =
   | "landing_cta_aziende"
   | "register_done"
   | "onboarding_done"
-  | "purchase_apple";
+  | "purchase_apple"
+  | "purchase_google";
 
 // Mirrors db/migrations/0010_analytics.sql so events self-heal the schema:
 // the first tracked event creates the table if the migration hasn't run yet.

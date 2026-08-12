@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, stripeConfigured, stripeTestMode } from "@/lib/stripe";
+import { AndroidPlans } from "./AndroidPlans";
 import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
 import { RedeemBox } from "./RedeemBox";
@@ -55,13 +56,13 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           ) : (
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano sul tuo account ExecLingo o con un codice aziendale.</p>
           )}
-          {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iapOn ? (
-            <p className="itHint">📧 Ti abbiamo inviato una email all&rsquo;indirizzo del tuo account con i passaggi per attivare l&rsquo;accesso completo — controlla la posta (anche lo spam).</p>
-          ) : null}
         </section>
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
         {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans /> : null}
+        {/* Android: Play Billing plans when the app exposes the Digital Goods
+            API, otherwise the check-your-email hint (rendered client-side). */}
+        {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? <AndroidPlans /> : null}
         {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
         <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
       </main>

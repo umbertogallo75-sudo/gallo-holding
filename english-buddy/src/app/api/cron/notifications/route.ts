@@ -5,6 +5,7 @@ import { shouldSend, type Intensity } from "@/lib/push/windows";
 import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 import { runUpgradeNudges } from "@/lib/nudges";
+import { refreshGoogleSubscriptions } from "@/lib/playstore";
 
 export const maxDuration = 60;
 
@@ -124,7 +125,15 @@ async function run(request: Request) {
     nudges = { error: "failed" };
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, results, nudges });
+  // Google Play renewals: no webhook wired, so nearly-expired subs re-verify here.
+  let googleSubs: Record<string, number> = {};
+  try {
+    googleSubs = await refreshGoogleSubscriptions(database, now);
+  } catch (error) {
+    console.error("google subscription refresh failed:", error);
+  }
+
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, results, nudges, googleSubs });
 }
 
 export async function POST(request: Request) {
