@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
@@ -28,7 +29,11 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
 
   // Store-app wrappers: native IAP when enabled, otherwise reader-app mode —
   // plan status and corporate-code redemption only (Apple guideline 3.1.1).
-  const iapOn = process.env.APPSTORE_IAP_UI === "on";
+  // Only the iOS shell (UA marker) carries the StoreKit bridge: the Android
+  // TWA is embedded via cookie and never shows purchase UI (Play policy).
+  const requestHeaders = await headers();
+  const iosShell = (requestHeaders.get("user-agent") ?? "").includes("ExecLingoApp");
+  const iapOn = process.env.APPSTORE_IAP_UI === "on" && iosShell;
   if (embedded) {
     return (
       <main className="shell">
@@ -48,7 +53,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           ) : iapOn ? (
             <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — attiva un piano qui sotto.</p>
           ) : (
-            <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano gestito sul web o con un codice aziendale.</p>
+            <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano sul tuo account ExecLingo o con un codice aziendale.</p>
           )}
         </section>
         {/* Native IAP UI stays dark until the products are approved with a
