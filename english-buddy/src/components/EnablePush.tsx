@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPushStatus, subscribeToPush, type PushStatus } from "@/lib/push-client";
+import { getPushStatus, lastPushError, subscribeToPush, type PushStatus } from "@/lib/push-client";
 
 const DISMISS_KEY = "buddy-push-banner-dismissed";
 
@@ -64,6 +64,7 @@ export function EnablePush() {
         {failed ? (
           <p className="itHint" style={{ marginTop: 8 }}>
             ⚠️ Non sono riuscito ad attivarle da qui. <strong>Su Android</strong>: apri Impostazioni → App → ExecLingo → Notifiche, attiva &ldquo;Consenti notifiche&rdquo; e poi riprova qui. <strong>Su Mac</strong> serve Safari recente o Chrome; <strong>su iPhone</strong> prima installa l&rsquo;app. Puoi continuare comunque e attivarle più tardi.
+            {lastPushError ? <span style={{ display: "block", opacity: 0.6, marginTop: 4 }}>Dettaglio tecnico: {lastPushError}</span> : null}
           </p>
         ) : null}
         <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche · Continue" : "Not now · Non ora"}</button>

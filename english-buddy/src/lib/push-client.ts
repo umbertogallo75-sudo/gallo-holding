@@ -29,15 +29,30 @@ export async function getPushStatus(): Promise<PushStatus> {
   return existing ? "subscribed" : "need-enable";
 }
 
+/**
+ * Why the last subscribeToPush attempt failed, for support/debug display.
+ * Values: "no-vapid", "permission:default", "sw-timeout", "<Error name+message>".
+ */
+export let lastPushError = "";
+
 /** Asks permission, subscribes, and registers the subscription server-side. */
 export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   try {
+    lastPushError = "";
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!publicKey) return "failed";
+    if (!publicKey) { lastPushError = "no-vapid"; return "failed"; }
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return permission === "denied" ? "denied" : "failed";
+    if (permission !== "granted") {
+      lastPushError = `permission:${permission}`;
+      return permission === "denied" ? "denied" : "failed";
+    }
 
-    const registration = await navigator.serviceWorker.ready;
+    // `serviceWorker.ready` never settles when no SW got registered — cap it
+    // so the button can't hang forever.
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("sw-timeout")), 10_000)),
+    ]);
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
@@ -50,8 +65,10 @@ export async function subscribeToPush(): Promise<"subscribed" | "denied" | "fail
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     });
-    return response.ok ? "subscribed" : "failed";
-  } catch {
+    if (!response.ok) { lastPushError = `subscribe-api:${response.status}`; return "failed"; }
+    return "subscribed";
+  } catch (error) {
+    lastPushError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     return "failed";
   }
 }
