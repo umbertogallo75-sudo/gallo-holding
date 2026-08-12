@@ -77,9 +77,12 @@ export async function runUpgradeNudges(
     await client.executeMultiple(SCHEMA);
   } catch { /* concurrent create */ }
 
-  const candidates = await client.execute(
-    "SELECT id, email, display_name, created_at FROM auth_users WHERE email IS NOT NULL AND email != '' AND created_at <= datetime('now', '-1 day')"
-  );
+  // Cutoff from the caller's clock, not SQLite's, so runs are reproducible.
+  const cutoff = new Date(now.getTime() - 86_400_000).toISOString().slice(0, 19).replace("T", " ");
+  const candidates = await client.execute({
+    sql: "SELECT id, email, display_name, created_at FROM auth_users WHERE email IS NOT NULL AND email != '' AND created_at <= ?",
+    args: [cutoff],
+  });
 
   let day1 = 0, day3 = 0, sends = 0;
   for (const row of candidates.rows) {

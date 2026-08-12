@@ -19,10 +19,11 @@ function bridge(): IapBridge | null {
   return w.webkit?.messageHandlers?.iap ?? null;
 }
 
+// Prices mirror the App Store tiers (EUR .99), not the Stripe web prices.
 const PLANS = [
-  { product: "it.execlingo.app.program", title: "Programma 3 mesi", price: "99,90 €", note: "Una volta sola · il percorso completo", star: true },
-  { product: "it.execlingo.app.monthly", title: "Mensile", price: "39,90 €/mese", note: "Accesso completo, disdici quando vuoi", star: false },
-  { product: "it.execlingo.app.maintenance", title: "Mantenimento", price: "29,90 €/mese", note: "Dopo il programma: non perdere quello che hai costruito", star: false },
+  { product: "it.execlingo.app.program", title: "Programma 3 mesi", price: "99,99 €", note: "Una volta sola · il percorso completo", star: true },
+  { product: "it.execlingo.app.monthly", title: "Mensile", price: "39,99 €/mese", note: "Accesso completo, disdici quando vuoi", star: false },
+  { product: "it.execlingo.app.maintenance", title: "Mantenimento", price: "29,99 €/mese", note: "Dopo il programma: non perdere quello che hai costruito", star: false },
 ];
 
 export function NativePlans() {

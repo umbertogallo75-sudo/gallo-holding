@@ -60,13 +60,17 @@ describe("upgrade nudge emails", () => {
 
   it("sends day3 only after day1, then goes quiet", async () => {
     const later = new Date(NOON.getTime() + 3 * 86_400_000);
+    // locked-1 gets its day3; fresh-1 (now 3.2 days old) catches up with day1.
     const third = await runUpgradeNudges(client, later, fakeSend);
-    expect(third).toEqual({ day1: 0, day3: 1 });
+    expect(third).toEqual({ day1: 1, day3: 1 });
     expect(sent[1].subject).toContain("3 mesi");
 
+    // Next run: fresh-1 gets its day3 too, then everyone is done.
     const fourth = await runUpgradeNudges(client, later, fakeSend);
-    expect(fourth).toEqual({ day1: 0, day3: 0 });
-    expect(sent).toHaveLength(2);
+    expect(fourth).toEqual({ day1: 0, day3: 1 });
+    const fifth = await runUpgradeNudges(client, later, fakeSend);
+    expect(fifth).toEqual({ day1: 0, day3: 0 });
+    expect(sent).toHaveLength(4);
   });
 
   it("a brand-new old account gets day1 first even if it is past day 3", async () => {

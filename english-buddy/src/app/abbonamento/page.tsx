@@ -10,10 +10,12 @@ import { RedeemBox } from "./RedeemBox";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Abbonamento · ExecLingo" };
 
+// No prices here: the same plan costs Stripe prices on the web and App Store
+// tier prices in the app, so the active-plan label stays price-free.
 const PLAN_LABELS: Record<string, string> = {
-  monthly: "Mensile — 39,90 €/mese",
-  program: "Programma 3 mesi — 99,90 €",
-  maintenance: "Mantenimento — 29,90 €/mese",
+  monthly: "Mensile",
+  program: "Programma 3 mesi",
+  maintenance: "Mantenimento",
 };
 
 export default async function AbbonamentoPage({ searchParams }: { searchParams: Promise<{ esito?: string }> }) {
