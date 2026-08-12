@@ -24,8 +24,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
   const [billing, entitlement, embedded] = await Promise.all([getBilling(userId), getEntitlement(userId), isEmbeddedApp()]);
   const hasPlan = entitlement.reason === "plan";
 
-  // Store-app wrappers: reader-app mode — plan status and corporate-code
-  // redemption only, no purchase options (Apple guideline 3.1.1).
+  // Store-app wrappers: native IAP when enabled, otherwise reader-app mode —
+  // plan status and corporate-code redemption only (Apple guideline 3.1.1).
+  const iapOn = process.env.APPSTORE_IAP_UI === "on";
   if (embedded) {
     return (
       <main className="shell">
@@ -42,13 +43,15 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
               Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
               {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
             </p>
+          ) : iapOn ? (
+            <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — attiva un piano qui sotto.</p>
           ) : (
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano gestito sul web o con un codice aziendale.</p>
           )}
         </section>
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
-        {!hasPlan && userId !== OWNER_ID && process.env.APPSTORE_IAP_UI === "on" ? <NativePlans /> : null}
+        {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans /> : null}
         {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
         <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
       </main>
