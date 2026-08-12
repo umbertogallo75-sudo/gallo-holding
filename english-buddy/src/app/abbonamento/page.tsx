@@ -46,7 +46,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano gestito sul web o con un codice aziendale.</p>
           )}
         </section>
-        {!hasPlan && userId !== OWNER_ID ? <NativePlans /> : null}
+        {/* Native IAP UI stays dark until the products are approved with a
+            release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
+        {!hasPlan && userId !== OWNER_ID && process.env.APPSTORE_IAP_UI === "on" ? <NativePlans /> : null}
         {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
         <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
       </main>
