@@ -29,9 +29,18 @@ async function run(request: Request) {
 
   const database = db();
   const now = new Date();
-  const users = await database.execute(
-    "SELECT DISTINCT user_id, MIN(timezone) AS sub_timezone FROM push_subscriptions GROUP BY user_id"
-  );
+  // Web-push subscribers plus native iOS wrapper devices (APNs tokens).
+  const users = await database
+    .execute(
+      `SELECT user_id, MIN(timezone) AS sub_timezone FROM (
+         SELECT user_id, timezone FROM push_subscriptions
+         UNION ALL
+         SELECT user_id, timezone FROM apns_tokens
+       ) GROUP BY user_id`
+    )
+    .catch(() =>
+      database.execute("SELECT DISTINCT user_id, MIN(timezone) AS sub_timezone FROM push_subscriptions GROUP BY user_id")
+    );
 
   const results: Record<string, string> = {};
   for (const row of users.rows) {

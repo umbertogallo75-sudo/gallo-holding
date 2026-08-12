@@ -11,11 +11,25 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 
 export type PushStatus = "unsupported" | "need-install" | "denied" | "need-enable" | "subscribed";
 
+type ApnsBridge = { postMessage: (message: { action: string }) => void };
+
+/** The iOS wrapper's native push bridge (1.1+ builds expose it). */
+function apnsBridge(): ApnsBridge | null {
+  const w = window as unknown as { webkit?: { messageHandlers?: { push?: ApnsBridge } } };
+  return w.webkit?.messageHandlers?.push ?? null;
+}
+
+const APNS_DONE_KEY = "apns-registered";
+
 export async function getPushStatus(): Promise<PushStatus> {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return "unsupported";
-  // Native store-app wrappers: no Web Push in their webviews — hide every
-  // notification banner there (native push is a post-launch feature).
-  if (navigator.userAgent.includes("ExecLingoApp")) return "unsupported";
+  if (typeof window === "undefined") return "unsupported";
+  // Native iOS wrapper: notifications go through APNs, not Web Push. Old
+  // builds without the bridge keep every banner hidden.
+  if (navigator.userAgent.includes("ExecLingoApp")) {
+    if (!apnsBridge()) return "unsupported";
+    return localStorage.getItem(APNS_DONE_KEY) === "1" ? "subscribed" : "need-enable";
+  }
+  if (!("serviceWorker" in navigator)) return "unsupported";
   const supportsPush = "PushManager" in window && "Notification" in window;
   if (!supportsPush) {
     // On iOS, Web Push only exists inside an installed (Home Screen) app.
@@ -35,10 +49,38 @@ export async function getPushStatus(): Promise<PushStatus> {
  */
 export let lastPushError = "";
 
+/** Native path: asks the iOS shell to request APNs permission and waits for
+ *  the device token, which is then registered server-side. */
+function subscribeViaApns(bridge: ApnsBridge): Promise<"subscribed" | "denied" | "failed"> {
+  return new Promise((resolve) => {
+    const w = window as unknown as { __apnsToken?: (token: string) => void; __apnsDenied?: (reason?: string) => void };
+    const timer = setTimeout(() => { cleanup(); lastPushError = "apns-timeout"; resolve("failed"); }, 30_000);
+    const cleanup = () => { clearTimeout(timer); delete w.__apnsToken; delete w.__apnsDenied; };
+    w.__apnsToken = async (token: string) => {
+      cleanup();
+      const response = await fetch("/api/push/apns-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      }).catch(() => null);
+      if (response?.ok) { localStorage.setItem(APNS_DONE_KEY, "1"); resolve("subscribed"); }
+      else { lastPushError = `apns-api:${response?.status ?? "network"}`; resolve("failed"); }
+    };
+    w.__apnsDenied = (reason?: string) => {
+      cleanup();
+      lastPushError = `apns:${reason ?? "denied"}`;
+      resolve(reason === "denied" ? "denied" : "failed");
+    };
+    bridge.postMessage({ action: "request" });
+  });
+}
+
 /** Asks permission, subscribes, and registers the subscription server-side. */
 export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   try {
     lastPushError = "";
+    const apns = navigator.userAgent.includes("ExecLingoApp") ? apnsBridge() : null;
+    if (apns) return await subscribeViaApns(apns);
     // Build-time inlined key, with a runtime fallback for bundles that were
     // built without the NEXT_PUBLIC_ variable.
     let publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
