@@ -51,7 +51,16 @@ export function NativePlans() {
     };
     w.__iapFailed = (reason?: string) => {
       setState("idle");
-      if (reason && reason !== "cancelled") setError("Acquisto non completato: riprova.");
+      if (!reason || reason === "cancelled") return;
+      // Reasons come from the Swift bridge — map them so a failed purchase
+      // tells us (and support) which step broke.
+      const messages: Record<string, string> = {
+        "not-found": "I piani non risultano ancora disponibili su App Store (dopo l'attivazione del contratto può servire qualche ora). Riprova più tardi.",
+        unverified: "Apple non ha potuto verificare l'acquisto: riprova.",
+        pending: "Acquisto in attesa di approvazione (es. “Chiedi di acquistare”): verrà attivato appena confermato.",
+        none: "Nessun acquisto precedente da ripristinare con questo account.",
+      };
+      setError(messages[reason] ?? "Acquisto non completato: riprova.");
     };
     return () => {
       delete w.__iapPurchased;
