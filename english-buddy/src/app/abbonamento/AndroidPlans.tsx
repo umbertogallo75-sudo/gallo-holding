@@ -46,11 +46,20 @@ export function AndroidPlans() {
 
   useEffect(() => {
     (async () => {
+      const promise = digitalGoods();
+      if (!promise) { setAvailable(false); return; }
       try {
-        const promise = digitalGoods();
-        if (!promise) { setAvailable(false); return; }
+        await promise;
+      } catch {
+        // Play Billing bridge unavailable on this install.
+        setAvailable(false);
+        return;
+      }
+      // The bridge exists: show the cards even if price lookup fails (the
+      // fallback prices display and a purchase attempt surfaces the error).
+      setAvailable(true);
+      try {
         const service = await promise;
-        setAvailable(true);
         const details = await service.getDetails(PLANS.map((p) => p.product));
         const found: Record<string, string> = {};
         for (const item of details) {
@@ -58,7 +67,7 @@ export function AndroidPlans() {
         }
         setPrices(found);
       } catch {
-        setAvailable(false);
+        // Prices stay on the fallback values.
       }
     })();
   }, []);
