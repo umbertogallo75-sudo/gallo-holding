@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LandingTracker } from "./LandingTracker";
+import { StoreCta } from "./StoreCta";
 
 /**
  * Public marketing landing shown at "/" to logged-out visitors — the
@@ -15,6 +16,7 @@ export function Landing({ hidePricing = false }: { hidePricing?: boolean }) {
           <h1 className="landH1">In 3 mesi sei <span className="landGrad">operativo in inglese</span>.</h1>
           <p className="landLead">Riunioni, call, negoziazioni, trasferte. <strong>Sam</strong>, il tuo coach personale con intelligenza artificiale, ti allena pochi minuti al giorno — nei ritagli veri della tua giornata, anche partendo da zero.</p>
           <div className="landCtas">
+            <StoreCta />
             <Link href="/register" className="landCta" data-track="landing_cta_register">Prova Sam gratis — test di 3 minuti</Link>
             <Link href="/login" className="landCta2" data-track="landing_cta_login">Ho già un account</Link>
           </div>
