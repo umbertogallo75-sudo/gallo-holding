@@ -89,6 +89,12 @@ export function AndroidPlans() {
         [{ supportedMethods: PLAY_BILLING_METHOD, data: { sku: productId } }],
         { total: { label: "Totale", amount: { currency: "EUR", value: "0" } } }
       );
+      const canPay = await request.canMakePayment().catch(() => null);
+      if (canPay === false) {
+        setState("idle");
+        setError("Google Play non è pronto a gestire il pagamento su questo dispositivo (canMakePayment=false). Verifica di aver installato l'app dal Play Store e riprova tra qualche ora.");
+        return;
+      }
       const response = await request.show();
       const { purchaseToken } = response.details as { purchaseToken: string };
       setState("confirming");
@@ -98,14 +104,15 @@ export function AndroidPlans() {
       window.location.reload();
     } catch (err) {
       setState("idle");
-      const aborted = err instanceof DOMException && err.name === "AbortError";
-      if (aborted) return;
       if (err instanceof Error && err.message === "confirm") {
         setError("Acquisto riuscito ma attivazione non riuscita: tocca “Ripristina acquisti”.");
       } else if (err instanceof DOMException && err.name === "NotSupportedError") {
         setError("Questo piano non è ancora disponibile su Google Play: riprova più tardi.");
+      } else if (err instanceof DOMException && err.name === "AbortError") {
+        // Also raised when the Play sheet fails to open — keep it visible.
+        setError(`Acquisto annullato da Google Play (${err.message || "AbortError"}). Riprova.`);
       } else {
-        const detail = err instanceof Error ? ` (${err.name})` : "";
+        const detail = err instanceof Error ? ` (${err.name}: ${err.message})` : "";
         setError(`Acquisto non completato${detail}: riprova.`);
       }
     }
