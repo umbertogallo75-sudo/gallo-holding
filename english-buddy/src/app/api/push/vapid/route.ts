@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apnsConfigured } from "@/lib/push/apns";
 
 /**
  * Serves the Web Push public key at runtime. The client normally gets it
@@ -7,5 +8,9 @@ import { NextResponse } from "next/server";
  * is the fallback that always reflects the server's current configuration.
  */
 export async function GET() {
-  return NextResponse.json({ key: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null });
+  return NextResponse.json({
+    key: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null,
+    // Presence flag only (no secrets): lets us check the APNs setup remotely.
+    apns: apnsConfigured(),
+  });
 }
