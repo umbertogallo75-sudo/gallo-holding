@@ -99,7 +99,15 @@ export function AndroidPlans() {
     } catch (err) {
       setState("idle");
       const aborted = err instanceof DOMException && err.name === "AbortError";
-      if (!aborted) setError(err instanceof Error && err.message === "confirm" ? "Acquisto riuscito ma attivazione non riuscita: tocca “Ripristina acquisti”." : "Acquisto non completato: riprova.");
+      if (aborted) return;
+      if (err instanceof Error && err.message === "confirm") {
+        setError("Acquisto riuscito ma attivazione non riuscita: tocca “Ripristina acquisti”.");
+      } else if (err instanceof DOMException && err.name === "NotSupportedError") {
+        setError("Questo piano non è ancora disponibile su Google Play: riprova più tardi.");
+      } else {
+        const detail = err instanceof Error ? ` (${err.name})` : "";
+        setError(`Acquisto non completato${detail}: riprova.`);
+      }
     }
   }
 
