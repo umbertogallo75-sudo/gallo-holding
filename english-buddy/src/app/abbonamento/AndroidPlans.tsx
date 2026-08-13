@@ -43,16 +43,21 @@ export function AndroidPlans() {
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "purchasing" | "confirming">("idle");
   const [error, setError] = useState("");
+  // What Google actually answers, shown on screen while we commission billing.
+  const [diag, setDiag] = useState<string[]>([]);
+  const log = (line: string) => setDiag((d) => [...d, line]);
 
   useEffect(() => {
     (async () => {
       const promise = digitalGoods();
-      if (!promise) { setAvailable(false); return; }
+      if (!promise) { setAvailable(false); log("bridge: assente"); return; }
       try {
         await promise;
-      } catch {
+        log("bridge: ok");
+      } catch (err) {
         // Play Billing bridge unavailable on this install.
         setAvailable(false);
+        log(`bridge: errore ${err instanceof Error ? err.name : "?"}`);
         return;
       }
       // The bridge exists: show the cards even if price lookup fails (the
@@ -61,13 +66,14 @@ export function AndroidPlans() {
       try {
         const service = await promise;
         const details = await service.getDetails(PLANS.map((p) => p.product));
+        log(`prodotti visti da Google: ${details.length}${details.length ? " (" + details.map((d) => d.itemId).join(", ") + ")" : ""}`);
         const found: Record<string, string> = {};
         for (const item of details) {
           found[item.itemId] = formatPrice(item.price.currency, item.price.value, item.itemId !== "program");
         }
         setPrices(found);
-      } catch {
-        // Prices stay on the fallback values.
+      } catch (err) {
+        log(`getDetails: errore ${err instanceof Error ? `${err.name} — ${err.message}` : "?"}`);
       }
     })();
   }, []);
@@ -89,7 +95,11 @@ export function AndroidPlans() {
         [{ supportedMethods: PLAY_BILLING_METHOD, data: { sku: productId } }],
         { total: { label: "Totale", amount: { currency: "EUR", value: "0" } } }
       );
-      const canPay = await request.canMakePayment().catch(() => null);
+      const canPay = await request.canMakePayment().catch((e) => {
+        log(`canMakePayment: errore ${e instanceof Error ? e.name : "?"}`);
+        return null;
+      });
+      log(`canMakePayment: ${String(canPay)}`);
       if (canPay === false) {
         setState("idle");
         setError("Google Play non è pronto a gestire il pagamento su questo dispositivo (canMakePayment=false). Verifica di aver installato l'app dal Play Store e riprova tra qualche ora.");
@@ -155,6 +165,11 @@ export function AndroidPlans() {
         </section>
       ))}
       {error ? <p className="warnText" style={{ margin: "0 4px 8px" }}>{error}</p> : null}
+      {diag.length ? (
+        <p className="itHint" style={{ margin: "0 4px 10px", opacity: 0.75, lineHeight: 1.5 }}>
+          🔎 Diagnostica Play: {diag.join(" · ")}
+        </p>
+      ) : null}
       <p className="itHint" style={{ margin: "0 4px 10px", textAlign: "center" }}>
         Pagamento gestito da Google Play · prezzi IVA inclusa · si disdice da Play Store → Abbonamenti ·{" "}
         <button type="button" className="linklike" style={{ font: "inherit", color: "inherit", textDecoration: "underline", background: "none", border: 0, padding: 0 }} onClick={restore}>
