@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 /**
  * Google Play in-app purchases, shown only inside the Android app build that
@@ -43,9 +43,15 @@ export function AndroidPlans() {
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "purchasing" | "confirming">("idle");
   const [error, setError] = useState("");
-  // What Google actually answers, shown on screen while we commission billing.
+  // What Google actually answers — on screen only with ?diag=1, so a future
+  // commissioning round can see the same evidence without shipping debug UI.
   const [diag, setDiag] = useState<string[]>([]);
   const log = (line: string) => setDiag((d) => [...d, line]);
+  const showDiag = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).has("diag"),
+    () => false
+  );
 
   useEffect(() => {
     (async () => {
@@ -174,7 +180,7 @@ export function AndroidPlans() {
         </section>
       ))}
       {error ? <p className="warnText" style={{ margin: "0 4px 8px" }}>{error}</p> : null}
-      {diag.length ? (
+      {showDiag && diag.length ? (
         <p className="itHint" style={{ margin: "0 4px 10px", opacity: 0.75, lineHeight: 1.5 }}>
           🔎 Diagnostica Play: {diag.join(" · ")}
         </p>

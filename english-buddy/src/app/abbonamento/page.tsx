@@ -60,9 +60,20 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
         {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans /> : null}
-        {/* Android: Play Billing plans when the app exposes the Digital Goods
-            API, otherwise the check-your-email hint (rendered client-side). */}
-        {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? <AndroidPlans /> : null}
+        {/* Android: Play Billing is off by default. The TWA only reaches Play
+            Billing through Chrome — on Samsung Internet it fails outright
+            (clientAppUnavailable) — so locked users get the email route, which
+            works on every device. Flip PLAY_IAP_UI=on to re-enable the plans
+            (e.g. once a native Android app replaces the wrapper). */}
+        {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? (
+          process.env.PLAY_IAP_UI === "on" ? (
+            <AndroidPlans />
+          ) : (
+            <p className="itHint" style={{ margin: "0 4px 10px" }}>
+              📧 Ti abbiamo inviato una email all&rsquo;indirizzo del tuo account con i passaggi per attivare l&rsquo;accesso completo — controlla la posta (anche lo spam).
+            </p>
+          )
+        ) : null}
         {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
         <p className="itHint" style={{ margin: "14px 4px 24px" }}><Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link></p>
       </main>
