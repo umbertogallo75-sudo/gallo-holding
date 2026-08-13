@@ -49,6 +49,15 @@ export function AndroidPlans() {
 
   useEffect(() => {
     (async () => {
+      // Which engine renders the app matters: Play Billing only works when
+      // the TWA runs on Chrome. Samsung Internet exposes the same API and
+      // then fails with clientAppUnavailable.
+      const ua = navigator.userAgent;
+      const engine = /SamsungBrowser\/([\d.]+)/.exec(ua)?.[0]
+        ?? /Chrome\/([\d.]+)/.exec(ua)?.[0]
+        ?? "browser sconosciuto";
+      log(`motore: ${engine}`);
+
       const promise = digitalGoods();
       if (!promise) { setAvailable(false); log("bridge: assente"); return; }
       try {
