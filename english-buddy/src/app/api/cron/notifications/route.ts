@@ -70,6 +70,26 @@ async function run(request: Request) {
       database.execute("SELECT DISTINCT user_id, MIN(timezone) AS sub_timezone FROM push_subscriptions GROUP BY user_id")
     );
 
+  // Which channel each user can actually be reached on. "sent" only says the
+  // send was attempted, so without this a user subscribed on the old web-push
+  // endpoint — and on no app — looks identical to one holding a live phone.
+  const devices: Record<string, string> = {};
+  try {
+    const counts = await database.execute(
+      `SELECT user_id, source, COUNT(*) AS n FROM (
+         SELECT user_id, 'web' AS source FROM push_subscriptions
+         UNION ALL SELECT user_id, 'ios' FROM apns_tokens
+         UNION ALL SELECT user_id, 'android' FROM fcm_tokens
+       ) GROUP BY user_id, source`
+    );
+    for (const row of counts.rows) {
+      const id = String(row.user_id);
+      devices[id] = `${devices[id] ? `${devices[id]} ` : ""}${row.source}:${row.n}`;
+    }
+  } catch (error) {
+    console.error("device census failed:", error);
+  }
+
   const results: Record<string, string> = {};
   const stopStartingAt = Date.now() + START_DEADLINE_MS;
   await pool(users.rows, CONCURRENCY, async (row) => {
@@ -175,7 +195,7 @@ async function run(request: Request) {
     console.error("google subscription refresh failed:", error);
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, results, nudges, googleSubs });
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, nudges, googleSubs });
 }
 
 export async function POST(request: Request) {
