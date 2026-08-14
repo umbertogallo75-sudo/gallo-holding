@@ -13,6 +13,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -44,10 +46,19 @@ class MainActivity : AppCompatActivity() {
         setTheme(R.style.Theme_ExecLingo)
 
         web = WebView(this)
-        setContentView(web)
 
         // Keep content clear of the status and navigation bars.
-        ViewCompat.setOnApplyWindowInsetsListener(web) { view, insets ->
+        //
+        // The padding goes on the frame around the webview, not on the webview
+        // itself: a webview's own padding insets the scrolling document but
+        // leaves `position: fixed` elements anchored to the untouched window,
+        // so the site's bottom tab bar ended up underneath the navigation bar.
+        // Shrinking the view instead moves the whole viewport, fixed elements
+        // included.
+        val frame = FrameLayout(this)
+        frame.addView(web, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        setContentView(frame)
+        ViewCompat.setOnApplyWindowInsetsListener(frame) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
