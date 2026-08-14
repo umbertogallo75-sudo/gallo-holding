@@ -22,6 +22,7 @@ class BillingBridge(
     private val client: BillingClient = BillingClient.newBuilder(activity)
         .setListener(this)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+        .enableAutoServiceReconnection()   // Billing 8: reconnects itself after a drop
         .build()
 
     private var pendingProduct: String? = null
@@ -51,8 +52,9 @@ class BillingBridge(
                     )
                 ).build()
 
+            // Billing 8 hands back a result object rather than a bare list.
             client.queryProductDetailsAsync(params) { result, details ->
-                val product = details.firstOrNull()
+                val product = details.productDetailsList.firstOrNull()
                 if (result.responseCode != BillingClient.BillingResponseCode.OK || product == null) {
                     fail("product-not-found"); return@queryProductDetailsAsync
                 }

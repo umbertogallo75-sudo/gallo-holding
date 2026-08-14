@@ -52,3 +52,4 @@ hanno. Chat, missioni e notifiche funzionano anche senza microfono.
 | 5 | prima app nativa |
 | 6 | nessuna feature hardware obbligatoria, targetSdk 36 |
 | 7 | barra dei menu non più sotto quella di sistema |
+| 8 | Libreria Fatturazione Google Play 8.3.0 (obbligatoria dal 31 ago 2026) |

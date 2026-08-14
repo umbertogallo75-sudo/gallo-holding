@@ -12,7 +12,7 @@ android {
         applicationId "it.execlingo.app"
         minSdk 23
         targetSdk 36
-        versionCode 7
+        versionCode 8
         versionName "1.0"
         resValue "string", "app_name", "ExecLingo"
     }
@@ -47,5 +47,7 @@ dependencies {
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation platform('com.google.firebase:firebase-bom:33.7.0')
     implementation 'com.google.firebase:firebase-messaging-ktx'
-    implementation 'com.android.billingclient:billing-ktx:7.1.1'
+    // Play requires Billing Library 8.0+ from 31 Aug 2026; the -ktx artifact was
+    // folded into the main one in 8.0.
+    implementation 'com.android.billingclient:billing:8.3.0'
 }
