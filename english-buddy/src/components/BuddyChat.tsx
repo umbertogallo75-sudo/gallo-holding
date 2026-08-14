@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
+import { inStoreApp } from "@/lib/shell";
 
 type Msg = { role:"user"|"assistant"; content:string; correction?:string };
 
@@ -99,7 +100,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   // pending message the moment the connection returns.
   const offline = useSyncExternalStore(subscribeToNetwork, () => !navigator.onLine, () => false);
   // Store-app wrappers show no purchase wording (reader-app rules).
-  const embedded = useSyncExternalStore(() => () => {}, () => navigator.userAgent.includes("ExecLingoApp"), () => false);
+  const embedded = useSyncExternalStore(() => () => {}, inStoreApp, () => false);
   useEffect(() => {
     const backOnline = () => {
       const pending = failedRef.current;

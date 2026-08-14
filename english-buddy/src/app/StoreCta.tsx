@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { inStoreApp } from "@/lib/shell";
 
 /**
  * Device-aware app download button for the landing: iPhones get the App
@@ -10,9 +11,8 @@ import { useSyncExternalStore } from "react";
  */
 function platform(): "ios" | "android" | null {
   if (typeof navigator === "undefined") return null;
+  if (inStoreApp()) return null; // already inside the app
   const ua = navigator.userAgent;
-  if (ua.includes("ExecLingoApp")) return null; // already inside the app
-  if (typeof document !== "undefined" && document.cookie.includes("eb_app=")) return null;
   if (/iphone|ipad|ipod/i.test(ua)) return "ios";
   if (/android/i.test(ua)) return "android";
   return null;

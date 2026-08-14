@@ -1,5 +1,7 @@
 "use client";
 
+import { ANDROID_MARKER, IOS_MARKER } from "@/lib/shell";
+
 /** Browser-side push subscription helpers shared by the banners. */
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -33,12 +35,12 @@ export async function getPushStatus(): Promise<PushStatus> {
   if (typeof window === "undefined") return "unsupported";
   // Native iOS wrapper: notifications go through APNs, not Web Push. Old
   // builds without the bridge keep every banner hidden.
-  if (navigator.userAgent.includes("ExecLingoApp")) {
+  if (navigator.userAgent.includes(IOS_MARKER)) {
     if (!apnsBridge()) return "unsupported";
     return localStorage.getItem(APNS_DONE_KEY) === "1" ? "subscribed" : "need-enable";
   }
   // Native Android app: notifications arrive through Firebase, not Web Push.
-  if (navigator.userAgent.includes("ExecLingoAndroid")) {
+  if (navigator.userAgent.includes(ANDROID_MARKER)) {
     if (!androidBridge()) return "unsupported";
     return localStorage.getItem(FCM_DONE_KEY) === "1" ? "subscribed" : "need-enable";
   }
@@ -117,9 +119,9 @@ function subscribeViaFcm(bridge: AndroidBridge): Promise<"subscribed" | "denied"
 export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   try {
     lastPushError = "";
-    const apns = navigator.userAgent.includes("ExecLingoApp") ? apnsBridge() : null;
+    const apns = navigator.userAgent.includes(IOS_MARKER) ? apnsBridge() : null;
     if (apns) return await subscribeViaApns(apns);
-    const android = navigator.userAgent.includes("ExecLingoAndroid") ? androidBridge() : null;
+    const android = navigator.userAgent.includes(ANDROID_MARKER) ? androidBridge() : null;
     if (android) return await subscribeViaFcm(android);
     // Build-time inlined key, with a runtime fallback for bundles that were
     // built without the NEXT_PUBLIC_ variable.

@@ -1,25 +1,13 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { installedAsApp } from "@/lib/shell";
 
 const SEEN_KEY = "buddy-welcome-seen";
 
-/**
- * True when ExecLingo is already running "as an app": inside the native
- * store wrappers (iOS User-Agent marker, Android TWA cookie) or as an
- * installed PWA (standalone display mode). In those contexts the install
- * instructions make no sense.
- */
+/** Inside a store app or an installed PWA the install steps make no sense. */
 function useAlreadyInstalled(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () =>
-      navigator.userAgent.includes("ExecLingoApp") ||
-      document.cookie.includes("eb_app=") ||
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true,
-    () => false
-  );
+  return useSyncExternalStore(() => () => {}, installedAsApp, () => false);
 }
 
 /**
