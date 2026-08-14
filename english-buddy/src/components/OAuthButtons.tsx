@@ -1,5 +1,20 @@
-/** Social sign-in buttons; render only the providers that are configured. */
+"use client";
+
+import { useSyncExternalStore } from "react";
+import { inStoreApp } from "@/lib/shell";
+
+/**
+ * Social sign-in buttons; render only the providers that are configured.
+ *
+ * The pages already leave these out when the request arrives from a store app
+ * — Google refuses OAuth inside an embedded webview and Apple's web flow is
+ * clunky there. The check is repeated here on the browser side because the
+ * server only sees the shell on a fresh request: a page kept alive across an
+ * app update would otherwise still be showing buttons that cannot work.
+ */
 export function OAuthButtons({ google, apple }: { google: boolean; apple: boolean }) {
+  const embedded = useSyncExternalStore(() => () => {}, inStoreApp, () => false);
+  if (embedded) return null;
   if (!google && !apple) return null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "4px 0 14px" }}>
