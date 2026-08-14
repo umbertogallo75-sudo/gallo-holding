@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getBilling, getEntitlement, saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
+import { getBilling, getEntitlement, maintenanceUnlocked, saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
 
 let dir: string;
 let client: Client;
@@ -72,5 +72,21 @@ describe("billing state and entitlement", () => {
     expect((await getEntitlement("comp", client))).toMatchObject({ access: true, reason: "free" });
     await saveBilling({ userId: "comp", status: "canceled" }, client);
     expect((await getEntitlement("comp", client))).toMatchObject({ access: false, reason: "locked" });
+  });
+
+  it("maintenance unlocks only after the programme, and stays unlocked", async () => {
+    await saveBilling({ userId: "solo", plan: "monthly", status: "active" }, client);
+    expect(maintenanceUnlocked(await getBilling("solo", client))).toBe(false);
+    expect(maintenanceUnlocked(null)).toBe(false);
+
+    await saveBilling({ userId: "path", plan: "program", status: "active" }, client);
+    expect(maintenanceUnlocked(await getBilling("path", client))).toBe(true);
+
+    // Programme over, now on maintenance: the stamp survives the plan change.
+    await saveBilling({ userId: "path", plan: "maintenance", status: "active" }, client);
+    const after = await getBilling("path", client);
+    expect(after?.plan).toBe("maintenance");
+    expect(after?.programAt).toBeTruthy();
+    expect(maintenanceUnlocked(after)).toBe(true);
   });
 });

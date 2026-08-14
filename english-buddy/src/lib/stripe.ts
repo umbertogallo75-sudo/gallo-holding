@@ -176,7 +176,19 @@ export type BillingRow = {
   plan: string | null;
   status: string | null;
   currentPeriodEnd: string | null;
+  /** When the 3-month programme was first bought; never cleared. */
+  programAt: string | null;
 };
+
+/**
+ * Maintenance is the plan that comes *after* the programme — that is what its
+ * lower price pays for. It unlocks once the programme has been bought, and
+ * stays unlocked for whoever is already on it, so an active subscriber is
+ * never locked out of their own plan.
+ */
+export function maintenanceUnlocked(billing: BillingRow | null): boolean {
+  return !!billing && (!!billing.programAt || billing.plan === "program" || billing.plan === "maintenance");
+}
 
 export async function saveBilling(
   row: { userId: string; stripeCustomerId?: string | null; plan?: string | null; status?: string | null; currentPeriodEnd?: string | null },
@@ -200,6 +212,23 @@ export async function saveBilling(
     await client.executeMultiple(BILLING_SCHEMA);
     await upsert();
   }
+  // Stamped separately so a database that predates the column cannot break the
+  // upsert itself: the plan must be recorded even if the stamp fails.
+  if (row.plan === "program") await stampProgram(row.userId, client);
+}
+
+async function stampProgram(userId: string, client: Client): Promise<void> {
+  const stamp = () =>
+    client.execute({
+      sql: "UPDATE billing SET program_at = COALESCE(program_at, CURRENT_TIMESTAMP) WHERE user_id = ?",
+      args: [userId],
+    });
+  try {
+    await stamp();
+  } catch {
+    await client.execute("ALTER TABLE billing ADD COLUMN program_at TEXT").catch(() => undefined);
+    await stamp().catch(() => undefined);
+  }
 }
 
 export async function getBilling(userId: string, client: Client = db()): Promise<BillingRow | null> {
@@ -213,6 +242,7 @@ export async function getBilling(userId: string, client: Client = db()): Promise
       plan: r.plan ? String(r.plan) : null,
       status: r.status ? String(r.status) : null,
       currentPeriodEnd: r.current_period_end ? String(r.current_period_end) : null,
+      programAt: r.program_at ? String(r.program_at) : null,
     };
   } catch {
     return null;

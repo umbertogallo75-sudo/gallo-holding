@@ -26,7 +26,7 @@ const PLANS = [
   { product: "it.execlingo.app.maintenance", title: "Mantenimento", price: "29,99 €/mese", note: "Dopo il programma: non perdere quello che hai costruito", star: false },
 ];
 
-export function NativePlans() {
+export function NativePlans({ maintenance }: { maintenance: boolean }) {
   const available = useSyncExternalStore(() => () => {}, () => bridge() !== null, () => false);
   const [state, setState] = useState<"idle" | "purchasing" | "confirming" | "done">("idle");
   const [error, setError] = useState("");
@@ -84,9 +84,15 @@ export function NativePlans() {
           {p.star ? <div className="kicker">La promessa</div> : null}
           <h2 style={{ margin: "6px 0" }}>{p.title} — {p.price}</h2>
           <p className="muted" style={{ marginTop: 0 }}>{p.note}</p>
-          <button type="button" className="primary full" disabled={state !== "idle"} onClick={() => buy(p.product)}>
-            {state === "purchasing" ? "Attendi…" : state === "confirming" ? "Attivo il piano…" : `Attiva — ${p.price}`}
-          </button>
+          {p.product.endsWith(".maintenance") && !maintenance ? (
+            <p className="itHint" style={{ margin: 0 }}>
+              🔒 Si attiva dopo il <strong>Programma 3 mesi</strong>: è il piano che lo prosegue. Se ti serve solo un mese, scegli il <strong>Mensile</strong>.
+            </p>
+          ) : (
+            <button type="button" className="primary full" disabled={state !== "idle"} onClick={() => buy(p.product)}>
+              {state === "purchasing" ? "Attendi…" : state === "confirming" ? "Attivo il piano…" : `Attiva — ${p.price}`}
+            </button>
+          )}
         </section>
       ))}
       {error ? <p className="warnText" style={{ margin: "0 4px 8px" }}>{error}</p> : null}

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
-import { getBilling, getEntitlement, stripeConfigured, stripeTestMode } from "@/lib/stripe";
+import { getBilling, getEntitlement, maintenanceUnlocked, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { AndroidPlans } from "./AndroidPlans";
 import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
@@ -27,6 +27,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
 
   const [billing, entitlement, embedded] = await Promise.all([getBilling(userId), getEntitlement(userId), isEmbeddedApp()]);
   const hasPlan = entitlement.reason === "plan";
+  // Maintenance is the plan after the programme: hidden until the programme
+  // has been bought, so nobody starts on the cheaper price by mistake.
+  const maintenance = maintenanceUnlocked(billing) || userId === OWNER_ID;
 
   // Store-app wrappers: native IAP when enabled, otherwise reader-app mode —
   // plan status and corporate-code redemption only (Apple guideline 3.1.1).
@@ -66,13 +69,13 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         </section>
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
-        {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans /> : null}
+        {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans maintenance={maintenance} /> : null}
         {/* Android: Play Billing is off by default and, when on, only for the
             native app — everyone else (legacy TWA, old installs) gets the
             email route, which works on every device. */}
         {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? (
           playOn ? (
-            <AndroidPlans />
+            <AndroidPlans maintenance={maintenance} />
           ) : (
             <p className="itHint" style={{ margin: "0 4px 10px" }}>
               📧 Ti abbiamo inviato una email all&rsquo;indirizzo del tuo account con i passaggi per attivare l&rsquo;accesso completo — controlla la posta (anche lo spam).
@@ -140,7 +143,13 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Mantenimento — 29,90 €/mese</h2>
         <p className="muted" style={{ marginTop: 0 }}>Per chi ha completato il programma: non perdere quello che hai costruito — ripasso, notifiche e Sam sempre con te.</p>
-        <PlanButtonWrap plan="maintenance" label="Attiva il mantenimento — 29,90 €/mese" />
+        {maintenance ? (
+          <PlanButtonWrap plan="maintenance" label="Attiva il mantenimento — 29,90 €/mese" />
+        ) : (
+          <p className="itHint" style={{ margin: 0 }}>
+            🔒 Si attiva dopo il <strong>Programma 3 mesi</strong>: è il piano che lo prosegue. Se ti serve solo un mese, scegli il <strong>Mensile a 39,90 €</strong>.
+          </p>
+        )}
       </section>
 
       {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}

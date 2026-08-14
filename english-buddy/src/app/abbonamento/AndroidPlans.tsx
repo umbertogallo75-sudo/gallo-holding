@@ -46,7 +46,7 @@ function formatPrice(currency: string, value: string, perMonth: boolean): string
   return `${amount} ${symbol}${perMonth ? "/mese" : ""}`;
 }
 
-export function AndroidPlans() {
+export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "purchasing" | "confirming">("idle");
@@ -206,9 +206,15 @@ export function AndroidPlans() {
           {p.star ? <div className="kicker">La promessa</div> : null}
           <h2 style={{ margin: "6px 0" }}>{p.title} — {prices[p.product] ?? p.fallbackPrice}</h2>
           <p className="muted" style={{ marginTop: 0 }}>{p.note}</p>
-          <button type="button" className="primary full" disabled={state !== "idle"} onClick={() => buy(p.product)}>
-            {state === "purchasing" ? "Attendi…" : state === "confirming" ? "Attivo il piano…" : `Attiva — ${prices[p.product] ?? p.fallbackPrice}`}
-          </button>
+          {p.product === "maintenance" && !maintenance ? (
+            <p className="itHint" style={{ margin: 0 }}>
+              🔒 Si attiva dopo il <strong>Programma 3 mesi</strong>: è il piano che lo prosegue. Se ti serve solo un mese, scegli il <strong>Mensile</strong>.
+            </p>
+          ) : (
+            <button type="button" className="primary full" disabled={state !== "idle"} onClick={() => buy(p.product)}>
+              {state === "purchasing" ? "Attendi…" : state === "confirming" ? "Attivo il piano…" : `Attiva — ${prices[p.product] ?? p.fallbackPrice}`}
+            </button>
+          )}
         </section>
       ))}
       {error ? <p className="warnText" style={{ margin: "0 4px 8px" }}>{error}</p> : null}

@@ -91,12 +91,18 @@ class MainActivity : AppCompatActivity() {
 
         web.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
-                // The voice coach needs the microphone; grant it once Android has.
                 val mic = request.resources.filter { it == PermissionRequest.RESOURCE_AUDIO_CAPTURE }
-                if (mic.isNotEmpty() &&
-                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) ==
+                if (mic.isEmpty()) { request.deny(); return }
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) ==
                     PackageManager.PERMISSION_GRANTED
-                ) request.grant(mic.toTypedArray()) else request.deny()
+                ) { request.grant(mic.toTypedArray()); return }
+                // Android has not been asked yet. Denying here is what left the
+                // voice page stuck on "Permission denied" however many times it
+                // was tried: hold the page's request, put Android's own dialog
+                // on screen, and answer once the user has chosen.
+                pendingMic?.deny()
+                pendingMic = request
+                micPermission.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
 
@@ -177,8 +183,15 @@ class MainActivity : AppCompatActivity() {
         fun restore() = billing.restore()
     }
 
+    /** The page's microphone request, waiting on Android's permission dialog. */
+    private var pendingMic: PermissionRequest? = null
+
     private val micPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val request = pendingMic ?: return@registerForActivityResult
+            pendingMic = null
+            if (granted) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny()
+        }
 
     companion object {
         const val SITE = "https://www.execlingo.it"
