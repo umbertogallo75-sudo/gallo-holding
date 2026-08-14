@@ -33,8 +33,15 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
   // Only the iOS shell (UA marker) carries the StoreKit bridge: the Android
   // TWA is embedded via cookie and never shows purchase UI (Play policy).
   const requestHeaders = await headers();
-  const iosShell = (requestHeaders.get("user-agent") ?? "").includes("ExecLingoApp/");
+  const userAgent = requestHeaders.get("user-agent") ?? "";
+  const iosShell = userAgent.includes("ExecLingoApp/");
+  // Only the native Android app carries a working billing bridge. The retired
+  // TWA (recognised by cookie, no UA marker) reached Play Billing through
+  // Chrome and failed on Samsung Internet, so it stays on the email route
+  // whatever PLAY_IAP_UI says.
+  const androidShell = userAgent.includes("ExecLingoAndroid");
   const iapOn = process.env.APPSTORE_IAP_UI === "on" && iosShell;
+  const playOn = process.env.PLAY_IAP_UI === "on" && androidShell;
   if (embedded) {
     return (
       <main className="shell">
@@ -51,7 +58,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
               Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
               {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
             </p>
-          ) : iapOn ? (
+          ) : iapOn || playOn ? (
             <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — attiva un piano qui sotto.</p>
           ) : (
             <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano sul tuo account ExecLingo o con un codice aziendale.</p>
@@ -60,13 +67,11 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         {/* Native IAP UI stays dark until the products are approved with a
             release (flip APPSTORE_IAP_UI=on in Vercel — no app update needed). */}
         {!hasPlan && userId !== OWNER_ID && iapOn ? <NativePlans /> : null}
-        {/* Android: Play Billing is off by default. The TWA only reaches Play
-            Billing through Chrome — on Samsung Internet it fails outright
-            (clientAppUnavailable) — so locked users get the email route, which
-            works on every device. Flip PLAY_IAP_UI=on to re-enable the plans
-            (e.g. once a native Android app replaces the wrapper). */}
+        {/* Android: Play Billing is off by default and, when on, only for the
+            native app — everyone else (legacy TWA, old installs) gets the
+            email route, which works on every device. */}
         {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? (
-          process.env.PLAY_IAP_UI === "on" ? (
+          playOn ? (
             <AndroidPlans />
           ) : (
             <p className="itHint" style={{ margin: "0 4px 10px" }}>
