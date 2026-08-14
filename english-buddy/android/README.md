@@ -51,3 +51,4 @@ hanno. Chat, missioni e notifiche funzionano anche senza microfono.
 | 3–4 | TWA (bubblewrap), sostituito |
 | 5 | prima app nativa |
 | 6 | nessuna feature hardware obbligatoria, targetSdk 36 |
+| 7 | barra dei menu non più sotto quella di sistema |
