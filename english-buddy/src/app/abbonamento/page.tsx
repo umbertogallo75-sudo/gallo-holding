@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
-import { getBilling, getEntitlement, maintenanceUnlocked, stripeConfigured, stripeTestMode } from "@/lib/stripe";
+import { getBilling, getEntitlement, isStripeCustomer, maintenanceUnlocked, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { AndroidPlans } from "./AndroidPlans";
 import { ManageBilling } from "./ManageBilling";
 import { NativePlans } from "./NativePlans";
@@ -139,7 +139,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
         <p className="itHint" style={{ margin: "0 4px 10px" }}>🧪 Modalità di prova attiva: nessun addebito reale (carta di test: 4242 4242 4242 4242).</p>
       ) : null}
 
-      {hasPlan && billing?.stripeCustomerId ? <ManageBilling /> : null}
+      {hasPlan && isStripeCustomer(billing) ? <ManageBilling /> : null}
 
       <section className="card">
         <div className="kicker">La promessa</div>

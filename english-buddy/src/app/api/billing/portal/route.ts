@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserId } from "@/lib/auth";
-import { createBillingPortal, getBilling, stripeConfigured } from "@/lib/stripe";
+import { createBillingPortal, getBilling, isStripeCustomer, stripeConfigured } from "@/lib/stripe";
 
 /**
  * Opens Stripe's billing portal for the signed-in user: the one place where a
@@ -14,13 +14,14 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) return NextResponse.json({ error: "Pagamenti non configurati" }, { status: 503 });
 
   const billing = await getBilling(userId);
-  if (!billing?.stripeCustomerId) {
+  const customerId = isStripeCustomer(billing) ? billing!.stripeCustomerId! : null;
+  if (!customerId) {
     return NextResponse.json({ error: "Nessun abbonamento con carta su questo account" }, { status: 404 });
   }
 
   const origin = process.env.APP_BASE_URL || new URL(request.url).origin;
   try {
-    const url = await createBillingPortal(billing.stripeCustomerId, `${origin}/abbonamento`);
+    const url = await createBillingPortal(customerId, `${origin}/abbonamento`);
     return NextResponse.json({ url });
   } catch {
     return NextResponse.json({ error: "Portale non raggiungibile: riprova." }, { status: 502 });

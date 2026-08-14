@@ -196,6 +196,16 @@ export type BillingRow = {
  * stays unlocked for whoever is already on it, so an active subscriber is
  * never locked out of their own plan.
  */
+/**
+ * True when the plan was actually bought with a card on the site. Store
+ * purchases are recorded in the same column with their own key
+ * ("google:<token>", "apple:<id>"), and only a real Stripe customer can open
+ * the billing portal.
+ */
+export function isStripeCustomer(billing: BillingRow | null): boolean {
+  return !!billing?.stripeCustomerId?.startsWith("cus_");
+}
+
 export function maintenanceUnlocked(billing: BillingRow | null): boolean {
   return !!billing && (!!billing.programAt || billing.plan === "program" || billing.plan === "maintenance");
 }
