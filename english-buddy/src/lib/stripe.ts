@@ -44,6 +44,16 @@ async function stripeFetch(path: string, params?: Record<string, string>): Promi
   return data;
 }
 
+/**
+ * Stripe's own billing portal: where a web subscriber changes their card,
+ * downloads invoices or cancels. Store subscriptions never come through here
+ * — Apple and Google only let their own settings screens cancel them.
+ */
+export async function createBillingPortal(customerId: string, returnUrl: string): Promise<string> {
+  const session = await stripeFetch("/billing_portal/sessions", { customer: customerId, return_url: returnUrl });
+  return String(session.url);
+}
+
 // Price ids cached per serverless instance; looked up (or created) by lookup key.
 const priceCache = new Map<Plan, string>();
 

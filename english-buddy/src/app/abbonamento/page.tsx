@@ -5,6 +5,7 @@ import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, maintenanceUnlocked, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { AndroidPlans } from "./AndroidPlans";
+import { ManageBilling } from "./ManageBilling";
 import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
 import { RedeemBox } from "./RedeemBox";
@@ -57,10 +58,21 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           ) : entitlement.reason === "free" ? (
             <p className="muted">Il tuo account ha l&rsquo;accesso completo gratuito. Buon allenamento con Sam!</p>
           ) : hasPlan ? (
-            <p className="muted">
-              Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
-              {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
-            </p>
+            <>
+              <p className="muted">
+                Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
+                {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
+              </p>
+              {/* Store rules: only the store's own settings can cancel, so the
+                  page says where instead of offering a button that cannot work. */}
+              {billing?.plan !== "program" ? (
+                <p className="itHint">
+                  Per disdire: {iosShell
+                    ? "Impostazioni → il tuo nome → Abbonamenti → ExecLingo"
+                    : "Play Store → menu account → Pagamenti e abbonamenti → Abbonamenti → ExecLingo"}. Resti operativo fino alla fine del periodo già pagato.
+                </p>
+              ) : null}
+            </>
           ) : iapOn || playOn ? (
             <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — attiva un piano qui sotto.</p>
           ) : (
@@ -126,6 +138,8 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
       {stripeConfigured() && stripeTestMode() ? (
         <p className="itHint" style={{ margin: "0 4px 10px" }}>🧪 Modalità di prova attiva: nessun addebito reale (carta di test: 4242 4242 4242 4242).</p>
       ) : null}
+
+      {hasPlan && billing?.stripeCustomerId ? <ManageBilling /> : null}
 
       <section className="card">
         <div className="kicker">La promessa</div>
