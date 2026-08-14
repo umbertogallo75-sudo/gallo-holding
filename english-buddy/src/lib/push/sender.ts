@@ -27,17 +27,24 @@ export type PushPayload = {
  * Sends a payload to every subscription of a user. Dead subscriptions
  * (404/410 from the push service) are removed so devices can churn freely.
  * Returns the number of successful deliveries.
+ *
+ * The store apps win over web push. Someone who installed the app after using
+ * the site from the home screen keeps both subscriptions on the same phone,
+ * and each notification arrived twice — once from the app, once from the
+ * browser underneath. Web push stays the channel for whoever has no app.
  */
 export async function sendPushToUser(userId: string, payload: PushPayload, client: Client = db()): Promise<number> {
   ensureConfigured();
+
+  // Native wrapper devices (iOS APNs, Android FCM) come first.
+  let delivered = await sendApnsToUser(userId, payload, client).catch(() => 0);
+  delivered += await sendFcmToUser(userId, payload, client).catch(() => 0);
+  if (delivered > 0) return delivered;
+
   const subscriptions = await client.execute({
     sql: "SELECT endpoint, subscription_json FROM push_subscriptions WHERE user_id = ?",
     args: [userId],
   });
-
-  // Native wrapper devices (iOS APNs, Android FCM) ride along on every send.
-  let delivered = await sendApnsToUser(userId, payload, client).catch(() => 0);
-  delivered += await sendFcmToUser(userId, payload, client).catch(() => 0);
   for (const row of subscriptions.rows) {
     try {
       await webpush.sendNotification(JSON.parse(String(row.subscription_json)), JSON.stringify(payload), { TTL: 3600 });
