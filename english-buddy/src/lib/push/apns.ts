@@ -82,17 +82,30 @@ function apnsRequest(host: string, deviceToken: string, body: string): Promise<A
  * production host; Xcode development builds on the sandbox host — a token
  * unknown to production is retried there before being declared dead.
  */
-async function sendToDevice(deviceToken: string, body: string): Promise<"delivered" | "dead" | "failed"> {
+async function sendToDevice(deviceToken: string, body: string, trace?: ApnsTrace[]): Promise<"delivered" | "dead" | "failed"> {
   for (const host of ["api.push.apple.com", "api.sandbox.push.apple.com"]) {
-    const result = await apnsRequest(host, deviceToken, body).catch(() => null);
+    const result = await apnsRequest(host, deviceToken, body).catch((error) => {
+      trace?.push({ host, status: 0, reason: error instanceof Error ? error.message : "network" });
+      return null;
+    });
     if (!result) return "failed";
+    trace?.push({ host, status: result.status, reason: result.reason });
     if (result.status === 200) return "delivered";
     if (result.status === 410) return "dead";
-    if (result.reason === "BadDeviceToken" || result.reason === "DeviceTokenNotForTopic") continue;
+    // Worth retrying on the other host: a token belonging to the other
+    // environment, or a key issued for sandbox only (BadEnvironmentKeyInToken).
+    if (
+      result.reason === "BadDeviceToken" ||
+      result.reason === "DeviceTokenNotForTopic" ||
+      result.reason === "BadEnvironmentKeyInToken"
+    ) continue;
     return "failed";
   }
   return "dead";
 }
+
+/** What Apple answered, for the /api/cron/pushtest probe. */
+export type ApnsTrace = { host: string; status: number; reason?: string };
 
 export type ApnsPayload = {
   title: string;
@@ -104,8 +117,13 @@ export type ApnsPayload = {
  * Sends a payload to every APNs token of a user, pruning dead tokens.
  * Returns the number of successful deliveries.
  */
-export async function sendApnsToUser(userId: string, payload: ApnsPayload, client: Client = db()): Promise<number> {
-  if (!apnsConfigured()) return 0;
+export async function sendApnsToUser(
+  userId: string,
+  payload: ApnsPayload,
+  client: Client = db(),
+  trace?: ApnsTrace[]
+): Promise<number> {
+  if (!apnsConfigured()) { trace?.push({ host: "-", status: 0, reason: "not-configured" }); return 0; }
   const tokens = await client
     .execute({ sql: "SELECT token FROM apns_tokens WHERE user_id = ?", args: [userId] })
     .catch(() => null);
@@ -120,7 +138,7 @@ export async function sendApnsToUser(userId: string, payload: ApnsPayload, clien
   let delivered = 0;
   for (const row of tokens.rows) {
     const token = String(row.token);
-    const outcome = await sendToDevice(token, body);
+    const outcome = await sendToDevice(token, body, trace);
     if (outcome === "delivered") delivered++;
     else if (outcome === "dead") {
       await client.execute({ sql: "DELETE FROM apns_tokens WHERE token = ?", args: [token] }).catch(() => {});
