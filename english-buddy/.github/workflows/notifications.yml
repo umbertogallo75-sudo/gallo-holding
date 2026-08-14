@@ -4,9 +4,9 @@ name: Buddy notifications
 # allows daily crons, so GitHub Actions provides the hourly cadence (the
 # vercel.json daily cron remains as a backup).
 #
-# NOTE: the bearer secret is inlined because this repository is private and the
-# endpoint is idempotent (per-window dedupe). If the repo ever becomes public,
-# move it to a repository secret (Settings -> Secrets -> Actions).
+# The bearer secret lives in a repository secret (Settings -> Secrets and
+# variables -> Actions -> New repository secret, named CRON_SECRET) and must
+# match the CRON_SECRET environment variable on Vercel.
 
 on:
   schedule:
@@ -19,5 +19,5 @@ jobs:
     steps:
       - name: Call notification scheduler
         run: |
-          curl -fsS -X POST "https://english-buddy-hxvi.vercel.app/api/cron/notifications" \
-            -H "Authorization: Bearer 13ff70b24a21d316debc38f6e687893313d8cc3f2a729530"
+          curl -fsS --max-time 90 -X POST "https://www.execlingo.it/api/cron/notifications" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

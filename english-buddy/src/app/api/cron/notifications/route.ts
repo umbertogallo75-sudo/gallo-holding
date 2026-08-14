@@ -10,6 +10,32 @@ import { refreshGoogleSubscriptions } from "@/lib/playstore";
 export const maxDuration = 60;
 
 /**
+ * Users handled at once. Each one costs a few seconds, almost all of it spent
+ * waiting on the model that writes the question, so they overlap well. The cap
+ * keeps the database and the model provider from being hit all at once.
+ */
+const CONCURRENCY = 10;
+
+/**
+ * When to stop starting new users, leaving room for the nudges, the Google
+ * renewal refresh and the response inside the 60-second budget. Whoever is
+ * left over is reported rather than silently dropped — and the next hourly run
+ * picks them up, since the window dedupe means nobody gets two.
+ */
+const START_DEADLINE_MS = 42_000;
+
+/** Runs `task` over `items`, at most `limit` at a time, in arrival order. */
+async function pool<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      await task(items[next++]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
+
+/**
  * Notification scheduler, invoked hourly by GitHub Actions (plus a daily
  * Vercel cron as backup). For every user with at least one push subscription
  * it checks timezone, intensity, quiet hours and the per-window dedupe, then
@@ -45,8 +71,13 @@ async function run(request: Request) {
     );
 
   const results: Record<string, string> = {};
-  for (const row of users.rows) {
+  const stopStartingAt = Date.now() + START_DEADLINE_MS;
+  await pool(users.rows, CONCURRENCY, async (row) => {
     const userId = String(row.user_id);
+    if (Date.now() > stopStartingAt) {
+      results[userId] = "skipped:deadline";
+      return;
+    }
     try {
       const [profileResult, stateResult] = await Promise.all([
         database.execute({
@@ -58,7 +89,7 @@ async function run(request: Request) {
       const profile = profileResult.rows[0];
       if (!profile) {
         results[userId] = "skipped:no-profile";
-        continue;
+        return;
       }
 
       const timeZone = String(profile.timezone || row.sub_timezone || "Europe/Rome");
@@ -82,7 +113,7 @@ async function run(request: Request) {
       });
       if (!due) {
         results[userId] = "skipped:not-due";
-        continue;
+        return;
       }
 
       const dueExpressionResult = await database.execute({
@@ -125,7 +156,7 @@ async function run(request: Request) {
       console.error(`scheduler failed for user ${userId}:`, error);
       results[userId] = "error";
     }
-  }
+  });
 
   // Netflix-style upgrade emails for locked accounts (idempotent per user).
   let nudges: Record<string, number | string> = {};
