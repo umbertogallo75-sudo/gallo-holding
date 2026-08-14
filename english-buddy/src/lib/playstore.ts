@@ -1,6 +1,6 @@
-import { createPrivateKey, createSign } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
+import { googleAccessToken, SCOPE_ANDROID_PUBLISHER, serviceAccountConfigured } from "@/lib/google-auth";
 import { saveBilling, userIdByCustomer } from "@/lib/stripe";
 
 /**
@@ -28,41 +28,12 @@ export const GOOGLE_PRODUCTS: Record<string, { plan: "monthly" | "program" | "ma
 export const PROGRAM_DAYS = 98;
 
 export function playStoreConfigured(): boolean {
-  return Boolean(process.env.PLAY_SERVICE_ACCOUNT_EMAIL && process.env.PLAY_SERVICE_ACCOUNT_KEY);
+  return serviceAccountConfigured();
 }
 
-function privateKeyPem(): string {
-  const raw = (process.env.PLAY_SERVICE_ACCOUNT_KEY ?? "").trim();
-  return raw.replace(/\\n/g, "\n");
-}
-
-const b64url = (buf: Buffer) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-/** OAuth2 access token via the service-account JWT bearer flow. */
-export async function playAccessToken(now: number = Date.now()): Promise<string | null> {
-  const header = { alg: "RS256", typ: "JWT" };
-  const iat = Math.floor(now / 1000) - 30;
-  const payload = {
-    iss: process.env.PLAY_SERVICE_ACCOUNT_EMAIL,
-    scope: "https://www.googleapis.com/auth/androidpublisher",
-    aud: "https://oauth2.googleapis.com/token",
-    iat,
-    exp: iat + 15 * 60,
-  };
-  const signingInput = `${b64url(Buffer.from(JSON.stringify(header)))}.${b64url(Buffer.from(JSON.stringify(payload)))}`;
-  const signer = createSign("SHA256");
-  signer.update(signingInput);
-  const signature = signer.sign(createPrivateKey(privateKeyPem()));
-  const assertion = `${signingInput}.${b64url(signature)}`;
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
-  });
-  if (!response.ok) return null;
-  const data = (await response.json().catch(() => null)) as { access_token?: string } | null;
-  return data?.access_token ?? null;
+/** OAuth2 access token for the Play Developer API. */
+export function playAccessToken(now: number = Date.now()): Promise<string | null> {
+  return googleAccessToken(SCOPE_ANDROID_PUBLISHER, now);
 }
 
 const API_BASE = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";

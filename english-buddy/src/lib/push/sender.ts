@@ -2,6 +2,7 @@ import webpush from "web-push";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { sendApnsToUser } from "@/lib/push/apns";
+import { sendFcmToUser } from "@/lib/push/fcm";
 
 let configured = false;
 
@@ -34,8 +35,9 @@ export async function sendPushToUser(userId: string, payload: PushPayload, clien
     args: [userId],
   });
 
-  // Native iOS wrapper devices ride along on every send.
+  // Native wrapper devices (iOS APNs, Android FCM) ride along on every send.
   let delivered = await sendApnsToUser(userId, payload, client).catch(() => 0);
+  delivered += await sendFcmToUser(userId, payload, client).catch(() => 0);
   for (const row of subscriptions.rows) {
     try {
       await webpush.sendNotification(JSON.parse(String(row.subscription_json)), JSON.stringify(payload), { TTL: 3600 });

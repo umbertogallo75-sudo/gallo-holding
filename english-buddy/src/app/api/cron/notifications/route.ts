@@ -29,13 +29,15 @@ async function run(request: Request) {
 
   const database = db();
   const now = new Date();
-  // Web-push subscribers plus native iOS wrapper devices (APNs tokens).
+  // Web-push subscribers plus native wrapper devices (iOS APNs, Android FCM).
   const users = await database
     .execute(
       `SELECT user_id, MIN(timezone) AS sub_timezone FROM (
          SELECT user_id, timezone FROM push_subscriptions
          UNION ALL
          SELECT user_id, timezone FROM apns_tokens
+         UNION ALL
+         SELECT user_id, timezone FROM fcm_tokens
        ) GROUP BY user_id`
     )
     .catch(() =>
