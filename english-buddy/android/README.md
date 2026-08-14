@@ -54,3 +54,4 @@ hanno. Chat, missioni e notifiche funzionano anche senza microfono.
 | 7 | barra dei menu non più sotto quella di sistema |
 | 8 | Libreria Fatturazione Google Play 8.3.0 (obbligatoria dal 31 ago 2026) |
 | 9 | il permesso microfono viene finalmente chiesto ad Android |
+| 10 | il canale notifiche esiste dall'avvio: l'app compare in Impostazioni → Notifiche |

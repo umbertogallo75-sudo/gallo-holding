@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.Theme_ExecLingo)
+        PushService.ensureChannel(this)   // so the app appears in Settings → Notifications
 
         web = WebView(this)
 

@@ -26,11 +26,7 @@ class PushService : FirebaseMessagingService() {
         val url = message.data["url"] ?: "/home"
 
         val manager = NotificationManagerCompat.from(this)
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, "Sam", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Le domande del tuo coach durante il giorno"
-            }
-        )
+        ensureChannel(this)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -60,5 +56,19 @@ class PushService : FirebaseMessagingService() {
 
     companion object {
         const val CHANNEL = "sam"
+
+        /**
+         * Declares Sam's channel to Android. Called at app start, not only on
+         * the first notification: until a channel exists the app has nothing
+         * to show in Settings → Notifications, so ExecLingo was simply absent
+         * from that list and there was no way to review or re-enable it.
+         */
+        fun ensureChannel(context: android.content.Context) {
+            NotificationManagerCompat.from(context).createNotificationChannel(
+                NotificationChannel(CHANNEL, "Sam", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Le domande del tuo coach durante il giorno"
+                }
+            )
+        }
     }
 }
