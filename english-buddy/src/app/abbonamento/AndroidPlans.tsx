@@ -3,15 +3,23 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 /**
- * Google Play in-app purchases, shown only inside the Android app build that
- * exposes the Digital Goods API (TWA with Play Billing enabled). Flow:
- *   1. getDigitalGoodsService → real Play prices for the cards
- *   2. tap → PaymentRequest with the Play Billing method → native sheet
- *   3. POST the purchaseToken to /api/playstore/confirm (cookies ride along)
- *      where the server verifies with Google, activates and acknowledges
- * Older app builds have no Digital Goods API → the component renders the
- * check-your-email hint instead, keeping the reader-mode page truthful.
+ * Google Play in-app purchases inside the Android app. Two paths:
+ *   • native app — window.ExecLingoNative.purchase() opens the Play sheet in
+ *     Kotlin and calls back with the purchase token
+ *   • legacy TWA — the Digital Goods API, which only works when Chrome backs
+ *     the shell (Samsung Internet fails with clientAppUnavailable)
+ * Either way the token goes to /api/playstore/confirm, where the server asks
+ * Google for the authoritative state before activating anything. With no
+ * bridge at all the component shows the check-your-email hint instead.
  */
+
+/** Native bridge exposed by the Kotlin app (window.ExecLingoNative). */
+type NativeBridge = { purchase: (productId: string) => void; restore: () => void };
+
+function nativeBridge(): NativeBridge | null {
+  const w = window as unknown as { ExecLingoNative?: NativeBridge };
+  return typeof w.ExecLingoNative?.purchase === "function" ? w.ExecLingoNative : null;
+}
 
 type DigitalGoodsService = {
   getDetails: (ids: string[]) => Promise<{ itemId: string; title: string; price: { currency: string; value: string } }[]>;
@@ -53,11 +61,31 @@ export function AndroidPlans() {
     () => false
   );
 
+  // Native app: the Kotlin bridge answers, and the page just relays tokens.
+  useEffect(() => {
+    const w = window as unknown as {
+      __playPurchased?: (productId: string, token: string) => void;
+      __playFailed?: (reason?: string) => void;
+    };
+    w.__playPurchased = async (productId: string, token: string) => {
+      setState("confirming");
+      const ok = await confirm(productId, token);
+      if (ok) { window.location.reload(); return; }
+      setState("idle");
+      setError("Acquisto riuscito ma attivazione non riuscita: tocca “Ripristina acquisti”.");
+    };
+    w.__playFailed = (reason?: string) => {
+      setState("idle");
+      if (reason && reason !== "cancelled") setError(`Acquisto non completato (${reason}). Riprova.`);
+    };
+    return () => { delete w.__playPurchased; delete w.__playFailed; };
+  }, []);
+
   useEffect(() => {
     (async () => {
-      // Which engine renders the app matters: Play Billing only works when
-      // the TWA runs on Chrome. Samsung Internet exposes the same API and
-      // then fails with clientAppUnavailable.
+      if (nativeBridge()) { setAvailable(true); log("ponte nativo Android: ok"); return; }
+      // Legacy TWA path: Play Billing only works when Chrome backs the shell.
+      // Samsung Internet exposes the same API and fails with clientAppUnavailable.
       const ua = navigator.userAgent;
       const engine = /SamsungBrowser\/([\d.]+)/.exec(ua)?.[0]
         ?? /Chrome\/([\d.]+)/.exec(ua)?.[0]
@@ -105,6 +133,8 @@ export function AndroidPlans() {
   async function buy(productId: string) {
     setError("");
     setState("purchasing");
+    const native = nativeBridge();
+    if (native) { native.purchase(productId); return; }   // answer arrives via __playPurchased
     try {
       const request = new PaymentRequest(
         [{ supportedMethods: PLAY_BILLING_METHOD, data: { sku: productId } }],
@@ -145,6 +175,8 @@ export function AndroidPlans() {
 
   async function restore() {
     setError("");
+    const native = nativeBridge();
+    if (native) { native.restore(); return; }
     try {
       const service = await digitalGoods();
       if (!service) return;

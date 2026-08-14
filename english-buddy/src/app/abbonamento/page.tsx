@@ -33,7 +33,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
   // Only the iOS shell (UA marker) carries the StoreKit bridge: the Android
   // TWA is embedded via cookie and never shows purchase UI (Play policy).
   const requestHeaders = await headers();
-  const iosShell = (requestHeaders.get("user-agent") ?? "").includes("ExecLingoApp");
+  const iosShell = (requestHeaders.get("user-agent") ?? "").includes("ExecLingoApp/");
   const iapOn = process.env.APPSTORE_IAP_UI === "on" && iosShell;
   if (embedded) {
     return (

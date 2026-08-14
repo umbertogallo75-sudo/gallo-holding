@@ -12,6 +12,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 export type PushStatus = "unsupported" | "need-install" | "denied" | "need-enable" | "subscribed";
 
 type ApnsBridge = { postMessage: (message: { action: string }) => void };
+type AndroidBridge = { requestPush: () => void };
 
 /** The iOS wrapper's native push bridge (1.1+ builds expose it). */
 function apnsBridge(): ApnsBridge | null {
@@ -19,7 +20,14 @@ function apnsBridge(): ApnsBridge | null {
   return w.webkit?.messageHandlers?.push ?? null;
 }
 
+/** The native Android app's bridge (the TWA never had one). */
+function androidBridge(): AndroidBridge | null {
+  const w = window as unknown as { ExecLingoNative?: AndroidBridge };
+  return typeof w.ExecLingoNative?.requestPush === "function" ? w.ExecLingoNative : null;
+}
+
 const APNS_DONE_KEY = "apns-registered";
+const FCM_DONE_KEY = "fcm-registered";
 
 export async function getPushStatus(): Promise<PushStatus> {
   if (typeof window === "undefined") return "unsupported";
@@ -28,6 +36,11 @@ export async function getPushStatus(): Promise<PushStatus> {
   if (navigator.userAgent.includes("ExecLingoApp")) {
     if (!apnsBridge()) return "unsupported";
     return localStorage.getItem(APNS_DONE_KEY) === "1" ? "subscribed" : "need-enable";
+  }
+  // Native Android app: notifications arrive through Firebase, not Web Push.
+  if (navigator.userAgent.includes("ExecLingoAndroid")) {
+    if (!androidBridge()) return "unsupported";
+    return localStorage.getItem(FCM_DONE_KEY) === "1" ? "subscribed" : "need-enable";
   }
   if (!("serviceWorker" in navigator)) return "unsupported";
   const supportsPush = "PushManager" in window && "Notification" in window;
@@ -75,12 +88,39 @@ function subscribeViaApns(bridge: ApnsBridge): Promise<"subscribed" | "denied" |
   });
 }
 
+/** Native Android path: permission + FCM token, registered server-side. */
+function subscribeViaFcm(bridge: AndroidBridge): Promise<"subscribed" | "denied" | "failed"> {
+  return new Promise((resolve) => {
+    const w = window as unknown as { __fcmToken?: (token: string) => void; __fcmDenied?: (reason?: string) => void };
+    const timer = setTimeout(() => { cleanup(); lastPushError = "fcm-timeout"; resolve("failed"); }, 30_000);
+    const cleanup = () => { clearTimeout(timer); delete w.__fcmToken; delete w.__fcmDenied; };
+    w.__fcmToken = async (token: string) => {
+      cleanup();
+      const response = await fetch("/api/push/fcm-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      }).catch(() => null);
+      if (response?.ok) { localStorage.setItem(FCM_DONE_KEY, "1"); resolve("subscribed"); }
+      else { lastPushError = `fcm-api:${response?.status ?? "network"}`; resolve("failed"); }
+    };
+    w.__fcmDenied = (reason?: string) => {
+      cleanup();
+      lastPushError = `fcm:${reason ?? "denied"}`;
+      resolve(reason === "denied" ? "denied" : "failed");
+    };
+    bridge.requestPush();
+  });
+}
+
 /** Asks permission, subscribes, and registers the subscription server-side. */
 export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   try {
     lastPushError = "";
     const apns = navigator.userAgent.includes("ExecLingoApp") ? apnsBridge() : null;
     if (apns) return await subscribeViaApns(apns);
+    const android = navigator.userAgent.includes("ExecLingoAndroid") ? androidBridge() : null;
+    if (android) return await subscribeViaFcm(android);
     // Build-time inlined key, with a runtime fallback for bundles that were
     // built without the NEXT_PUBLIC_ variable.
     let publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
