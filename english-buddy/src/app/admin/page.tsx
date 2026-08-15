@@ -43,6 +43,53 @@ export default async function AdminPage() {
   const funnelBy = new Map((funnel?.rows ?? []).map((r) => [String(r.name), r]));
   const f = (name: string, col: "d7" | "d30" | "visitors30") => Number(funnelBy.get(name)?.[col] ?? 0);
 
+  // The same funnel split by acquisition source — the table that turns a
+  // month of ad spend into a cost per paying customer. Three counts kept
+  // apart on purpose: one SQL join across all of them would multiply visitors
+  // by purchases and inflate every row.
+  const bySource = await (async () => {
+    try {
+      const [visits, signups, buyers] = await Promise.all([
+        database.execute(
+          `SELECT COALESCE(json_extract(meta, '$.src'), 'diretto') AS src, COUNT(DISTINCT visitor_id) AS n
+           FROM analytics_events
+           WHERE name = 'landing_view' AND created_at >= datetime('now', '-30 days')
+           GROUP BY src`
+        ),
+        database.execute(
+          `SELECT source AS src, COUNT(*) AS n FROM user_attribution
+           WHERE created_at >= datetime('now', '-30 days') GROUP BY source`
+        ),
+        database.execute(
+          `SELECT a.source AS src, COUNT(DISTINCT e.user_id) AS n
+           FROM analytics_events e JOIN user_attribution a ON a.user_id = e.user_id
+           WHERE e.name IN ('purchase_stripe', 'purchase_apple', 'purchase_google')
+             AND e.created_at >= datetime('now', '-30 days')
+           GROUP BY a.source`
+        ),
+      ]);
+      type Row = { visits: number; signups: number; buyers: number };
+      const merged = new Map<string, Row>();
+      const fold = (rows: ArrayLike<Record<string, unknown>>, key: keyof Row) => {
+        for (let i = 0; i < rows.length; i++) {
+          const source = String(rows[i].src ?? "diretto") || "diretto";
+          const entry = merged.get(source) ?? { visits: 0, signups: 0, buyers: 0 };
+          entry[key] = Number(rows[i].n ?? 0);
+          merged.set(source, entry);
+        }
+      };
+      fold(visits.rows, "visits");
+      fold(signups.rows, "signups");
+      fold(buyers.rows, "buyers");
+      return [...merged.entries()]
+        .map(([source, row]) => ({ source, ...row }))
+        .sort((a, b) => b.buyers - a.buyers || b.signups - a.signups || b.visits - a.visits);
+    } catch {
+      // Before migration 0021 runs there is nothing to show, not an error.
+      return null;
+    }
+  })();
+
   // Billing state per user (table may predate migration 0011 — then nobody has it).
   const billingRows = await database.execute("SELECT user_id, plan, status FROM billing").catch(() => null);
   const billingBy = new Map((billingRows?.rows ?? []).map((r) => [String(r.user_id), r]));
@@ -110,6 +157,31 @@ export default async function AdminPage() {
             </table>
           </div>
           <p className="itHint" style={{ marginBottom: 0 }}>Dati raccolti in forma anonima dal nostro database, senza tracker esterni. Quando partirà la pubblicità, qui vedrai subito se le visite si trasformano in iscritti.</p>
+        </section>
+      ) : null}
+      {bySource?.length ? (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>🎯 Da dove arrivano — ultimi 30 giorni</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table className="adminTable">
+              <thead><tr><th>Fonte</th><th>Visitatori</th><th>Registrati</th><th>Paganti</th><th>Reg. → paganti</th></tr></thead>
+              <tbody>
+                {bySource.map((r) => (
+                  <tr key={r.source}>
+                    <td>{r.source}</td>
+                    <td>{r.visits || "—"}</td>
+                    <td>{r.signups || "—"}</td>
+                    <td><strong>{r.buyers || "—"}</strong></td>
+                    <td>{r.signups ? `${Math.round((r.buyers / r.signups) * 100)}%` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="itHint" style={{ marginBottom: 0 }}>
+            La fonte è quella del <strong>primo</strong> arrivo, non dell&rsquo;ultimo click. Per il costo di acquisizione reale: spesa del mese su un canale ÷ i suoi «paganti».
+            Le righe con <code>utm_source</code> arrivano dalle campagne; le altre sono organiche, riconosciute dal sito di provenienza.
+          </p>
         </section>
       ) : null}
       {rows.map((r) => (

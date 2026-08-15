@@ -7,10 +7,15 @@ export type FunnelEvent =
   | "landing_cta_register"
   | "landing_cta_login"
   | "landing_cta_aziende"
+  | "landing_download"
   | "register_done"
   | "onboarding_done"
   | "purchase_apple"
-  | "purchase_google";
+  | "purchase_google"
+  // The web sale is the only one that can be tied back to the click that
+  // produced it: a store purchase happens inside Apple's or Google's sheet,
+  // out of reach of any campaign parameter. Advertising is measured here.
+  | "purchase_stripe";
 
 // Mirrors db/migrations/0010_analytics.sql so events self-heal the schema:
 // the first tracked event creates the table if the migration hasn't run yet.

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SourceCapture } from "@/components/SourceCapture";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_BASE_URL || "https://execlingo.it"),
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <ServiceWorkerRegister />
+        <SourceCapture />
         <SplashScreen />
         <OfflineBanner />
         {children}

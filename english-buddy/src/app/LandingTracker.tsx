@@ -1,21 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { ensureAttribution } from "@/lib/attribution-client";
 
-const VISITOR_KEY = "buddy-visitor-id";
-
-function visitorId(): string {
-  let id = localStorage.getItem(VISITOR_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(VISITOR_KEY, id);
-  }
-  return id;
-}
-
-function send(name: string, ref?: string) {
+function send(name: string, extra: Record<string, string> = {}) {
   try {
-    const body = JSON.stringify({ name, visitorId: visitorId(), ref: ref || undefined });
+    const body = JSON.stringify({ name, ...extra });
     const sent = navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }));
     if (!sent) void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
   } catch {
@@ -25,15 +15,27 @@ function send(name: string, ref?: string) {
 
 /**
  * Records the landing view and clicks on any element carrying a data-track
- * attribute. Renders nothing.
+ * attribute. Every event carries the acquisition source, so the funnel can be
+ * read one channel at a time instead of as a single undifferentiated total.
+ * Renders nothing.
  */
 export function LandingTracker() {
   useEffect(() => {
-    send("landing_view", document.referrer.slice(0, 200));
+    const attribution = ensureAttribution();
+    const context: Record<string, string> = {};
+    if (attribution) {
+      context.visitorId = attribution.visitorId;
+      context.src = attribution.source;
+      if (attribution.medium) context.medium = attribution.medium;
+      if (attribution.campaign) context.campaign = attribution.campaign;
+    }
+
+    send("landing_view", { ...context, ...(document.referrer ? { ref: document.referrer.slice(0, 200) } : {}) });
+
     const onClick = (event: MouseEvent) => {
       const el = (event.target as HTMLElement | null)?.closest?.("[data-track]");
       const name = el?.getAttribute("data-track");
-      if (name) send(name);
+      if (name) send(name, context);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

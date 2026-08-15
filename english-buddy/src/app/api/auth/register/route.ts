@@ -4,6 +4,7 @@ import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS 
 import { createAuthUser } from "@/lib/auth-users";
 import { isEmailConfigured, renderEmail, sendEmail } from "@/lib/email";
 import { trackEvent } from "@/lib/analytics";
+import { parseAttributionCookie, saveAttribution } from "@/lib/attribution";
 import { attributeSignup } from "@/lib/partners";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -35,7 +36,18 @@ export async function POST(request: Request) {
   }
 
   const userId = await createAuthUser(name, code, email);
-  await trackEvent("register_done", { userId });
+
+  // The visitor id is what joins the anonymous half of the funnel to the named
+  // half: without it the landing views and the accounts are two separate piles
+  // of numbers that can never be reconciled. The source is frozen on the user
+  // now because the payment arrives later over a webhook, with no browser.
+  const attribution = parseAttributionCookie(request.headers.get("cookie"));
+  await trackEvent("register_done", {
+    userId,
+    visitorId: attribution?.visitorId ?? null,
+    meta: attribution ? { src: attribution.source, medium: attribution.medium, campaign: attribution.campaign } : undefined,
+  });
+  await saveAttribution(userId, attribution);
 
   // Welcome email: the legal bridge between the store apps (no purchases
   // shown, per Apple rules) and the web, where plans are bought. Must never

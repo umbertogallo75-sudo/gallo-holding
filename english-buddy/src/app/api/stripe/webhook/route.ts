@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackEvent } from "@/lib/analytics";
 import { generateLicenses } from "@/lib/licenses";
 import { renderEmail, sendEmail } from "@/lib/email";
 import { recordCommission, reverseCommission } from "@/lib/partners";
@@ -85,6 +86,12 @@ export async function POST(request: Request) {
       // get their real period end from the subscription events that follow.
       const periodEnd = object.mode === "payment" ? new Date(Date.now() + 98 * 86_400_000).toISOString() : null;
       await saveBilling({ userId, stripeCustomerId: customer, plan, status: "active", currentPeriodEnd: periodEnd });
+      // The end of the funnel. Joined to user_attribution by user id, this is
+      // what turns "we spent €750" into a cost per paying customer.
+      await trackEvent("purchase_stripe", {
+        userId,
+        meta: { plan, mode: object.mode ?? null, grossCents: object.amount_total ?? null },
+      }).catch((error) => console.error("purchase tracking failed:", error));
       // Partner commission: idempotent on the session id, net of VAT, ≤5%.
       if (object.amount_total) {
         await recordCommission({
