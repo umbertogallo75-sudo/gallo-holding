@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { Copy } from "@/components/Copy";
 
 /**
  * The screen you keep beside the laptop while the meeting is happening.
@@ -112,7 +113,10 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
         {open ? (
           <div style={{ marginTop: 12 }}>
             {LIFELINES.find((l) => l.key === open)?.lines.map((line, index) => (
-              <p key={index} style={{ fontSize: 19, lineHeight: 1.4, margin: "0 0 12px", fontWeight: 600 }}>{line}</p>
+              <div key={index} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, margin: "0 0 12px" }}>
+                <p style={{ fontSize: 19, lineHeight: 1.4, margin: 0, fontWeight: 600 }}>{line}</p>
+                <Copy text={line} />
+              </div>
             ))}
           </div>
         ) : null}
@@ -135,8 +139,14 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
         </form>
         {answer ? (
           <div style={{ marginTop: 12 }}>
-            <p style={{ fontSize: 20, lineHeight: 1.4, margin: "0 0 6px", fontWeight: 700 }}>{answer.business}</p>
-            <p className="muted" style={{ fontSize: 16, margin: 0 }}>{answer.natural}</p>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <p style={{ fontSize: 20, lineHeight: 1.4, margin: "0 0 6px", fontWeight: 700 }}>{answer.business}</p>
+              <Copy text={answer.business} />
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <p className="muted" style={{ fontSize: 16, margin: 0 }}>{answer.natural}</p>
+              <Copy text={answer.natural} />
+            </div>
           </div>
         ) : null}
       </section>
@@ -147,7 +157,10 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
           {phrases.map((phrase, index) => (
             <div key={index} style={{ padding: "12px 0", borderBottom: index === phrases.length - 1 ? "none" : "1px solid var(--line)" }}>
               <div className="itHint" style={{ marginBottom: 2 }}>{phrase.use}</div>
-              <p style={{ fontSize: 18, lineHeight: 1.4, margin: 0, fontWeight: 600 }}>{phrase.english}</p>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <p style={{ fontSize: 18, lineHeight: 1.4, margin: 0, fontWeight: 600 }}>{phrase.english}</p>
+                <Copy text={phrase.english} />
+              </div>
               <p className="muted" style={{ fontSize: 14.5, margin: "2px 0 0" }}>{phrase.italian}</p>
             </div>
           ))}

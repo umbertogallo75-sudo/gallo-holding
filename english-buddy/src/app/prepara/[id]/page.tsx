@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
+import { Copy } from "@/components/Copy";
 import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { getEvent } from "@/lib/events";
@@ -44,7 +45,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                     <strong style={{ fontSize: 16, lineHeight: 1.35 }}>{phrase.english}</strong>
                     <div className="muted" style={{ fontSize: 14.5 }}>{phrase.italian}</div>
                   </div>
-                  <Speak text={phrase.english} compact />
+                  <span style={{ display: "flex", gap: 4, flexShrink: 0 }}><Speak text={phrase.english} compact /><Copy text={phrase.english} /></span>
                 </div>
               </div>
             ))}
@@ -59,7 +60,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                     <strong style={{ fontSize: 16, lineHeight: 1.35 }}>{question.english}</strong>
                     <div className="muted" style={{ fontSize: 14.5 }}>{question.italian}</div>
                   </div>
-                  <Speak text={question.english} compact />
+                  <span style={{ display: "flex", gap: 4, flexShrink: 0 }}><Speak text={question.english} compact /><Copy text={question.english} /></span>
                 </div>
                 <p className="itHint" style={{ margin: "6px 0 0" }}>Puoi partire da: <strong style={{ fontStyle: "normal" }}>{question.answerStart}</strong></p>
               </div>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
+import { Copy } from "@/components/Copy";
 import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -24,7 +25,7 @@ export default async function PhrasebookPage() {
         <strong style={{ fontSize: 16 }}>{String(row.expression)}</strong>
         {row.meaning ? <div className="itHint">{String(row.meaning)}</div> : null}
       </div>
-      <Speak text={String(row.expression)} compact />
+      <span style={{ display: "flex", gap: 4, flexShrink: 0 }}><Speak text={String(row.expression)} compact /><Copy text={String(row.expression)} /></span>
     </div>
   );
 
