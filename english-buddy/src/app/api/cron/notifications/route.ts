@@ -5,7 +5,7 @@ import { shouldSend, type Intensity } from "@/lib/push/windows";
 import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 import { runUpgradeNudges } from "@/lib/nudges";
-import { eventsToRemind, markReminded } from "@/lib/events";
+import { eventsToDebrief, eventsToRemind, markDebriefAsked, markReminded } from "@/lib/events";
 import { refreshGoogleSubscriptions } from "@/lib/playstore";
 
 export const maxDuration = 60;
@@ -200,6 +200,32 @@ async function run(request: Request) {
     console.error("event reminders failed:", error);
   }
 
+  // "How did it go?" — asked the same evening, while it is still fresh. A
+  // week later nobody remembers what they failed to say.
+  let debriefs = 0;
+  try {
+    const today = now.toISOString().slice(0, 10);
+    for (const { userId, event } of await eventsToDebrief(today, database)) {
+      const zone = await database
+        .execute({ sql: "SELECT timezone FROM profiles WHERE id = ? LIMIT 1", args: [userId] })
+        .then((r) => (r.rows[0]?.timezone ? String(r.rows[0].timezone) : "Europe/Rome"))
+        .catch(() => "Europe/Rome");
+      const localHour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", hour12: false }).format(now));
+      if (localHour < 18) continue;
+      const delivered = await sendPushToUser(userId, {
+        title: "Sam · ExecLingo",
+        body: `Com'è andata: ${event.title}? Due minuti e ne ricaviamo qualcosa.`,
+        data: { url: `/prepara/${event.id}` },
+      }).catch(() => 0);
+      if (delivered > 0) {
+        await markDebriefAsked(event.id, now.toISOString(), database);
+        debriefs++;
+      }
+    }
+  } catch (error) {
+    console.error("debrief prompts failed:", error);
+  }
+
   // Netflix-style upgrade emails for locked accounts (idempotent per user).
   let nudges: Record<string, number | string> = {};
   try {
@@ -217,7 +243,7 @@ async function run(request: Request) {
     console.error("google subscription refresh failed:", error);
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, reminders, nudges, googleSubs });
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, reminders, debriefs, nudges, googleSubs });
 }
 
 export async function POST(request: Request) {

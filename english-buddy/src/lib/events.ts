@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { prepSchema, type EventPrep } from "@/lib/ai/prep";
+import { debriefSchema, type EventDebrief } from "@/lib/ai/debrief";
 
 /**
  * The appointments a user is preparing for. Kept deliberately thin: a line of
@@ -16,6 +17,7 @@ export type UserEvent = {
   date: string;
   time: string | null;
   prep: EventPrep | null;
+  debrief: EventDebrief | null;
   remindedAt: string | null;
 };
 
@@ -27,6 +29,8 @@ const SCHEMA = `CREATE TABLE IF NOT EXISTS events (
   event_time TEXT,
   prep_json TEXT,
   reminded_at TEXT,
+  debrief_json TEXT,
+  debrief_asked_at TEXT,
   created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 CREATE INDEX IF NOT EXISTS idx_events_upcoming ON events(user_id, event_date);`;
@@ -37,12 +41,18 @@ function toEvent(row: Record<string, unknown>): UserEvent {
     const parsed = prepSchema.safeParse(JSON.parse(String(row.prep_json)));
     if (parsed.success) prep = parsed.data;
   }
+  let debrief: EventDebrief | null = null;
+  if (row.debrief_json) {
+    const parsed = debriefSchema.safeParse(JSON.parse(String(row.debrief_json)));
+    if (parsed.success) debrief = parsed.data;
+  }
   return {
     id: String(row.id),
     title: String(row.title),
     date: String(row.event_date),
     time: row.event_time ? String(row.event_time) : null,
     prep,
+    debrief,
     remindedAt: row.reminded_at ? String(row.reminded_at) : null,
   };
 }
@@ -114,4 +124,46 @@ export async function eventsToRemind(tomorrow: string, client: Client = db()): P
 
 export async function markReminded(id: string, when: string, client: Client = db()): Promise<void> {
   await client.execute({ sql: "UPDATE events SET reminded_at = ? WHERE id = ?", args: [when, id] }).catch(() => undefined);
+}
+
+/** Stores the debrief and, with it, closes the appointment. */
+export async function saveDebrief(userId: string, id: string, debrief: EventDebrief, client: Client = db()): Promise<void> {
+  const update = () =>
+    client.execute({
+      sql: "UPDATE events SET debrief_json = ? WHERE user_id = ? AND id = ?",
+      args: [JSON.stringify(debrief), userId, id],
+    });
+  try {
+    await update();
+  } catch {
+    await client.execute("ALTER TABLE events ADD COLUMN debrief_json TEXT").catch(() => undefined);
+    await update().catch(() => undefined);
+  }
+}
+
+/**
+ * Appointments that happened today and have neither a debrief nor a prompt
+ * for one. Asked the same evening, while it is still fresh — a week later
+ * nobody remembers what they failed to say.
+ */
+export async function eventsToDebrief(today: string, client: Client = db()): Promise<{ userId: string; event: UserEvent }[]> {
+  const result = await client
+    .execute({
+      sql: "SELECT * FROM events WHERE event_date = ? AND debrief_json IS NULL AND debrief_asked_at IS NULL LIMIT 200",
+      args: [today],
+    })
+    .catch(() => null);
+  if (!result) return [];
+  return result.rows.map((row) => ({
+    userId: String(row.user_id),
+    event: toEvent(row as unknown as Record<string, unknown>),
+  }));
+}
+
+export async function markDebriefAsked(id: string, when: string, client: Client = db()): Promise<void> {
+  await client
+    .execute({ sql: "UPDATE events SET debrief_asked_at = ? WHERE id = ?", args: [when, id] })
+    .catch(async () => {
+      await client.execute("ALTER TABLE events ADD COLUMN debrief_asked_at TEXT").catch(() => undefined);
+    });
 }

@@ -5,6 +5,7 @@ import { Copy } from "@/components/Copy";
 import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { getEvent } from "@/lib/events";
+import { DebriefForm } from "./DebriefForm";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "La tua scheda · ExecLingo" };
@@ -70,6 +71,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           <p className="itHint" style={{ margin: "0 4px 12px", textAlign: "center" }}>
             Le frasi sono già nel tuo <Link href="/phrasebook">frasario</Link>: Sam te le farà ripassare da qui a quel giorno.
           </p>
+
+          {/* The loop closes here: what failed in the room becomes next week's
+              material, which is the only syllabus worth having. */}
+          <section className="card">
+            <div className="kicker">{event.debrief ? "Il tuo debrief" : "Dopo — due minuti"}</div>
+            {!event.debrief ? <p className="muted" style={{ marginTop: 6 }}>Quando è finita, raccontami com&rsquo;è andata: quello che non sei riuscito a dire diventa quello che saprai la prossima volta.</p> : null}
+            <DebriefForm eventId={event.id} existing={event.debrief} />
+          </section>
         </>
       ) : null}
 
