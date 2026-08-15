@@ -90,6 +90,17 @@ export default async function AdminPage() {
     }
   })();
 
+  // Cookie consent, last 90 days. Kept visible because a proof nobody ever
+  // looks at is a proof nobody notices has stopped being written.
+  const consent = await database
+    .execute(
+      `SELECT choice, COUNT(*) AS n, MAX(created_at) AS last_at
+       FROM consent_log WHERE created_at >= datetime('now', '-90 days') GROUP BY choice`
+    )
+    .catch(() => null);
+  const consentRows = consent?.rows ?? [];
+  const consentTotal = consentRows.reduce((sum, r) => sum + Number(r.n ?? 0), 0);
+
   // Billing state per user (table may predate migration 0011 — then nobody has it).
   const billingRows = await database.execute("SELECT user_id, plan, status FROM billing").catch(() => null);
   const billingBy = new Map((billingRows?.rows ?? []).map((r) => [String(r.user_id), r]));
@@ -157,6 +168,29 @@ export default async function AdminPage() {
             </table>
           </div>
           <p className="itHint" style={{ marginBottom: 0 }}>Dati raccolti in forma anonima dal nostro database, senza tracker esterni. Quando partirà la pubblicità, qui vedrai subito se le visite si trasformano in iscritti.</p>
+        </section>
+      ) : null}
+      {consentTotal ? (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>🍪 Consensi registrati — ultimi 90 giorni</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table className="adminTable">
+              <thead><tr><th>Scelta</th><th>Quante</th><th>Ultima</th></tr></thead>
+              <tbody>
+                {consentRows.map((r) => (
+                  <tr key={String(r.choice)}>
+                    <td>{r.choice === "granted" ? "Accettato" : r.choice === "denied" ? "Rifiutato" : "Revocato"}</td>
+                    <td>{Number(r.n ?? 0)}</td>
+                    <td>{r.last_at ? String(r.last_at).slice(0, 16).replace("T", " ") : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="itHint" style={{ marginBottom: 0 }}>
+            È la prova richiesta dall&rsquo;art. 7 del GDPR: data, scelta, versione del testo e quali terze parti erano in gioco.
+            Non contiene indirizzi IP né identificatori: la ricevuta sta nel cookie del visitatore, che resta l&rsquo;unica chiave della propria riga.
+          </p>
         </section>
       ) : null}
       {bySource?.length ? (

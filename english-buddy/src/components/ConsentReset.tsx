@@ -1,19 +1,23 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { CONSENT_COOKIE, hasMarketingTags } from "@/lib/consent";
+import { CONSENT_COOKIE, hasMarketingTags, readConsentReceipt } from "@/lib/consent";
 import { consentServerSnapshot, consentSnapshot, notifyConsentChanged, subscribeConsent } from "@/lib/consent-store";
+import { logConsent } from "@/components/ConsentBanner";
 
 /**
  * Lets a visitor take back a choice they already made — consent that cannot
- * be withdrawn as easily as it was given is not consent. Shows nothing when
- * no advertising tag is configured, or when nothing was ever asked.
+ * be withdrawn as easily as it was given is not consent. The withdrawal is
+ * logged too: proving that a yes was collected matters less than proving a
+ * later no was honoured.
  */
 export function ConsentReset() {
   const state = useSyncExternalStore(subscribeConsent, consentSnapshot, consentServerSnapshot);
   if (!hasMarketingTags() || (state !== "granted" && state !== "denied")) return null;
 
   const clear = () => {
+    const receipt = readConsentReceipt(document.cookie);
+    if (receipt) void logConsent(receipt, "withdrawn");
     document.cookie = `${CONSENT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
     notifyConsentChanged();
     // Tags already running on this page can only be stopped by reloading it.

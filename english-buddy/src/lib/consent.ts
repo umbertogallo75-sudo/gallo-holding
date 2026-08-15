@@ -24,23 +24,51 @@ export const CONSENT_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
 
 export type ConsentChoice = "granted" | "denied";
 
-/** Reads a recorded choice. Returns null when there is none, or it is stale. */
-export function readConsent(cookieHeader: string | null | undefined): ConsentChoice | null {
+/** What the server-side log records — withdrawal is an event worth proving too. */
+export type ConsentEvent = ConsentChoice | "withdrawn";
+
+/**
+ * Cookie layout: `version:choice:receipt`. The receipt is the id of the row
+ * in the consent log, so the visitor's own device carries the key to their
+ * record and we do not have to store anything identifying to find it again.
+ */
+function parts(cookieHeader: string | null | undefined): string[] | null {
   const raw = cookieHeader?.match(new RegExp(`(?:^|;\\s*)${CONSENT_COOKIE}=([^;]+)`))?.[1];
   if (!raw) return null;
-  let decoded: string;
   try {
-    decoded = decodeURIComponent(raw);
+    return decodeURIComponent(raw).split(":");
   } catch {
     return null;
   }
-  const [version, choice] = decoded.split(":");
-  if (version !== CONSENT_VERSION) return null;
+}
+
+/** Reads a recorded choice. Returns null when there is none, or it is stale. */
+export function readConsent(cookieHeader: string | null | undefined): ConsentChoice | null {
+  const segments = parts(cookieHeader);
+  if (!segments || segments[0] !== CONSENT_VERSION) return null;
+  const choice = segments[1];
   return choice === "granted" || choice === "denied" ? choice : null;
 }
 
-export function consentCookieValue(choice: ConsentChoice): string {
-  return `${CONSENT_VERSION}:${choice}`;
+/** The id of the log row this choice was written to, when there is one. */
+export function readConsentReceipt(cookieHeader: string | null | undefined): string | null {
+  const segments = parts(cookieHeader);
+  if (!segments || segments[0] !== CONSENT_VERSION) return null;
+  const receipt = segments[2]?.trim();
+  return receipt && receipt.length <= 64 ? receipt : null;
+}
+
+export function consentCookieValue(choice: ConsentChoice, receipt: string): string {
+  return `${CONSENT_VERSION}:${choice}:${receipt}`;
+}
+
+/**
+ * The third parties in play when the question is asked, recorded alongside the
+ * answer: consent to an unnamed list is not consent to anything.
+ */
+export function activeTagNames(): string {
+  const { metaPixelId, googleAdsId } = marketingTags();
+  return [metaPixelId ? "meta" : "", googleAdsId ? "google" : ""].filter(Boolean).join(",");
 }
 
 /**

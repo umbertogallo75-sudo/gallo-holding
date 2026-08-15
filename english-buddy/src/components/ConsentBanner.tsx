@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import {
+  activeTagNames,
   CONSENT_COOKIE,
   CONSENT_MAX_AGE_SECONDS,
+  CONSENT_VERSION,
   consentCookieValue,
   hasMarketingTags,
   marketingTags,
   type ConsentChoice,
+  type ConsentEvent,
 } from "@/lib/consent";
 import { consentServerSnapshot, consentSnapshot, notifyConsentChanged, subscribeConsent } from "@/lib/consent-store";
 
@@ -54,9 +57,26 @@ function loadMarketingTags(): void {
 }
 
 function remember(choice: ConsentChoice): void {
+  const receipt = crypto.randomUUID();
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(consentCookieValue(choice))}; Path=/; Max-Age=${CONSENT_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+  document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(consentCookieValue(choice, receipt))}; Path=/; Max-Age=${CONSENT_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
   notifyConsentChanged();
+  // The cookie already decided the outcome; the log is the proof of it, and a
+  // network failure here must never reopen a question already answered.
+  void logConsent(receipt, choice);
+}
+
+/** Records the choice server-side. Best effort, and silent about failure. */
+export function logConsent(receipt: string, choice: ConsentEvent): Promise<void> {
+  const body = JSON.stringify({ id: receipt, choice, policyVersion: CONSENT_VERSION, tags: activeTagNames() });
+  return fetch("/api/consent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  })
+    .then(() => undefined)
+    .catch(() => undefined);
 }
 
 /**
