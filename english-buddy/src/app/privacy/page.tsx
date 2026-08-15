@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConsentReset } from "@/components/ConsentReset";
 
 export const metadata = { title: "Privacy · ExecLingo" };
 
@@ -23,12 +24,19 @@ export default function PrivacyPage() {
         <p><strong>Dati dell&rsquo;account:</strong> nome, email e codice personale di accesso (conservato solo in forma cifrata: nessuno può leggerlo, nemmeno noi).</p>
         <p><strong>Dati di apprendimento:</strong> le conversazioni con il coach, gli errori, le espressioni imparate e i progressi. Servono a personalizzare il tuo percorso — sono il cuore del servizio.</p>
         <p><strong>Notifiche:</strong> se le attivi, salviamo l&rsquo;iscrizione push del tuo dispositivo per poterti scrivere durante il giorno.</p>
-        <p><strong>Statistiche d&rsquo;uso:</strong> eventi anonimi (es. visite alla pagina iniziale) raccolti nel nostro database. <strong>Non usiamo tracker di terze parti</strong> né cookie di profilazione: l&rsquo;unico cookie è quello tecnico di sessione che ti tiene collegato.</p>
+        <p><strong>Statistiche d&rsquo;uso:</strong> eventi raccolti nel nostro database (es. visite alla pagina iniziale, registrazioni, acquisti) e da quale canale sei arrivato la prima volta. Li leggiamo in forma aggregata, per capire che cosa funziona.</p>
+      </section>
+
+      <section className="card">
+        <h2>Cookie: quali e perché</h2>
+        <p><strong>Tecnici — sempre attivi.</strong> Il cookie di sessione che ti tiene collegato; quello che ricorda da quale canale sei arrivato la prima volta (<code>eb_src</code>, 6 mesi); quello che riconosce il partner che ti ha segnalato, per pagargli la commissione (<code>eb_ref</code>, 30 giorni). Sono nostri, restano nel nostro database e non ti seguono su altri siti.</p>
+        <p><strong>Di terze parti — solo se acconsenti.</strong> Quando è attiva una campagna pubblicitaria usiamo <strong>Google</strong> e <strong>Meta</strong> per misurare quali annunci portano persone davvero interessate. Questi non partono finché non premi «Accetta»: se rifiuti, o se non rispondi, non vengono caricati affatto e il sito funziona esattamente allo stesso modo. Puoi cambiare idea in qualsiasi momento da qui sotto.</p>
+        <ConsentReset />
       </section>
 
       <section className="card">
         <h2>Come li usiamo</h2>
-        <p>Solo per erogare e migliorare il servizio: far funzionare il coach, adattare le lezioni al tuo livello, inviarti le notifiche che hai richiesto e capire, in forma aggregata, come viene usata l&rsquo;app. Non vendiamo i tuoi dati e non li condividiamo per pubblicità.</p>
+        <p>Solo per erogare e migliorare il servizio: far funzionare il coach, adattare le lezioni al tuo livello, inviarti le notifiche che hai richiesto e capire, in forma aggregata, come viene usata l&rsquo;app. Non vendiamo i tuoi dati. Se acconsenti ai cookie di terze parti, Google e Meta ricevono il dato che una visita o un acquisto è avvenuto, per attribuirlo alla campagna che lo ha generato: non inviamo loro il tuo nome, la tua email né le tue conversazioni con il coach.</p>
       </section>
 
       <section className="card">
