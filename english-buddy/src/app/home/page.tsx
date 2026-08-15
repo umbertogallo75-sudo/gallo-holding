@@ -52,6 +52,17 @@ export default async function HomePage() {
         </div>
       </a>
     ) : null}
+    {/* The one thing you open the app for on your own: something you could not
+        say today. It goes above the modes because it starts from the user's
+        day, not from ours. */}
+    <a href="/dillo" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--accent) 55%, var(--line))" }}>
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 18%, var(--surface))" }}>🗣️</span>
+      <div>
+        <div className="modeTitle">Couldn&rsquo;t say it?</div>
+        <div className="modeMeta">Tell Sam in Italian — get the phrase you&rsquo;d actually use</div>
+        <div className="itHint">La frase che ti è mancata: scrivila in italiano e Sam ti dà l&rsquo;inglese giusto, poi te la fa ripassare finché non ti viene da sola.</div>
+      </div>
+    </a>
     <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
     <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
     <a href="/partner/dashboard" className="mode wide" style={{ display: "flex", marginTop: 10 }}>

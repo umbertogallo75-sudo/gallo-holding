@@ -19,10 +19,16 @@ function extractText(json: ResponsesOutput): string {
 }
 
 /**
- * Runs one coaching turn via the OpenAI Responses API with a strict
- * structured-output schema, then validates the result with Zod.
+ * One structured call to the Responses API. Returns the raw JSON text so each
+ * caller can validate it with its own schema.
  */
-export async function runCoach(instructions: string, input: string): Promise<CoachResult> {
+export async function runStructured(
+  instructions: string,
+  input: string,
+  schemaName: string,
+  schema: Record<string, unknown>,
+  maxOutputTokens = 1200
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is missing");
 
@@ -34,15 +40,8 @@ export async function runCoach(instructions: string, input: string): Promise<Coa
       instructions,
       input,
       reasoning: { effort: "low" },
-      max_output_tokens: 1200,
-      text: {
-        format: {
-          type: "json_schema",
-          name: "coach_turn",
-          strict: true,
-          schema: coachResultJsonSchema,
-        },
-      },
+      max_output_tokens: maxOutputTokens,
+      text: { format: { type: "json_schema", name: schemaName, strict: true, schema } },
     }),
   });
 
@@ -52,7 +51,15 @@ export async function runCoach(instructions: string, input: string): Promise<Coa
     throw new Error(`The coach is temporarily unavailable (upstream ${response.status}).`);
   }
 
-  const raw = extractText((await response.json()) as ResponsesOutput).trim();
+  return extractText((await response.json()) as ResponsesOutput).trim();
+}
+
+/**
+ * Runs one coaching turn via the OpenAI Responses API with a strict
+ * structured-output schema, then validates the result with Zod.
+ */
+export async function runCoach(instructions: string, input: string): Promise<CoachResult> {
+  const raw = await runStructured(instructions, input, "coach_turn", coachResultJsonSchema);
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   try {
     return coachResultSchema.parse(JSON.parse(cleaned));
