@@ -5,6 +5,7 @@ import { shouldSend, type Intensity } from "@/lib/push/windows";
 import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 import { runUpgradeNudges } from "@/lib/nudges";
+import { eventsToRemind, markReminded } from "@/lib/events";
 import { refreshGoogleSubscriptions } from "@/lib/playstore";
 
 export const maxDuration = 60;
@@ -178,6 +179,27 @@ async function run(request: Request) {
     }
   });
 
+  // "Tomorrow you have the call with the Germans." The one notification the
+  // user is glad to get, because it arrives while there is still time to do
+  // something about it.
+  let reminders = 0;
+  try {
+    const tomorrow = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
+    for (const { userId, event } of await eventsToRemind(tomorrow, database)) {
+      const delivered = await sendPushToUser(userId, {
+        title: "Sam · ExecLingo",
+        body: `Domani: ${event.title}. Cinque minuti di ripasso adesso?`,
+        data: { url: `/prepara/${event.id}` },
+      }).catch(() => 0);
+      if (delivered > 0) {
+        await markReminded(event.id, now.toISOString(), database);
+        reminders++;
+      }
+    }
+  } catch (error) {
+    console.error("event reminders failed:", error);
+  }
+
   // Netflix-style upgrade emails for locked accounts (idempotent per user).
   let nudges: Record<string, number | string> = {};
   try {
@@ -195,7 +217,7 @@ async function run(request: Request) {
     console.error("google subscription refresh failed:", error);
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, nudges, googleSubs });
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, reminders, nudges, googleSubs });
 }
 
 export async function POST(request: Request) {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { EnablePush } from "@/components/EnablePush";
@@ -63,6 +64,14 @@ export default async function HomePage() {
         <div className="itHint">La frase che ti è mancata: scrivila in italiano e Sam ti dà l&rsquo;inglese giusto, poi te la fa ripassare finché non ti viene da sola.</div>
       </div>
     </a>
+    <Link href="/prepara" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>📅</span>
+      <div>
+        <div className="modeTitle">What&rsquo;s coming up?</div>
+        <div className="modeMeta">A meeting, a call, a trip — Sam gets you ready for it</div>
+        <div className="itHint">Hai una riunione, una call o un viaggio? Scrivilo in una riga: Sam ti prepara le frasi che ti serviranno e le domande che ti faranno, e il giorno prima te lo ricorda.</div>
+      </div>
+    </Link>
     <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
     <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
     <a href="/partner/dashboard" className="mode wide" style={{ display: "flex", marginTop: 10 }}>
