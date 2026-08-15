@@ -31,6 +31,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
       {event.prep ? (
         <>
+          <Link className="primary full" href={`/riunione?e=${event.id}`} style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 12 }}>
+            🎧 Apri in Modalità Riunione
+          </Link>
           <section className="card">
             <div className="kicker">Le frasi da avere pronte</div>
             {event.prep.phrases.map((phrase, index) => (

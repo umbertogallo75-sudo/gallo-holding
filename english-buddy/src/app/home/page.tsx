@@ -53,17 +53,14 @@ export default async function HomePage() {
         </div>
       </a>
     ) : null}
-    {/* The one thing you open the app for on your own: something you could not
-        say today. It goes above the modes because it starts from the user's
-        day, not from ours. */}
-    <a href="/dillo" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--accent) 55%, var(--line))" }}>
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 18%, var(--surface))" }}>🗣️</span>
+    <Link href="/riunione" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, #1d6b4c 20%, var(--surface))" }}>🎧</span>
       <div>
-        <div className="modeTitle">Couldn&rsquo;t say it?</div>
-        <div className="modeMeta">Tell Sam in Italian — get the phrase you&rsquo;d actually use</div>
-        <div className="itHint">La frase che ti è mancata: scrivila in italiano e Sam ti dà l&rsquo;inglese giusto, poi te la fa ripassare finché non ti viene da sola.</div>
+        <div className="modeTitle">In a meeting right now?</div>
+        <div className="modeMeta">Lifelines, your phrases, and &ldquo;how do I say…&rdquo; — one thumb</div>
+        <div className="itHint">Modalità Riunione: tienila accanto al portatile mentre parli. Quattro salvagenti per quando ti blocchi, le tue frasi e il &ldquo;come si dice&rdquo;.</div>
       </div>
-    </a>
+    </Link>
     <Link href="/prepara" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>📅</span>
       <div>

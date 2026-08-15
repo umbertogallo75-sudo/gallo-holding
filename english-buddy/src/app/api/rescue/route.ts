@@ -72,6 +72,11 @@ Keep the meaning faithful. No quotes, no explanations.`,
     const json = (await response.json()) as { output_text?: string; output?: { content?: { text?: string }[] }[] };
     const raw = (json.output_text || json.output?.flatMap((o) => o.content || []).map((c) => c.text || "").join(" ") || "").trim();
     const result = z.object({ simple: z.string(), natural: z.string(), business: z.string() }).parse(JSON.parse(raw));
+    // The business version goes into spaced repetition on its own: a phrase
+    // somebody needed in a real moment is the best review material there is,
+    // and asking them to tap "save" while they are mid-meeting loses it.
+    await ensureProfile(userId);
+    await saveExpression(userId, result.business, parsed.data.text.slice(0, 300)).catch(() => undefined);
     return NextResponse.json({ ...result, level });
   } catch {
     return NextResponse.json({ error: "Rescue is temporarily unavailable" }, { status: 502 });
