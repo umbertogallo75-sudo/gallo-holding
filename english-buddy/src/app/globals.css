@@ -327,3 +327,43 @@ p { line-height:1.55; font-size:16px; }
   .consentBtns { width: 100%; }
   .consentBtn { flex: 1 1 0; }
 }
+
+/* ---- Campaign landing ----
+   A page that receives cold traffic from an ad has one job and no navigation:
+   every exit that is not the call to action is a visitor paid for and lost. */
+.lp { max-width: 760px; margin: 0 auto; padding: 0 18px 64px; }
+.lpTop { padding: 26px 0 4px; display: flex; align-items: center; gap: 10px; }
+.lpHero { padding: 20px 0 8px; }
+.lpH1 { font-size: clamp(30px, 7vw, 46px); line-height: 1.08; letter-spacing: -.022em; margin: 0 0 14px; font-weight: 800; }
+.lpH1 em { font-style: normal; color: var(--accent); }
+.lpLead { font-size: clamp(17px, 2.4vw, 20px); line-height: 1.5; color: var(--muted); margin: 0 0 22px; }
+.lpCtaWrap { margin: 22px 0 10px; }
+.lpCta {
+  display: block; width: 100%; text-align: center; text-decoration: none;
+  background: var(--accent); color: #fff; font-weight: 750; font-size: 18px;
+  padding: 17px 22px; border-radius: 999px; touch-action: manipulation;
+}
+.lpCta:hover { filter: brightness(1.06); }
+.lpCta:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.lpUnder { font-size: 14px; color: var(--muted); text-align: center; margin: 10px 0 0; }
+.lpSection { margin-top: 40px; }
+.lpH2 { font-size: clamp(21px, 3.4vw, 27px); line-height: 1.2; letter-spacing: -.015em; margin: 0 0 14px; font-weight: 750; }
+.lpStep { display: flex; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.lpStep:last-child { border-bottom: none; }
+.lpStepK {
+  flex: 0 0 62px; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); font-weight: 800; padding-top: 4px;
+}
+.lpStep h3 { margin: 0 0 4px; font-size: 16.5px; font-weight: 700; }
+.lpStep p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
+.lpPlans { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.lpPlan { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.lpPlan:last-child { border-bottom: none; }
+.lpPlan b { font-size: 15.5px; }
+.lpPlan span { font-size: 14px; color: var(--muted); }
+.lpPlan .lpAmt { font-weight: 800; font-size: 17px; white-space: nowrap; }
+.lpQ { margin-top: 26px; }
+.lpQ h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+.lpQ p { margin: 0 0 16px; font-size: 15px; color: var(--muted); line-height: 1.55; }
+.lpFoot { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); line-height: 1.7; text-align: center; }
+.lpFoot a { color: var(--muted); }

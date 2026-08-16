@@ -16,6 +16,7 @@ const bodySchema = z.object({
   src: z.string().max(60).optional(),
   medium: z.string().max(60).optional(),
   campaign: z.string().max(80).optional(),
+  page: z.string().max(60).optional(),
 });
 
 /** Public beacon endpoint for pre-login funnel events (landing page). */
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  const { name, visitorId, ref, src, medium, campaign } = parsed.data;
+  const { name, visitorId, ref, src, medium, campaign, page } = parsed.data;
 
   // Only non-empty keys, so `json_extract(meta, '$.src')` in the funnel query
   // reads null for untagged traffic instead of an empty string.
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   if (src) meta.src = src;
   if (medium) meta.medium = medium;
   if (campaign) meta.campaign = campaign;
+  if (page) meta.page = page;
 
   await trackEvent(name, { visitorId, meta: Object.keys(meta).length ? meta : undefined });
   return NextResponse.json({ ok: true });

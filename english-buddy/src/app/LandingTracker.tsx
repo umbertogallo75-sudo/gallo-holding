@@ -16,13 +16,15 @@ function send(name: string, extra: Record<string, string> = {}) {
 /**
  * Records the landing view and clicks on any element carrying a data-track
  * attribute. Every event carries the acquisition source, so the funnel can be
- * read one channel at a time instead of as a single undifferentiated total.
- * Renders nothing.
+ * read one channel at a time instead of as a single undifferentiated total —
+ * and `page` keeps campaign landings apart from the home page, which matters
+ * as soon as there is more than one. Renders nothing.
  */
-export function LandingTracker() {
+export function LandingTracker({ page }: { page?: string } = {}) {
   useEffect(() => {
     const attribution = ensureAttribution();
     const context: Record<string, string> = {};
+    if (page) context.page = page;
     if (attribution) {
       context.visitorId = attribution.visitorId;
       context.src = attribution.source;
@@ -39,6 +41,6 @@ export function LandingTracker() {
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, []);
+  }, [page]);
   return null;
 }

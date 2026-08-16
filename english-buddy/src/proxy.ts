@@ -15,6 +15,7 @@ export function proxy(request: NextRequest) {
     path === "/aziende" ||
     path === "/partner" ||
     path === "/scarica" ||
+    path === "/inglese-lavoro" ||
     path === "/app" ||
     path.startsWith("/r/") ||
     path.startsWith("/.well-known/") ||
