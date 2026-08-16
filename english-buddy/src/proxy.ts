@@ -21,6 +21,9 @@ export function proxy(request: NextRequest) {
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
     path === "/api/track" ||
+    // Answered before signing in, by definition: the whole point is that the
+    // question comes first.
+    path === "/api/consent" ||
     path === "/api/stripe/webhook" ||
     path === "/api/appstore/notifications" ||
     path.startsWith("/icons/") ||
