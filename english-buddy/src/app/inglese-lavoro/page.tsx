@@ -46,7 +46,10 @@ function StoreButtons({ where }: { where: "top" | "bottom" }) {
         data-where={where}
         aria-label="Scarica ExecLingo su App Store per iPhone e iPad"
       >
-        <span className="lpStoreIcon" aria-hidden="true"></span>
+        {/* Not the Apple glyph: U+F8FF is a private-use character that renders
+            as an empty box on every non-Apple device, and half this page's
+            traffic is Android. */}
+        <span className="lpStoreIcon" aria-hidden="true">📱</span>
         <span>
           <b>Scarica su App Store</b>
           <span>iPhone e iPad · gratis</span>
@@ -59,7 +62,7 @@ function StoreButtons({ where }: { where: "top" | "bottom" }) {
         data-where={where}
         aria-label={playStore ? "Scarica ExecLingo su Google Play per Android" : "Installa ExecLingo su Android"}
       >
-        <span className="lpStoreIcon" aria-hidden="true">▶</span>
+        <span className="lpStoreIcon" aria-hidden="true">🤖</span>
         <span>
           <b>{playStore ? "Scarica su Google Play" : "Android — installa ora"}</b>
           <span>{playStore ? "Android · gratis" : "In 10 secondi dal browser · su Play a breve"}</span>
