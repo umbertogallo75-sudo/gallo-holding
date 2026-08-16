@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
     path.startsWith("/forgot") ||
     path.startsWith("/reset") ||
     path === "/privacy" ||
+    path === "/cookie" ||
     path === "/termini" ||
     path === "/elimina-account" ||
     path === "/aziende" ||

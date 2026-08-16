@@ -100,7 +100,7 @@ export function ConsentBanner() {
         <p className="consentText">
           Usiamo cookie di <strong>terze parti</strong> (Google, Meta) per capire quali annunci portano persone davvero interessate.
           Sono facoltativi: se dici di no il sito funziona esattamente allo stesso modo.{" "}
-          <Link href="/privacy">Come trattiamo i tuoi dati</Link>
+          <Link href="/cookie">Quali cookie usiamo</Link>
         </p>
         <div className="consentBtns">
           <button type="button" className="consentBtn" onClick={() => remember("denied")}>Rifiuta</button>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ConsentReset } from "@/components/ConsentReset";
 
 export const metadata = { title: "Privacy · ExecLingo" };
 
@@ -29,9 +28,9 @@ export default function PrivacyPage() {
 
       <section className="card">
         <h2>Cookie: quali e perché</h2>
-        <p><strong>Tecnici — sempre attivi.</strong> Il cookie di sessione che ti tiene collegato; quello che ricorda da quale canale sei arrivato la prima volta (<code>eb_src</code>, 6 mesi); quello che riconosce il partner che ti ha segnalato, per pagargli la commissione (<code>eb_ref</code>, 30 giorni). Sono nostri, restano nel nostro database e non ti seguono su altri siti.</p>
-        <p><strong>Di terze parti — solo se acconsenti.</strong> Quando è attiva una campagna pubblicitaria usiamo <strong>Google</strong> e <strong>Meta</strong> per misurare quali annunci portano persone davvero interessate. Questi non partono finché non premi «Accetta»: se rifiuti, o se non rispondi, non vengono caricati affatto e il sito funziona esattamente allo stesso modo. Puoi cambiare idea in qualsiasi momento da qui sotto.</p>
-        <ConsentReset />
+        <p><strong>Tecnici — sempre attivi.</strong> Il cookie di sessione che ti tiene collegato, quello che ricorda da quale canale sei arrivato la prima volta e quello che riconosce il partner che ti ha segnalato. Sono nostri, restano nel nostro database e non ti seguono su altri siti.</p>
+        <p><strong>Di terze parti — solo se acconsenti.</strong> Quando è attiva una campagna pubblicitaria usiamo <strong>Google</strong> e <strong>Meta</strong>. Non partono finché non premi «Accetta»: se rifiuti, o se non rispondi, non vengono caricati affatto.</p>
+        <p>Nome per nome, con durate e finalità, e il comando per revocare il consenso: <strong><Link href="/cookie">cookie policy</Link></strong>.</p>
       </section>
 
       <section className="card">
@@ -55,7 +54,7 @@ export default function PrivacyPage() {
       </section>
 
       <p className="itHint" style={{ margin: "14px 4px 24px", textAlign: "center" }}>
-        <Link href="/termini">Termini di servizio</Link> · <Link href="/">Torna all&rsquo;inizio</Link>
+        <Link href="/cookie">Cookie policy</Link> · <Link href="/termini">Termini di servizio</Link> · <Link href="/">Torna all&rsquo;inizio</Link>
       </p>
     </main>
   );
