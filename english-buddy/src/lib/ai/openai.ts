@@ -5,6 +5,8 @@ const RESPONSES_URL = "https://api.openai.com/v1/responses";
 type ResponsesOutput = {
   output_text?: string;
   output?: { content?: { type?: string; text?: string }[] }[];
+  status?: string;
+  incomplete_details?: { reason?: string };
 };
 
 function extractText(json: ResponsesOutput): string {
@@ -51,7 +53,36 @@ export async function runStructured(
     throw new Error(`The coach is temporarily unavailable (upstream ${response.status}).`);
   }
 
-  return extractText((await response.json()) as ResponsesOutput).trim();
+  const json = (await response.json()) as ResponsesOutput;
+  // A truncated answer is still valid JSON-shaped text right up to the cut, so
+  // it fails to parse in a way that looks like a model error rather than a
+  // budget one. Saying so here is what turns a mystery into a one-line fix.
+  if (json.status === "incomplete") {
+    console.error(
+      `OpenAI response truncated (${json.incomplete_details?.reason ?? "unknown"}) for ${schemaName} at max_output_tokens=${maxOutputTokens}`
+    );
+  }
+  return extractText(json).trim();
+}
+
+/**
+ * Pulls the reply out of a structured answer that failed to parse.
+ *
+ * `reply` is the first property of the coach schema, so when the answer is cut
+ * short — the usual cause — the sentence the user is waiting for has already
+ * arrived in full and only the bookkeeping after it is missing. Reading it
+ * back out is the difference between a normal conversation and a wall of
+ * machine output.
+ */
+export function salvageReply(raw: string): string | null {
+  const match = raw.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!match) return null;
+  try {
+    const text = JSON.parse(`"${match[1]}"`) as string;
+    return text.trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -59,12 +90,24 @@ export async function runStructured(
  * structured-output schema, then validates the result with Zod.
  */
 export async function runCoach(instructions: string, input: string): Promise<CoachResult> {
-  const raw = await runStructured(instructions, input, "coach_turn", coachResultJsonSchema);
+  // A coach turn carries the reply plus corrections, mistakes, expressions and
+  // skill updates, and reasoning tokens are spent from the same budget. At the
+  // old ceiling the JSON was being cut off mid-object often enough to reach
+  // real users.
+  const raw = await runStructured(instructions, input, "coach_turn", coachResultJsonSchema, 2600);
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   try {
     return coachResultSchema.parse(JSON.parse(cleaned));
   } catch {
-    // Defensive fallback: never lose the reply just because structure slipped.
-    return coachResultSchema.parse({ reply: raw || "Sorry, could you say that again?" });
+    // The structure slipped. Recover the sentence Sam meant to say and drop
+    // the rest: the corrections and the skill updates are worth losing, the
+    // conversation is not. What must never happen is showing the raw answer —
+    // a learner who asked a question in English and received a wall of JSON
+    // has been told the product is broken, whatever the reply said.
+    console.error(`coach turn unparseable (${cleaned.length} chars); falling back to the reply alone`);
+    const reply = salvageReply(cleaned);
+    return coachResultSchema.parse({
+      reply: reply ?? "Sorry — I lost that one. Could you say it again?\n(Scusa, non l\u2019ho ricevuta: puoi ripetere?)",
+    });
   }
 }
