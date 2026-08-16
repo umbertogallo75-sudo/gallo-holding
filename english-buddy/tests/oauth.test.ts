@@ -39,8 +39,12 @@ describe("social sign-in", () => {
   it("creates an account on first Google login and reuses it afterwards", async () => {
     const first = await findOrCreateOAuthUser("google", "goog-sub-1", "mario@example.com", "Mario Rossi", client);
     const again = await findOrCreateOAuthUser("google", "goog-sub-1", "mario@example.com", "Mario Rossi", client);
-    expect(again).toBe(first);
-    const row = (await client.execute({ sql: "SELECT display_name, email FROM auth_users WHERE id = ?", args: [first] })).rows[0];
+    expect(again.userId).toBe(first.userId);
+    // Only the first click is a registration: the second is a login, and
+    // counting it would inflate every acquisition number downstream.
+    expect(first.created).toBe(true);
+    expect(again.created).toBe(false);
+    const row = (await client.execute({ sql: "SELECT display_name, email FROM auth_users WHERE id = ?", args: [first.userId] })).rows[0];
     expect(String(row.display_name)).toBe("Mario Rossi");
     expect(String(row.email)).toBe("mario@example.com");
   });
@@ -48,7 +52,9 @@ describe("social sign-in", () => {
   it("links a provider to an existing code-based account via email", async () => {
     const existing = await createAuthUser("Lucia", "codice-di-lucia-123", "lucia@example.com", client);
     const linked = await findOrCreateOAuthUser("apple", "apple-sub-9", "lucia@example.com", null, client);
-    expect(linked).toBe(existing);
+    expect(linked.userId).toBe(existing);
+    // An existing customer adding a second way in, not a new one.
+    expect(linked.created).toBe(false);
     const row = (await client.execute({ sql: "SELECT apple_sub FROM auth_users WHERE id = ?", args: [existing] })).rows[0];
     expect(String(row.apple_sub)).toBe("apple-sub-9");
   });

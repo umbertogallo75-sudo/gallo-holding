@@ -83,6 +83,20 @@ export function marketingTags(): { metaPixelId: string; googleAdsId: string } {
   };
 }
 
+/**
+ * Where a completed registration is reported in Google Ads.
+ *
+ * Kept as the label alone rather than the whole `send_to` string so the
+ * account id lives in exactly one place: two copies of it in the environment
+ * is one chance to update only one of them and lose every conversion without
+ * anything appearing broken.
+ */
+export function googleAdsSignupTarget(): string {
+  const { googleAdsId } = marketingTags();
+  const label = (process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL ?? "").trim();
+  return googleAdsId && label ? `${googleAdsId}/${label}` : "";
+}
+
 export function hasMarketingTags(): boolean {
   const { metaPixelId, googleAdsId } = marketingTags();
   return Boolean(metaPixelId || googleAdsId);

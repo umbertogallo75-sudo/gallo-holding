@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
+import { reportSignupConversion } from "@/lib/conversions";
 
 export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
   const [name, setName] = useState("");
@@ -25,6 +26,9 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
     const data = await response.json().catch(() => ({}));
     setLoading(false);
     if (!response.ok) return setError(data.error || "Registration failed");
+    // Report before navigating: the account exists from here on, and the tag
+    // has to fire while this page is still the one on screen.
+    reportSignupConversion();
     router.push("/");
     router.refresh();
   }

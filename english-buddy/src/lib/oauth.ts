@@ -57,24 +57,30 @@ export function verifyOauthState(state: string | null, maxAgeMs = 10 * 60_000, n
  * existing code-based account), then a fresh account with an unusable random
  * code_hmac (the user can set a real code later from their profile).
  */
+/**
+ * Signing in and signing up are the same click here, so the caller cannot
+ * tell them apart on its own — and it has to, because only one of the two is
+ * a registration worth counting.
+ */
 export async function findOrCreateOAuthUser(
   provider: "google" | "apple",
   subject: string,
   email: string | null,
   name: string | null,
   client: Client = db()
-): Promise<string> {
+): Promise<{ userId: string; created: boolean }> {
   const column = provider === "google" ? "google_sub" : "apple_sub";
 
   const bySub = await client.execute({ sql: `SELECT id FROM auth_users WHERE ${column} = ? LIMIT 1`, args: [subject] });
-  if (bySub.rows.length) return String(bySub.rows[0].id);
+  if (bySub.rows.length) return { userId: String(bySub.rows[0].id), created: false };
 
   if (email) {
     const byEmail = await client.execute({ sql: "SELECT id FROM auth_users WHERE email = ? LIMIT 1", args: [email] });
     if (byEmail.rows.length) {
       const id = String(byEmail.rows[0].id);
       await client.execute({ sql: `UPDATE auth_users SET ${column} = ? WHERE id = ?`, args: [subject, id] });
-      return id;
+      // An existing account gaining a second way in, not a new customer.
+      return { userId: id, created: false };
     }
   }
 
@@ -84,7 +90,7 @@ export async function findOrCreateOAuthUser(
     sql: `INSERT INTO auth_users (id, display_name, code_hmac, email, ${column}) VALUES (?, ?, ?, ?, ?)`,
     args: [id, displayName, `oauth:${randomBytes(32).toString("hex")}`, email, subject],
   });
-  return id;
+  return { userId: id, created: true };
 }
 
 /* ---- Provider specifics ---- */
