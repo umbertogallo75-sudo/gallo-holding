@@ -37,7 +37,12 @@ export function LandingTracker({ page }: { page?: string } = {}) {
     const onClick = (event: MouseEvent) => {
       const el = (event.target as HTMLElement | null)?.closest?.("[data-track]");
       const name = el?.getAttribute("data-track");
-      if (name) send(name, context);
+      if (!name) return;
+      // A page can carry the same call to action more than once; data-where
+      // says which copy was tapped, so a duplicated button can be judged
+      // instead of guessed at.
+      const where = el?.getAttribute("data-where");
+      send(name, where ? { ...context, where } : context);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
