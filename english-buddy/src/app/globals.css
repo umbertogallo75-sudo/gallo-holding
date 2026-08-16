@@ -300,7 +300,9 @@ p { line-height:1.55; font-size:16px; }
    and use the site while deciding. The two answers are deliberately the same
    size — refusing has to be as easy as accepting. */
 .consentBar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  /* Above the splash (z-index 100): on the app pages where both can appear,
+     a question we are required to ask must not end up behind a brand screen. */
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
   background: var(--surface); border-top: 1px solid var(--line);
   box-shadow: 0 -8px 28px rgba(0,0,0,.10);
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));

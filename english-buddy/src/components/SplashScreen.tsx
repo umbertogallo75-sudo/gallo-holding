@@ -8,6 +8,36 @@ const SHOWN_KEY = "buddy-splash-shown";
 const SAM_KEY = "buddy-sam-intro-seen";
 
 /**
+ * Pages a visitor can reach before having an account.
+ *
+ * The splash is the app opening, not a doorway to the website: someone who
+ * arrives from an advertisement has to see what they were promised, and
+ * someone halfway through signing up must not be interrupted by a brand
+ * animation. Anything public is on this list, and a page that forgets to be
+ * on it silently costs conversions — which is exactly what happened when the
+ * campaign landing page was added.
+ */
+const PUBLIC_PAGES = new Set([
+  "/",
+  "/inglese-lavoro",
+  "/scarica",
+  "/aziende",
+  "/partner",
+  "/register",
+  "/login",
+  "/forgot",
+  "/reset",
+  "/privacy",
+  "/cookie",
+  "/termini",
+  "/elimina-account",
+]);
+
+function isPublicPage(pathname: string): boolean {
+  return PUBLIC_PAGES.has(pathname) || pathname.startsWith("/reset/") || pathname.startsWith("/r/");
+}
+
+/**
  * Two-stage launch experience: the brand splash on every app open (tap to
  * start), then — the very first time on a device — Sam introduces himself
  * and throws down the 3-month challenge.
@@ -17,13 +47,13 @@ export function SplashScreen() {
   const [leaving, setLeaving] = useState(false);
   const [samComing, setSamComing] = useState(false);
   const pathname = usePathname();
-  const onPublicLanding = pathname === "/";
+  const onPublicPage = isPublicPage(pathname);
 
   useEffect(() => {
     (async () => {
-      // The public marketing landing IS the introduction: an ad visitor must
-      // see the page instantly, with no tap-to-start gate in between.
-      if (onPublicLanding) {
+      // The public page IS the introduction: a visitor must see it instantly,
+      // with no tap-to-start gate in between.
+      if (onPublicPage) {
         sessionStorage.setItem(SHOWN_KEY, "1");
         return;
       }
