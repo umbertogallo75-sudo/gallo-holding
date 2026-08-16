@@ -95,6 +95,16 @@ export async function POST(request: Request) {
       sessionId,
       reply: result.reply,
       correction: result.correction || undefined,
+      // The model already works out exactly what was wrong and which phrase is
+      // worth keeping; both were being written to the database and never shown.
+      // A learner reading "Better: ..." cannot see what they actually said.
+      // One of each: a chat turn is not a report card.
+      mistake: result.mistakes[0]
+        ? { incorrect: result.mistakes[0].incorrect, correct: result.mistakes[0].correct, note: result.mistakes[0].note || undefined }
+        : undefined,
+      expression: result.expressions[0]
+        ? { expression: result.expressions[0].expression, meaning: result.expressions[0].meaning || undefined }
+        : undefined,
     });
   } catch (error) {
     console.error("coach route error:", error);

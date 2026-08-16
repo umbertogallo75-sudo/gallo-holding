@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "re
 import { Speak } from "@/components/Speak";
 import { inStoreApp } from "@/lib/shell";
 
-type Msg = { role:"user"|"assistant"; content:string; correction?:string };
+type Mistake = { incorrect:string; correct:string; note?:string };
+type Expression = { expression:string; meaning?:string };
+type Msg = { role:"user"|"assistant"; content:string; correction?:string; mistake?:Mistake; expression?:Expression };
 
 /** Server said no (4xx/5xx) — very different from "the network dropped". */
 class HttpError extends Error {
@@ -140,7 +142,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         data = await coachCall(message);
       }
       setSessionId(data.sessionId);
-      setMessages(v => [...v, { role:"assistant", content:data.reply, correction:data.correction }]);
+      setMessages(v => [...v, { role:"assistant", content:data.reply, correction:data.correction, mistake:data.mistake, expression:data.expression }]);
     } catch (error) {
       if (error instanceof HttpError && error.status === 402) {
         setBlocked({ kind: "plan", text: error.message });
@@ -189,7 +191,28 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         <div className={`bubble ${m.role === "assistant" ? "ai" : "user"}`}>
           {m.role === "assistant" ? <AssistantBubble content={m.content} /> : m.content}
         </div>
-        {m.correction ? <div className="correction">Better: {m.correction}</div> : null}
+        {m.mistake ? (
+          <div className="fixCard">
+            <div className="fixRow fixBad"><span aria-hidden="true">✗</span><span>{m.mistake.incorrect}</span></div>
+            <div className="fixRow fixGood">
+              <span aria-hidden="true">✓</span>
+              <span>{m.mistake.correct}</span>
+              <Speak text={m.mistake.correct} compact />
+            </div>
+            {m.mistake.note ? <p className="fixNote">{m.mistake.note}</p> : null}
+          </div>
+        ) : m.correction ? (
+          <div className="fixCard">
+            <div className="fixRow fixGood"><span aria-hidden="true">✓</span><span>{m.correction}</span></div>
+          </div>
+        ) : null}
+        {m.expression ? (
+          <div className="keepCard">
+            <span className="keepTag">Da tenere</span>
+            <div className="keepRow"><strong>{m.expression.expression}</strong><Speak text={m.expression.expression} compact /></div>
+            {m.expression.meaning ? <p className="keepNote">{m.expression.meaning}</p> : null}
+          </div>
+        ) : null}
       </div>)}
       {loading && <div className="bubble ai muted">Sam is thinking…</div>}
       {blocked && !loading && (

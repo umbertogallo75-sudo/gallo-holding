@@ -369,3 +369,33 @@ p { line-height:1.55; font-size:16px; }
 .lpQ p { margin: 0 0 16px; font-size: 15px; color: var(--muted); line-height: 1.55; }
 .lpFoot { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); line-height: 1.7; text-align: center; }
 .lpFoot a { color: var(--muted); }
+
+/* ---- Correction and keeper cards ----
+   The old correction was one green line reading "Better: ...", which shows
+   the right answer without ever showing what the learner actually wrote —
+   the one thing they need to see to understand the difference. */
+.fixCard {
+  align-self: flex-start; max-width: 92%; margin: 2px 0 6px;
+  border: 1px solid var(--line); border-left: 3px solid var(--success);
+  border-radius: 12px; background: var(--surface); padding: 10px 13px;
+}
+.fixRow { display: flex; align-items: baseline; gap: 9px; font-size: 15.5px; line-height: 1.45; }
+.fixRow + .fixRow { margin-top: 5px; }
+.fixRow span:first-child { flex: 0 0 auto; font-weight: 800; font-size: 13px; }
+.fixBad { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.fixBad span:first-child { color: #a8402f; text-decoration: none; }
+.fixGood { color: var(--ink); font-weight: 650; }
+.fixGood span:first-child { color: var(--success); }
+.fixNote { margin: 7px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+
+.keepCard {
+  align-self: flex-start; max-width: 92%; margin: 0 0 8px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: color-mix(in srgb, var(--amber) 8%, var(--surface)); padding: 10px 13px;
+}
+.keepTag {
+  display: inline-block; font-size: 10px; letter-spacing: .13em; text-transform: uppercase;
+  font-weight: 800; color: var(--amber); margin-bottom: 5px;
+}
+.keepRow { display: flex; align-items: baseline; gap: 8px; font-size: 15.5px; line-height: 1.45; }
+.keepNote { margin: 5px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
