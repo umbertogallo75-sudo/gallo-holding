@@ -43,6 +43,21 @@ export default async function AdminPage() {
   const funnelBy = new Map((funnel?.rows ?? []).map((r) => [String(r.name), r]));
   const f = (name: string, col: "d7" | "d30" | "visitors30") => Number(funnelBy.get(name)?.[col] ?? 0);
 
+  // Which public pages people actually reach. The funnel above answers "did
+  // they convert"; this answers "did anyone ever see it", which until now was
+  // unanswerable for every page except the two landings.
+  const pages = await database
+    .execute(
+      `SELECT json_extract(meta, '$.page') AS page,
+              COUNT(*) AS views,
+              COUNT(DISTINCT visitor_id) AS visitors
+       FROM analytics_events
+       WHERE name = 'page_view' AND created_at >= datetime('now', '-30 days')
+         AND json_extract(meta, '$.page') IS NOT NULL
+       GROUP BY page ORDER BY views DESC LIMIT 20`
+    )
+    .catch(() => null);
+
   // The same funnel split by acquisition source — the table that turns a
   // month of ad spend into a cost per paying customer. Three counts kept
   // apart on purpose: one SQL join across all of them would multiply visitors
@@ -168,6 +183,26 @@ export default async function AdminPage() {
             </table>
           </div>
           <p className="itHint" style={{ marginBottom: 0 }}>Dati raccolti in forma anonima dal nostro database, senza tracker esterni. Quando partirà la pubblicità, qui vedrai subito se le visite si trasformano in iscritti.</p>
+        </section>
+      ) : null}
+      {pages?.rows.length ? (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>👀 Pagine viste — ultimi 30 giorni</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table className="adminTable">
+              <thead><tr><th>Pagina</th><th>Visite</th><th>Visitatori</th></tr></thead>
+              <tbody>
+                {pages.rows.map((r) => (
+                  <tr key={String(r.page)}>
+                    <td>{String(r.page)}</td>
+                    <td>{Number(r.views ?? 0)}</td>
+                    <td>{Number(r.visitors ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="itHint" style={{ marginBottom: 0 }}>Solo le pagine pubbliche: quello che fai dentro l&rsquo;app, una volta entrato, non finisce qui.</p>
         </section>
       ) : null}
       {consentTotal ? (

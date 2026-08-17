@@ -3,6 +3,9 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 
 export type FunnelEvent =
+  // Any public page loaded: the traffic count. Distinct from landing_view,
+  // which means the visitor entered the funnel.
+  | "page_view"
   | "landing_view"
   | "landing_cta_register"
   | "landing_cta_login"

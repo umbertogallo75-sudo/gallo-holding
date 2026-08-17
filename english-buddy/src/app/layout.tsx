@@ -4,6 +4,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SplashScreen } from "@/components/SplashScreen";
 import { SourceCapture } from "@/components/SourceCapture";
+import { PageView } from "@/components/PageView";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { SignupConversion } from "@/components/SignupConversion";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ServiceWorkerRegister />
         <SourceCapture />
+        <PageView />
         <SignupConversion />
         <SplashScreen />
         <OfflineBanner />

@@ -5,6 +5,7 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   name: z.enum([
+    "page_view",
     "landing_view",
     "landing_cta_register",
     "landing_cta_login",
