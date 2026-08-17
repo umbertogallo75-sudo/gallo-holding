@@ -106,7 +106,9 @@ export default function InglesePerLavoroPage() {
         </div>
       </section>
 
-      <section className="lpSection">
+      {/* The ids below are ad sitelink destinations, not decoration: a sitelink
+          that lands on the top of a long page wastes the click it paid for. */}
+      <section className="lpSection" id="livelli">
         <h2 className="lpH2">Da che punto parti?</h2>
         <p style={{ color: "var(--muted)", fontSize: 15.5, lineHeight: 1.6, marginTop: 0 }}>
           È la prima domanda che ti fa l&rsquo;app, ed è una domanda vera: la risposta cambia subito il modo
@@ -310,7 +312,7 @@ export default function InglesePerLavoroPage() {
         </div>
       </section>
 
-      <section className="lpSection">
+      <section className="lpSection" id="prezzi">
         <h2 className="lpH2">Quanto costa</h2>
         <div className="lpPlans">
           <div className="lpPlan">
@@ -332,7 +334,7 @@ export default function InglesePerLavoroPage() {
         </p>
       </section>
 
-      <section className="lpSection lpQ">
+      <section className="lpSection lpQ" id="domande">
         <h2 className="lpH2">Le domande che ci fanno sempre</h2>
 
         <h3>«Parto da zero, non è troppo tardi?»</h3>
