@@ -66,7 +66,11 @@ export default async function AdminPage() {
     try {
       const [visits, signups, buyers] = await Promise.all([
         database.execute(
-          `SELECT COALESCE(json_extract(meta, '$.src'), 'diretto') AS src, COUNT(DISTINCT visitor_id) AS n
+          // Not "diretto": the attribution code already writes "direct" for a
+          // visitor who arrived with no referrer, and two rows a reader cannot
+          // tell apart are worse than one row that is missing. This one means
+          // the event carried no source at all.
+          `SELECT COALESCE(json_extract(meta, '$.src'), 'non tracciato') AS src, COUNT(DISTINCT visitor_id) AS n
            FROM analytics_events
            WHERE name = 'landing_view' AND created_at >= datetime('now', '-30 days')
            GROUP BY src`
@@ -87,7 +91,7 @@ export default async function AdminPage() {
       const merged = new Map<string, Row>();
       const fold = (rows: ArrayLike<Record<string, unknown>>, key: keyof Row) => {
         for (let i = 0; i < rows.length; i++) {
-          const source = String(rows[i].src ?? "diretto") || "diretto";
+          const source = String(rows[i].src ?? "non tracciato") || "non tracciato";
           const entry = merged.get(source) ?? { visits: 0, signups: 0, buyers: 0 };
           entry[key] = Number(rows[i].n ?? 0);
           merged.set(source, entry);
