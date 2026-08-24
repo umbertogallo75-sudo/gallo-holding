@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
-import { EnablePush } from "@/components/EnablePush";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { ModeGrid } from "@/components/ModeGrid";
@@ -80,7 +79,6 @@ export default async function HomePage() {
         <div className="modeMeta">Il tuo link personale: su ogni vendita prendi il 5%, con le immagini già pronte da condividere.</div>
       </div>
     </a>
-    <EnablePush />
     <WelcomeIntro />
     <BottomNav active="home" />
   </main>;

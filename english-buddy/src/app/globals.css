@@ -141,6 +141,19 @@ p { line-height:1.55; font-size:16px; }
 .stepDot.on { background:var(--accent); }
 .skipLink { display:block; width:100%; margin-top:16px; padding:12px; background:none; border:0; color:var(--muted); font:inherit; font-size:15px; text-decoration:underline; cursor:pointer; }
 .skipLink:disabled { opacity:.6; cursor:default; }
+/* The plan: a full screen for two and a half seconds, so the three answers
+   visibly turn into something before the session starts. */
+.planWrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding-bottom:40px; }
+.planCard { width:100%; max-width:460px; }
+.planLine { font-size:19px; line-height:1.5; margin:0 0 8px; }
+.planBar { height:4px; border-radius:999px; background:var(--line); overflow:hidden; margin:26px 0 12px; }
+.planBar > span { display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg, var(--accent), var(--amber)); animation:planFill 2.5s linear forwards; }
+@keyframes planFill { to { width:100%; } }
+@media (prefers-reduced-motion: reduce) { .planBar > span { animation:none; width:100%; } }
+.planNote { color:var(--muted); font-size:15px; margin:0; }
+/* The close of the first session, where the notification request finally has
+   a reason to exist: something just happened worth being reminded about. */
+.sessionEnd { margin:14px 0 calc(150px + env(safe-area-inset-bottom, 0px)); }
 .optionRow { display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:15px 17px; margin:7px 0; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .1s ease; }
 .optionRow:active { transform:scale(.98); }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }

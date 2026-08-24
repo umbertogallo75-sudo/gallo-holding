@@ -81,7 +81,7 @@ export function OnboardingForm({ initial }: { initial: OnboardingInitial }) {
       setLoading(false);
       return router.push("/login");
     }
-    router.push("/home?piano=1");
+    router.push("/piano");
     router.refresh();
   }
 

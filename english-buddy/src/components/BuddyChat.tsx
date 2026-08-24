@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
+import { EnablePush } from "@/components/EnablePush";
 import { inStoreApp } from "@/lib/shell";
 
 type Mistake = { incorrect:string; correct:string; note?:string };
@@ -82,7 +83,7 @@ function AssistantBubble({ content }: { content: string }) {
   );
 }
 
-export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuestion?:string }) {
+export function BuddyChat({ mode, initialQuestion, first = false }: { mode:string; initialQuestion?:string; first?:boolean }) {
   const [messages, setMessages] = useState<Msg[]>(
     initialQuestion ? [{ role:"assistant", content:initialQuestion }] : []
   );
@@ -181,6 +182,12 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
+  // The end of the very first session: three answers is enough to have felt
+  // what the coach does, which is the only moment the notification request
+  // means anything. Asked before that, it is a permission dialog from a
+  // stranger.
+  const exchanges = messages.filter(m => m.role === "user").length;
+  const sessionOver = first && exchanges >= 3 && !loading;
 
   return <>
     {offline && (
@@ -230,7 +237,15 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
           {!offline ? <button type="button" className="primary" style={{marginTop:8, padding:"8px 16px", minWidth:0}} onClick={retry}>Riprova</button> : null}
         </div>
       )}
-      {suggestions.length > 0 && (
+      {sessionOver ? (
+      <section className="card sessionEnd">
+        <h2 style={{ marginTop: 0 }}>🎉 Prima sessione fatta.</h2>
+        <p className="muted">Hai appena parlato inglese per davvero. Da domani Sam riprende da qui: si ricorda quello che hai detto e quello che ti è mancato.</p>
+        <EnablePush />
+        <a href="/home" className="secondary full" style={{ display: "block", textAlign: "center", marginTop: 10, textDecoration: "none" }}>Torna alla home</a>
+      </section>
+    ) : null}
+    {suggestions.length > 0 && (
         <div className="suggestBox">
           <div className="composerNote" style={{ marginBottom: 4 }}>Scegli una risposta, poi puoi modificarla prima di inviare:</div>
           {suggestions.map((s, i) => (
