@@ -154,6 +154,13 @@ p { line-height:1.55; font-size:16px; }
 /* The close of the first session, where the notification request finally has
    a reason to exist: something just happened worth being reminded about. */
 .sessionEnd { margin:14px 0 calc(150px + env(safe-area-inset-bottom, 0px)); }
+/* Offered once, at the top of the home screen, to people who registered
+   before the questions existed. */
+.personalize { border:1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background:color-mix(in srgb, var(--accent) 7%, var(--surface)); border-radius:18px; padding:16px 18px; margin-bottom:12px; }
+.personalize strong { display:block; font-size:16px; font-weight:750; letter-spacing:-.01em; }
+.personalize span { display:block; color:var(--muted); font-size:14.5px; line-height:1.45; margin-top:3px; }
+.personalizeActions { display:flex; gap:8px; margin-top:12px; }
+.personalizeActions .pill { flex:1; text-align:center; text-decoration:none; }
 .optionRow { display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:15px 17px; margin:7px 0; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .1s ease; }
 .optionRow:active { transform:scale(.98); }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }

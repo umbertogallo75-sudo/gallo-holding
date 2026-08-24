@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { NotificationReminder } from "@/components/NotificationReminder";
+import { PersonalizeBanner } from "@/components/PersonalizeBanner";
 import { ModeGrid } from "@/components/ModeGrid";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
@@ -14,7 +15,7 @@ export default async function HomePage() {
   const database = db();
   const today = new Date().toISOString().slice(0,10);
   const [profileResult, metricResult, sessionsResult] = await Promise.all([
-    database.execute({ sql:"SELECT display_name, starting_level FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
+    database.execute({ sql:"SELECT display_name, starting_level, onboarding_done_at FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
   ]);
@@ -32,6 +33,7 @@ export default async function HomePage() {
   return <main className="shell">
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <NotificationReminder />
+    {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
     <section className="hero"><div className="kicker">Ciao{name ? `, ${name}` : ""}</div><h1>Cosa facciamo oggi?</h1><p className="muted">Scegli quello che entra nel tempo che hai: anche due minuti contano.</p></section>
     {!entitlement.access ? (
       <a href="/abbonamento" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--amber) 55%, var(--line))" }}>
