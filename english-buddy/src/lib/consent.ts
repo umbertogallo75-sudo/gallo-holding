@@ -67,8 +67,8 @@ export function consentCookieValue(choice: ConsentChoice, receipt: string): stri
  * answer: consent to an unnamed list is not consent to anything.
  */
 export function activeTagNames(): string {
-  const { metaPixelId, googleAdsId } = marketingTags();
-  return [metaPixelId ? "meta" : "", googleAdsId ? "google" : ""].filter(Boolean).join(",");
+  const { metaPixelId, googleAdsId, analyticsId } = marketingTags();
+  return [metaPixelId ? "meta" : "", googleAdsId ? "google" : "", analyticsId ? "ga4" : ""].filter(Boolean).join(",");
 }
 
 /**
@@ -76,10 +76,16 @@ export function activeTagNames(): string {
  * Both empty is the normal state until advertising actually starts — and then
  * there is nothing to consent to, so no banner is shown at all.
  */
-export function marketingTags(): { metaPixelId: string; googleAdsId: string } {
+export function marketingTags(): { metaPixelId: string; googleAdsId: string; analyticsId: string } {
   return {
     metaPixelId: (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "").trim(),
     googleAdsId: (process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "").trim(),
+    // Google Analytics 4. It rides the same gtag loader as the Ads tag: one
+    // script, two configs, and — the reason it belongs here rather than in the
+    // layout — one consent gate. An analytics tag that loads before the
+    // visitor has answered the banner is the exact thing the banner exists to
+    // prevent.
+    analyticsId: (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "").trim(),
   };
 }
 
@@ -98,6 +104,9 @@ export function googleAdsSignupTarget(): string {
 }
 
 export function hasMarketingTags(): boolean {
-  const { metaPixelId, googleAdsId } = marketingTags();
-  return Boolean(metaPixelId || googleAdsId);
+  // Analytics counts. Leaving it out would be a silent failure of the worst
+  // kind: with only GA4 configured there would be no banner, so no consent,
+  // so no analytics — and nothing anywhere saying why.
+  const { metaPixelId, googleAdsId, analyticsId } = marketingTags();
+  return Boolean(metaPixelId || googleAdsId || analyticsId);
 }

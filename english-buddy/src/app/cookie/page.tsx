@@ -68,11 +68,17 @@ export default function CookiePage() {
                 <td>Attribuire un&rsquo;iscrizione o un acquisto alla campagna che l&rsquo;ha prodotto.</td>
                 <td>fino a 90 giorni</td>
               </tr>
+              <tr>
+                <td><strong>Google</strong><br /><span className="muted">Google Analytics</span></td>
+                <td><code>_ga</code>, <code>_ga_*</code></td>
+                <td>Capire quante persone visitano il sito, da dove arrivano e quali pagine leggono, in forma aggregata.</td>
+                <td>fino a 24 mesi</td>
+              </tr>
             </tbody>
           </table>
         </div>
         <p>Cosa ricevono: il fatto che una visita o un acquisto è avvenuto. <strong>Cosa non ricevono mai:</strong> il tuo nome, la tua email, le tue conversazioni con il coach o i tuoi dati di apprendimento.</p>
-        <p className="muted">Le informative dei due fornitori: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Meta</a> · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>. Entrambi possono trattare dati fuori dall&rsquo;Unione Europea con le garanzie previste dal GDPR.</p>
+        <p className="muted">Le informative dei fornitori: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Meta</a> · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>. Entrambi possono trattare dati fuori dall&rsquo;Unione Europea con le garanzie previste dal GDPR.</p>
       </section>
 
       <section className="card">

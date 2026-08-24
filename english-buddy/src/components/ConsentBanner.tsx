@@ -26,12 +26,14 @@ let tagsLoaded = false;
 function loadMarketingTags(): void {
   if (tagsLoaded) return;
   tagsLoaded = true;
-  const { metaPixelId, googleAdsId } = marketingTags();
+  const { metaPixelId, googleAdsId, analyticsId } = marketingTags();
 
-  if (googleAdsId) {
+  // One gtag loader carries both Google tags. Either id alone is enough to
+  // pull it in; whichever ids exist then get their own config line.
+  if (googleAdsId || analyticsId) {
     const loader = document.createElement("script");
     loader.async = true;
-    loader.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleAdsId)}`;
+    loader.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleAdsId || analyticsId)}`;
     document.head.appendChild(loader);
 
     const inline = document.createElement("script");
@@ -39,7 +41,8 @@ function loadMarketingTags(): void {
       `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}` +
       `gtag('js',new Date());` +
       `gtag('consent','default',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});` +
-      `gtag('config',${JSON.stringify(googleAdsId)});`;
+      (googleAdsId ? `gtag('config',${JSON.stringify(googleAdsId)});` : "") +
+      (analyticsId ? `gtag('config',${JSON.stringify(analyticsId)});` : "");
     document.head.appendChild(inline);
   }
 

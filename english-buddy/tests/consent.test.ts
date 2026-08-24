@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CONSENT_COOKIE, CONSENT_VERSION, consentCookieValue, readConsent, readConsentReceipt } from "@/lib/consent";
 
 const RECEIPT = "3f8a1c22-9d44-4b71-9a55-0e2c7b6d1a90";
@@ -48,5 +48,21 @@ describe("readConsentReceipt", () => {
 
   it("refuses an oversized receipt rather than passing it on", () => {
     expect(readConsentReceipt(cookie(`${CONSENT_VERSION}:granted:${"x".repeat(200)}`))).toBeNull();
+  });
+});
+
+describe("hasMarketingTags con la sola analitica", () => {
+  it("mostra il banner anche se è configurato solo Google Analytics", async () => {
+    const before = { ...process.env };
+    process.env.NEXT_PUBLIC_META_PIXEL_ID = "";
+    process.env.NEXT_PUBLIC_GOOGLE_ADS_ID = "";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-TEST12345";
+    vi.resetModules();
+    const { hasMarketingTags, activeTagNames } = await import("@/lib/consent");
+    // Senza questo il banner non comparirebbe, quindi nessun consenso e
+    // quindi nessuna analitica: un guasto che non lascerebbe traccia.
+    expect(hasMarketingTags()).toBe(true);
+    expect(activeTagNames()).toContain("ga4");
+    process.env = before;
   });
 });
