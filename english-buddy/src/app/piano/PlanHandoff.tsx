@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@/lib/track-client";
 
 /** How long the plan stays on screen before the session it describes begins. */
 const HANDOFF_MS = 2500;
@@ -17,6 +18,7 @@ export function PlanHandoff({ mode }: { mode: string }) {
   const router = useRouter();
 
   useEffect(() => {
+    track("plan_shown");
     const go = setTimeout(() => {
       router.replace(`/buddy?mode=${encodeURIComponent(mode)}&prima=1`);
     }, HANDOFF_MS);

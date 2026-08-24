@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track } from "@/lib/track-client";
 import { useRouter } from "next/navigation";
 
 /**
@@ -16,9 +17,12 @@ export function PersonalizeBanner() {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
+  useEffect(() => { track("personalize_shown"); }, []);
+
   async function dismiss() {
     setBusy(true);
     setGone(true);
+    track("personalize_dismissed");
     try {
       await fetch("/api/onboarding/salta", { method: "POST" });
     } catch {

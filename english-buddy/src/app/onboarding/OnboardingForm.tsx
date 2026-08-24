@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track } from "@/lib/track-client";
 import { useRouter } from "next/navigation";
 
 /**
@@ -61,6 +62,8 @@ export function OnboardingForm({ initial }: { initial: OnboardingInitial }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => { track("onboarding_started"); }, []);
+
   async function finish(final: Record<string, string>) {
     setLoading(true);
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -77,6 +80,7 @@ export function OnboardingForm({ initial }: { initial: OnboardingInitial }) {
         timezone,
       }),
     });
+    track(Object.keys(final).length >= QUESTIONS.length ? "onboarding_done" : "onboarding_skipped");
     if (!response.ok) {
       setLoading(false);
       return router.push("/login");

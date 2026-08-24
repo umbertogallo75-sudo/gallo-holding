@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { ModeGrid } from "@/components/ModeGrid";
+import { AppTracker } from "@/components/AppTracker";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -27,6 +28,7 @@ export default async function AllenamentiPage() {
 
   return (
     <main className="shell">
+      <AppTracker />
       <div className="topbar">
         <div className="brand">Allenamenti</div>
         <Link className="chip" href="/home">← Oggi</Link>

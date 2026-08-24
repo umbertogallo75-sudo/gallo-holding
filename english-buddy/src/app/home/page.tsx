@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { PersonalizeBanner } from "@/components/PersonalizeBanner";
+import { AppTracker } from "@/components/AppTracker";
 import { pickFirstSession } from "@/lib/learning/first-session";
 import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
@@ -74,6 +75,7 @@ export default async function HomePage() {
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
+    <AppTracker />
     <NotificationReminder />
     {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
     <section className="pathHeader">
@@ -100,15 +102,15 @@ export default async function HomePage() {
         somebody would open the app for them specifically. Everything else
         lives one tap away rather than on the first screen. */}
     <div className="shortcuts">
-      <Link href="/riunione" className="shortcut" data-track="home_shortcut_meeting">
+      <Link href="/riunione" className="shortcut" data-track="home_shortcut" data-where="riunione">
         <span aria-hidden>🎧</span>
         <span><strong>Sono in riunione</strong>Salvagenti e «come si dice»</span>
       </Link>
-      <Link href="/prepara" className="shortcut" data-track="home_shortcut_prepare">
+      <Link href="/prepara" className="shortcut" data-track="home_shortcut" data-where="prepara">
         <span aria-hidden>📅</span>
         <span><strong>Preparami a un impegno</strong>Una riga e Sam ti prepara</span>
       </Link>
-      <Link href="/rescue" className="shortcut" data-track="home_shortcut_rescue">
+      <Link href="/rescue" className="shortcut" data-track="home_shortcut" data-where="rescue">
         <span aria-hidden>🆘</span>
         <span><strong>Mi serve adesso</strong>Scrivi in italiano, esce in inglese</span>
       </Link>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { trackEvent } from "@/lib/analytics";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { getUserId } from "@/lib/auth";
 
 const bodySchema = z.object({
   name: z.enum([
@@ -18,6 +19,21 @@ const bodySchema = z.object({
     "landing_store_cta",
     "landing_store_ios",
     "landing_store_android",
+    // Inside the app: the path from the three questions to a session that
+    // actually happened. Without these the redesign is an opinion — nobody
+    // could say whether people finish onboarding, or whether the one card on
+    // the home screen is the one they tap.
+    "onboarding_started",
+    "onboarding_done",
+    "onboarding_skipped",
+    "plan_shown",
+    "first_session_started",
+    "first_session_done",
+    "home_session_start",
+    "home_shortcut",
+    "home_all_trainings",
+    "personalize_shown",
+    "personalize_dismissed",
   ]),
   visitorId: z.string().min(8).max(64).optional(),
   ref: z.string().max(200).optional(),
@@ -47,6 +63,11 @@ export async function POST(request: Request) {
   if (page) meta.page = page;
   if (where) meta.where = where;
 
-  await trackEvent(name, { visitorId, meta: Object.keys(meta).length ? meta : undefined });
+  // Signed-in events belong to a person, not just a browser: it is the only
+  // way to ask whether the people who finished onboarding are the ones who
+  // came back.
+  const userId = await getUserId().catch(() => null);
+
+  await trackEvent(name, { visitorId, userId, meta: Object.keys(meta).length ? meta : undefined });
   return NextResponse.json({ ok: true });
 }

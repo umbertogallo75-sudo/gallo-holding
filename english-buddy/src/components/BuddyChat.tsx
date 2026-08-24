@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
 import { EnablePush } from "@/components/EnablePush";
+import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
 
 type Mistake = { incorrect:string; correct:string; note?:string };
@@ -188,6 +189,13 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
   // stranger.
   const exchanges = messages.filter(m => m.role === "user").length;
   const sessionOver = first && exchanges >= 3 && !loading;
+  const startReported = useRef(false);
+  const endReported = useRef(false);
+  useEffect(() => {
+    if (!first) return;
+    if (!startReported.current) { startReported.current = true; track("first_session_started", { where: mode.slice(0, 20) }); }
+    if (sessionOver && !endReported.current) { endReported.current = true; track("first_session_done", { where: mode.slice(0, 20) }); }
+  }, [first, sessionOver, mode]);
 
   return <>
     {offline && (
