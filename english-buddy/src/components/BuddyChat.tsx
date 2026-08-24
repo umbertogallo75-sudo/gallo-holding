@@ -247,6 +247,14 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         </button>
       )}
     </div>
-    <form className="composer" onSubmit={submit}><textarea aria-label="Your answer" placeholder="Answer in English…" value={text} onChange={e=>setText(e.target.value)} /><button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button></form>
+    {/* The microphone lives here, next to what you type, instead of behind a
+        question asked before the conversation starts. Writing is the default
+        because it works in an open office, on a train and in a meeting; the
+        voice is one tap away for whoever can use it. */}
+    <form className="composer" onSubmit={submit}>
+      <textarea aria-label="Your answer" placeholder="Answer in English…" value={text} onChange={e=>setText(e.target.value)} />
+      <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️</a>
+      <button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
+    </form>
   </>;
 }
