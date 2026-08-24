@@ -15,7 +15,7 @@ export default async function HomePage() {
   const database = db();
   const today = new Date().toISOString().slice(0,10);
   const [profileResult, metricResult, sessionsResult] = await Promise.all([
-    database.execute({ sql:"SELECT display_name, starting_level, onboarding_done_at FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
+    database.execute({ sql:"SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
   ]);
@@ -29,12 +29,32 @@ export default async function HomePage() {
   if (!profile) redirect("/onboarding");
   const metric = metricResult.rows[0];
   const name = profile?.display_name ? String(profile.display_name) : "";
+
+  // Where they are in the ninety days, and what they said it was for. The
+  // header answers "am I getting anywhere?" without making anyone open a
+  // Progress tab to find out.
+  const started = profile.path_started_at ? Date.parse(String(profile.path_started_at)) : NaN;
+  // eslint-disable-next-line react-hooks/purity -- server component, rendered fresh per request
+  const now = Date.now();
+  const dayOfPath = Number.isNaN(started)
+    ? 1
+    : Math.min(90, Math.max(1, Math.floor((now - started) / 86_400_000) + 1));
+  let goal = "";
+  try {
+    const parsed = profile.learning_goals ? (JSON.parse(String(profile.learning_goals)) as string[]) : [];
+    goal = parsed[0] ?? "";
+  } catch {
+    goal = "";
+  }
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <NotificationReminder />
     {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
-    <section className="hero"><div className="kicker">Ciao{name ? `, ${name}` : ""}</div><h1>Cosa facciamo oggi?</h1><p className="muted">Scegli quello che entra nel tempo che hai: anche due minuti contano.</p></section>
+    <section className="pathHeader">
+      <div className="pathLine"><strong>Giorno {dayOfPath}</strong> di 90{goal ? <> · {goal.toLowerCase()}</> : null}</div>
+      <div className="pathBar" aria-hidden><span style={{ width: `${Math.round((dayOfPath / 90) * 100)}%` }} /></div>
+    </section>
     {!entitlement.access ? (
       <a href="/abbonamento" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--amber) 55%, var(--line))" }}>
         <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 22%, var(--surface))" }}>🔓</span>

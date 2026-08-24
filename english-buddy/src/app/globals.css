@@ -161,6 +161,14 @@ p { line-height:1.55; font-size:16px; }
 .personalize span { display:block; color:var(--muted); font-size:14.5px; line-height:1.45; margin-top:3px; }
 .personalizeActions { display:flex; gap:8px; margin-top:12px; }
 .personalizeActions .pill { flex:1; text-align:center; text-decoration:none; }
+/* Where you are in the ninety days, at the top of the screen you open every
+   day. It replaces "Cosa facciamo oggi?" — a question the app should be
+   answering, not asking. */
+.pathHeader { margin:6px 0 18px; }
+.pathLine { font-size:15.5px; color:var(--muted); letter-spacing:-.01em; }
+.pathLine strong { color:var(--ink); font-weight:750; }
+.pathBar { height:5px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:9px; }
+.pathBar > span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent), var(--amber)); transition:width .4s ease; }
 .optionRow { display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:15px 17px; margin:7px 0; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .1s ease; }
 .optionRow:active { transform:scale(.98); }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
