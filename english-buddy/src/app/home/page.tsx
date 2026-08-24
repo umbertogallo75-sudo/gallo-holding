@@ -10,6 +10,7 @@ import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { readProfile } from "@/lib/learning/profile-columns";
 import { billingEnforced, getEntitlement } from "@/lib/stripe";
 
 export default async function HomePage() {
@@ -17,7 +18,7 @@ export default async function HomePage() {
   const database = db();
   const today = new Date().toISOString().slice(0,10);
   const [profileResult, metricResult, sessionsResult] = await Promise.all([
-    database.execute({ sql:"SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", args:[userId] }),
+    readProfile("SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", userId, database),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
   ]);

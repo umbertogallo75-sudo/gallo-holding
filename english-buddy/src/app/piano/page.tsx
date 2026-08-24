@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireUserId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { readProfile } from "@/lib/learning/profile-columns";
 import { pickFirstSession } from "@/lib/learning/first-session";
 import { PlanHandoff } from "./PlanHandoff";
 
@@ -17,10 +17,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function PianoPage() {
   const userId = await requireUserId();
-  const result = await db().execute({
-    sql: "SELECT display_name, starting_level, learning_goals, daily_minutes FROM profiles WHERE id = ? LIMIT 1",
-    args: [userId],
-  });
+  const result = await readProfile(
+    "SELECT display_name, starting_level, learning_goals, daily_minutes FROM profiles WHERE id = ? LIMIT 1",
+    userId
+  );
   const row = result.rows[0];
   if (!row) redirect("/onboarding");
 

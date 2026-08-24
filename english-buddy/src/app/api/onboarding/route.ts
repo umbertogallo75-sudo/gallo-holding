@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
+import { healProfileColumns } from "@/lib/learning/profile-columns";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(80).default("Friend"),
@@ -27,6 +28,8 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const { name, level, startingLevel, goals, dailyMinutes, professionalContext, notificationIntensity, timezone } = parsed.data;
+
+  await healProfileColumns();
 
   // Starting level drives the CEFR seed; legacy CEFR input still works.
   // "I don't know" starts at A2 — the diagnostic-through-use loop adjusts from there.

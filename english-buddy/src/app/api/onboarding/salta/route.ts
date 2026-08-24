@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { healProfileColumns } from "@/lib/learning/profile-columns";
 
 /**
  * "No thanks" to the three questions, for somebody who registered before they
@@ -14,6 +15,8 @@ import { db } from "@/lib/db";
 export async function POST() {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await healProfileColumns();
 
   await db().execute({
     sql: `UPDATE profiles SET
