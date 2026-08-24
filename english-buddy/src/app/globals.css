@@ -169,6 +169,27 @@ p { line-height:1.55; font-size:16px; }
 .pathLine strong { color:var(--ink); font-weight:750; }
 .pathBar { height:5px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:9px; }
 .pathBar > span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent), var(--amber)); transition:width .4s ease; }
+/* The one coloured thing on the home screen. Everything else is quiet so
+   that this reads as the answer to "what do I do now", which is the question
+   somebody opened the app with. */
+.todayCard { display:block; background:linear-gradient(140deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #0b3a26)); color:#fff; border-radius:22px; padding:22px 22px 20px; box-shadow:0 10px 28px color-mix(in srgb, var(--accent) 32%, transparent); text-decoration:none; transition:transform .12s ease; }
+.todayCard:active { transform:scale(.99); }
+.todayKicker { font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; opacity:.75; }
+.todayTitle { font-size:25px; line-height:1.15; letter-spacing:-.03em; font-weight:800; margin-top:9px; }
+.todayWhy { font-size:15.5px; line-height:1.45; opacity:.86; margin-top:7px; }
+.todayCta { margin-top:18px; font-size:16px; font-weight:800; letter-spacing:.03em; }
+/* Three shortcuts under the session card. Quiet on purpose — the coloured
+   card above is the one thing meant to be tapped by default. */
+.shortcuts { display:grid; gap:8px; margin-top:16px; }
+.shortcut { display:flex; align-items:center; gap:13px; padding:14px 16px; border:1px solid var(--line); border-radius:16px; background:var(--surface); text-decoration:none; color:var(--ink); transition:transform .1s ease, border-color .1s ease; }
+.shortcut:active { transform:scale(.99); }
+.shortcut:hover { border-color:color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.shortcut > span:first-child { font-size:21px; flex-shrink:0; }
+.shortcut strong { display:block; font-size:15.5px; font-weight:720; letter-spacing:-.01em; }
+.shortcut span span, .shortcut > span:last-child { color:var(--muted); font-size:14px; line-height:1.4; }
+.shortcut > span:last-child strong { color:var(--ink); }
+.allTrainings { display:block; text-align:center; margin:16px 0 4px; padding:14px; border:1px dashed var(--line); border-radius:16px; color:var(--muted); font-size:15.5px; font-weight:650; text-decoration:none; }
+.allTrainings:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); color:var(--ink); }
 .optionRow { display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:15px 17px; margin:7px 0; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .1s ease; }
 .optionRow:active { transform:scale(.98); }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }

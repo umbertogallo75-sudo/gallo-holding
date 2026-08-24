@@ -4,7 +4,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { PersonalizeBanner } from "@/components/PersonalizeBanner";
-import { ModeGrid } from "@/components/ModeGrid";
+import { pickFirstSession } from "@/lib/learning/first-session";
+import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -46,6 +47,30 @@ export default async function HomePage() {
   } catch {
     goal = "";
   }
+
+  // Today's session, decided rather than offered. The calendar wins when it
+  // has something to say: a call tomorrow is a better reason to practise than
+  // any rule about levels and goals, and it is the moment the coach earns its
+  // place. Otherwise the same table that chose the first session chooses this
+  // one.
+  const events = await upcomingEvents(userId, today);
+  const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  const imminent = events.find((e) => e.date === today || e.date === tomorrow);
+  const session = imminent
+    ? {
+        mode: "warmup",
+        title: "Preparati a: " + imminent.title,
+        why: imminent.date === today ? "È oggi. Cinque minuti con le frasi esatte che ti serviranno." : "È domani. Cinque minuti adesso e ci arrivi pronto.",
+        href: `/buddy?mode=warmup&q=${encodeURIComponent(imminent.title)}`,
+      }
+    : (() => {
+        const pick = pickFirstSession(
+          profile.starting_level ? String(profile.starting_level) : null,
+          goal || null,
+          Number(profile.daily_minutes ?? 5)
+        );
+        return { ...pick, href: `/buddy?mode=${encodeURIComponent(pick.mode)}` };
+      })();
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
@@ -64,30 +89,35 @@ export default async function HomePage() {
         </div>
       </a>
     ) : null}
-    {isFirstTime ? (
-      <a href="/buddy?mode=levelcheck" className="mode wide firstStep" style={{display:"flex", marginBottom:10}}>
-        <span className="modeIcon" style={{background:"color-mix(in srgb, #1d6b4c 20%, var(--surface))"}}>🧭</span>
-        <div>
-          <div className="modeTitle">Primo passo: scopriamo il tuo livello</div>
-          <div className="modeMeta">Tre minuti di chiacchierata. Niente esame, niente voti.</div>
-        </div>
-      </a>
-    ) : null}
-    <Link href="/riunione" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, #1d6b4c 20%, var(--surface))" }}>🎧</span>
-      <div>
-        <div className="modeTitle">Sei in riunione adesso?</div>
-        <div className="modeMeta">Tienila accanto al portatile: quattro salvagenti per quando ti blocchi e il &laquo;come si dice&raquo;.</div>
-      </div>
-    </Link>
-    <Link href="/prepara" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>📅</span>
-      <div>
-        <div className="modeTitle">Cosa hai in arrivo?</div>
-        <div className="modeMeta">Una riunione, una call, un viaggio: scrivilo in una riga e Sam ti prepara.</div>
-      </div>
-    </Link>
-    <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
+    <a href={isFirstTime ? "/buddy?mode=levelcheck" : session.href} className="todayCard" data-track="home_session_start">
+      <div className="todayKicker">La tua sessione di oggi</div>
+      <div className="todayTitle">{isFirstTime ? "Scopriamo il tuo livello" : session.title}</div>
+      <div className="todayWhy">{isFirstTime ? "Tre minuti di chiacchierata. Niente esame, niente voti." : session.why}</div>
+      <div className="todayCta">INIZIA →</div>
+    </a>
+
+    {/* Three shortcuts, and only three: the situations urgent enough that
+        somebody would open the app for them specifically. Everything else
+        lives one tap away rather than on the first screen. */}
+    <div className="shortcuts">
+      <Link href="/riunione" className="shortcut" data-track="home_shortcut_meeting">
+        <span aria-hidden>🎧</span>
+        <span><strong>Sono in riunione</strong>Salvagenti e «come si dice»</span>
+      </Link>
+      <Link href="/prepara" className="shortcut" data-track="home_shortcut_prepare">
+        <span aria-hidden>📅</span>
+        <span><strong>Preparami a un impegno</strong>Una riga e Sam ti prepara</span>
+      </Link>
+      <Link href="/rescue" className="shortcut" data-track="home_shortcut_rescue">
+        <span aria-hidden>🆘</span>
+        <span><strong>Mi serve adesso</strong>Scrivi in italiano, esce in inglese</span>
+      </Link>
+    </div>
+
+    {/* Always visible, never in the way: the door to all sixteen activities
+        for the days when choosing is the point. */}
+    <Link href="/allenamenti" className="allTrainings" data-track="home_all_trainings">📋 Tutti gli allenamenti →</Link>
+
     {/* Three zeros are the worst possible welcome: the first thing the app
         would tell somebody who has just arrived is that they have done
         nothing. Numbers appear once there is something to count. */}
