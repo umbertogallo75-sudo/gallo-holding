@@ -9,7 +9,10 @@ const bodySchema = z.object({
   // Legacy CEFR field still accepted for backward compatibility.
   level: z.enum(["A1", "A2", "B1", "B2", "C1", "unknown"]).optional(),
   startingLevel: z.enum(["zero", "basics", "independent", "business"]).optional(),
-  goals: z.array(z.string().max(60)).max(10).default(["Business calls and meetings"]),
+  goals: z.array(z.string().max(60)).max(10).default(["Riunioni e call"]),
+  // How long a session should be. It decides which one gets proposed, so it is
+  // stored rather than guessed from behaviour that has not happened yet.
+  dailyMinutes: z.union([z.literal(2), z.literal(5), z.literal(15)]).optional(),
   professionalContext: z.string().trim().max(400).default(""),
   notificationIntensity: z.enum(["low", "normal", "immersive"]).default("immersive"),
   timezone: z.string().max(80).default(""),
@@ -23,7 +26,7 @@ export async function POST(request: Request) {
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  const { name, level, startingLevel, goals, professionalContext, notificationIntensity, timezone } = parsed.data;
+  const { name, level, startingLevel, goals, dailyMinutes, professionalContext, notificationIntensity, timezone } = parsed.data;
 
   // Starting level drives the CEFR seed; legacy CEFR input still works.
   // "I don't know" starts at A2 — the diagnostic-through-use loop adjusts from there.
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
       ? level
       : "A2";
   const translationSupport = startingLevel === "zero" || startingLevel === "basics" || cefr === "A1" ? 1 : 0;
-  const primaryGoal = goals[0] ?? "Business calls and meetings";
+  const primaryGoal = goals[0] ?? "Riunioni e call";
 
   // First-time onboarding vs. profile edit — only the first counts in the funnel.
   const existing = await db().execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
@@ -41,8 +44,8 @@ export async function POST(request: Request) {
   await db().batch(
     [
       {
-        sql: `INSERT INTO profiles (id, display_name, timezone, professional_context, learning_goals, notification_intensity, starting_level, translation_support, path_started_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        sql: `INSERT INTO profiles (id, display_name, timezone, professional_context, learning_goals, notification_intensity, starting_level, translation_support, daily_minutes, path_started_at, onboarding_done_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
               ON CONFLICT(id) DO UPDATE SET
                 display_name = CASE WHEN excluded.display_name = 'Friend' THEN profiles.display_name ELSE excluded.display_name END,
                 timezone = excluded.timezone,
@@ -51,9 +54,11 @@ export async function POST(request: Request) {
                 notification_intensity = excluded.notification_intensity,
                 starting_level = excluded.starting_level,
                 translation_support = excluded.translation_support,
+                daily_minutes = excluded.daily_minutes,
                 path_started_at = COALESCE(profiles.path_started_at, excluded.path_started_at),
+                onboarding_done_at = COALESCE(profiles.onboarding_done_at, excluded.onboarding_done_at),
                 updated_at = CURRENT_TIMESTAMP`,
-        args: [userId, name, timezone, professionalContext || null, JSON.stringify(goals), notificationIntensity, startingLevel ?? null, translationSupport],
+        args: [userId, name, timezone, professionalContext || null, JSON.stringify(goals), notificationIntensity, startingLevel ?? null, translationSupport, dailyMinutes ?? 5],
       },
       {
         sql: `INSERT INTO learning_state (user_id, cefr_level, primary_goal)
