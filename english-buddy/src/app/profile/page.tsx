@@ -48,7 +48,7 @@ export default async function ProfilePage() {
         <div>
           <h2 style={{ margin: 0 }}>{name}</h2>
           {email ? <p className="muted" style={{ margin: "2px 0 0", fontSize: 14.5 }}>{email}</p> : null}
-          <p className="itHint" style={{ marginTop: 4 }}>Sei loggato: i tuoi progressi vengono salvati automaticamente su questo account.</p>
+          <p className="composerNote" style={{ marginTop: 4 }}>Sei loggato: i tuoi progressi vengono salvati automaticamente su questo account.</p>
         </div>
       </section>
 
@@ -63,9 +63,9 @@ export default async function ProfilePage() {
       </section>
 
       <section className="stats">
-        <div className="stat"><strong>{minutes}</strong><span>total minutes</span><div className="itHint">minuti totali</div></div>
-        <div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div>
-        <div className="stat"><strong>{caps}/{CAPABILITIES.length}</strong><span>abilities</span><div className="itHint">abilità reali</div></div>
+        <div className="stat"><strong>{minutes}</strong><span>minuti totali</span></div>
+        <div className="stat"><strong>{interactions}</strong><span>scambi</span></div>
+        <div className="stat"><strong>{caps}/{CAPABILITIES.length}</strong><span>abilità</span></div>
       </section>
 
       <Link href="/abbonamento" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>

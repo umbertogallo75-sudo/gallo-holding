@@ -38,16 +38,16 @@ export default async function RiunionePage({ searchParams }: { searchParams: Pro
               style={{ display: "block", padding: "11px 0", borderBottom: "1px solid var(--line)", textDecoration: "none", color: "inherit" }}
             >
               <strong style={{ fontSize: 16 }}>{item.title}</strong>
-              <div className="itHint">{item.date}{item.time ? ` · ${item.time}` : ""}</div>
+              <div className="composerNote">{item.date}{item.time ? ` · ${item.time}` : ""}</div>
             </Link>
           ))}
-          <p className="itHint" style={{ margin: "10px 0 0" }}>Oppure usa i salvagenti qui sotto senza scegliere nulla.</p>
+          <p className="composerNote" style={{ margin: "10px 0 0" }}>Oppure usa i salvagenti qui sotto senza scegliere nulla.</p>
         </section>
       ) : null}
 
       <MeetingClient phrases={event?.prep?.phrases ?? []} title={event?.title ?? null} />
 
-      <p className="itHint" style={{ margin: "6px 4px 24px", textAlign: "center" }}>
+      <p className="composerNote" style={{ margin: "6px 4px 24px", textAlign: "center" }}>
         Lo schermo resta acceso finché sei qui. Niente registrazione: ExecLingo non ascolta la riunione.
       </p>
     </main>

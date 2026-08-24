@@ -33,18 +33,17 @@ export default async function PhrasebookPage() {
     <main className="shell">
       <div className="topbar"><div className="brand">Phrasebook</div><a className="chip" href="/progress">← Progress</a></div>
       <section className="hero">
-        <div className="kicker">Your phrases</div>
-        <h1>Everything you&rsquo;ve learned.</h1>
-        <p className="muted">Skim it before a meeting or a trip — one minute is enough.</p>
-        <p className="itHint">Il tuo frasario personale: tutte le espressioni imparate e salvate, con l&rsquo;audio. Ripassalo al volo prima di una riunione o di un viaggio.</p>
+        <div className="kicker">Il tuo frasario</div>
+        <h1>Tutto quello che hai imparato.</h1>
+        <p className="muted">Tutte le espressioni che hai imparato, con l&rsquo;audio. Ripassale al volo prima di una riunione o di un viaggio.</p>
       </section>
       <section className="card">
-        <h2>Learning now · In lavorazione ({learning.length})</h2>
-        {learning.length ? learning.map(renderRow) : <p className="muted">Expressions you meet in conversations will collect here. <span className="itHint" style={{ display: "block" }}>Le espressioni incontrate nelle conversazioni si raccoglieranno qui.</span></p>}
+        <h2>In lavorazione ({learning.length})</h2>
+        {learning.length ? learning.map(renderRow) : <p className="muted">Le espressioni che incontri nelle conversazioni si raccoglieranno qui.</p>}
       </section>
       <section className="card">
-        <h2>Mastered ✓ · Padroneggiate ({mastered.length})</h2>
-        {mastered.length ? mastered.map(renderRow) : <p className="muted">Reviewed enough times, expressions land here for good. <span className="itHint" style={{ display: "block" }}>Dopo abbastanza ripassi riusciti, le espressioni si fissano qui.</span></p>}
+        <h2>Padroneggiate ✓ ({mastered.length})</h2>
+        {mastered.length ? mastered.map(renderRow) : <p className="muted">Dopo abbastanza ripassi riusciti, le espressioni si fissano qui.</p>}
       </section>
       <BottomNav active="progress" />
     </main>

@@ -28,15 +28,13 @@ export function ResetForm() {
   }
 
   if (!token) {
-    return <div className="notice">Invalid link. Request a new one from the login page.<span className="itHint" style={{ display: "block" }}>Link non valido: richiedine uno nuovo dalla pagina di accesso.</span></div>;
+    return <div className="notice">Link non valido: richiedine uno nuovo dalla pagina di accesso.</div>;
   }
 
   return (
     <form onSubmit={submit}>
-      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="New password (min 8 characters)" value={code} onChange={(e) => setCode(e.target.value)} />
-      <p className="itHint" style={{ margin: "0 4px 6px" }}>La tua nuova password (minimo 8 caratteri)</p>
-      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Repeat the new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-      <p className="itHint" style={{ margin: "0 4px 6px" }}>Ripeti la nuova password</p>
+      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Nuova password (minimo 8 caratteri)" value={code} onChange={(e) => setCode(e.target.value)} />
+      <input className="field" type="password" autoComplete="new-password" required minLength={8} placeholder="Ripeti la nuova password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       {error ? <div className="notice" style={{ marginBottom: 8 }}>{error}</div> : null}
       <button className="primary full" disabled={loading}>{loading ? "Saving…" : "Save and enter · Salva ed entra"}</button>
     </form>

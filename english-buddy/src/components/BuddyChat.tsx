@@ -52,7 +52,7 @@ function DictationCard({ sentence }: { sentence: string }) {
   const uk = Math.abs(hash) % 2 === 0;
   return (
     <span className="dictation">
-      <span className="dictationLabel">🎧 Listen and type what you hear <span style={{ fontWeight: 400 }}>{uk ? "🇬🇧" : "🇺🇸"}</span> <span className="itHint" style={{ display: "block", fontStyle: "normal" }}>Ascolta e scrivi qui sotto quello che senti (accento {uk ? "britannico" : "americano"})</span></span>
+      <span className="dictationLabel">🎧 Ascolta e scrivi <span style={{ fontWeight: 400 }}>{uk ? "🇬🇧" : "🇺🇸"}</span> <span className="dictationHint">Ascolta e scrivi qui sotto quello che senti (accento {uk ? "britannico" : "americano"})</span></span>
       <span style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
         <Speak text={sentence} compact lang={uk ? "en-GB" : "en-US"} />
         <span className="dictationText">{revealed ? sentence : "• • • • • •"}</span>
@@ -226,13 +226,13 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
       {failedMessage && !loading && (
         <div className="bubble ai">
           ⚠️ {offline ? "Sei offline — la tua risposta è al sicuro." : "Problema di connessione — la tua risposta non è andata persa."}
-          <span className="itHint" style={{display:"block"}}>{offline ? "Appena torna la rete la invio automaticamente." : "Riprovo appena tocchi il pulsante — o da solo appena torna la rete."}</span>
+          <span className="composerNote">{offline ? "Appena torna la rete la invio automaticamente." : "Riprovo appena tocchi il pulsante — o da solo appena torna la rete."}</span>
           {!offline ? <button type="button" className="primary" style={{marginTop:8, padding:"8px 16px", minWidth:0}} onClick={retry}>Riprova</button> : null}
         </div>
       )}
       {suggestions.length > 0 && (
         <div className="suggestBox">
-          <div className="itHint" style={{ marginBottom: 4 }}>Scegli una risposta, poi puoi modificarla prima di inviare:</div>
+          <div className="composerNote" style={{ marginBottom: 4 }}>Scegli una risposta, poi puoi modificarla prima di inviare:</div>
           {suggestions.map((s, i) => (
             <button key={i} type="button" className="optionRow" onClick={() => { setText(s); setSuggestions([]); }}>
               <span>{s}</span>
@@ -252,7 +252,7 @@ export function BuddyChat({ mode, initialQuestion }: { mode:string; initialQuest
         because it works in an open office, on a train and in a meeting; the
         voice is one tap away for whoever can use it. */}
     <form className="composer" onSubmit={submit}>
-      <textarea aria-label="Your answer" placeholder="Answer in English…" value={text} onChange={e=>setText(e.target.value)} />
+      <textarea aria-label="La tua risposta" placeholder="Rispondi in inglese…" value={text} onChange={e=>setText(e.target.value)} />
       <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️</a>
       <button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
     </form>

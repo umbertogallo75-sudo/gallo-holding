@@ -49,7 +49,7 @@ export default async function PreparaPage() {
               style={{ display: "block", padding: "12px 0", borderBottom: "1px solid var(--line)", textDecoration: "none", color: "inherit" }}
             >
               <strong style={{ fontSize: 16 }}>{event.title}</strong>
-              <div className="itHint">
+              <div className="composerNote">
                 {event.date === today ? "oggi" : italianDate(event.date)}
                 {event.time ? ` · ${event.time}` : ""}
                 {event.prep ? ` · ${event.prep.phrases.length} frasi pronte` : ""}

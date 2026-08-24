@@ -23,19 +23,18 @@ export default function ForgotPage() {
       <section className="authCard">
         <div className="brand">ExecLingo</div>
         <div className="hero">
-          <div className="kicker">Recover access</div>
-          <h1>Forgot your password?</h1>
-          <p className="muted">Enter the email you registered with and we&rsquo;ll send you a link to choose a new code.</p>
-          <p className="itHint">Hai dimenticato la password? Inserisci l&rsquo;email con cui ti sei registrato: ti invieremo un link per sceglierne una nuova.</p>
+          <div className="kicker">Recupera l&rsquo;accesso</div>
+          <h1>Password dimenticata?</h1>
+          <p className="muted">Inserisci l&rsquo;email con cui ti sei registrato: ti mandiamo un link per sceglierne una nuova.</p>
         </div>
         {state === "sent" ? (
-          <div className="notice">If this email is registered, you&rsquo;ll receive a reset link within a minute. Check spam too.<span className="itHint" style={{ display: "block" }}>Se l&rsquo;email è registrata riceverai il link entro un minuto. Controlla anche lo spam. Il link vale 30 minuti.</span></div>
+          <div className="notice">Se l&rsquo;email è registrata riceverai il link entro un minuto. Controlla anche lo spam. Il link vale 30 minuti.</div>
         ) : state === "manual" ? (
-          <div className="notice">Email recovery is not active yet. Contact the administrator: they can give you a temporary password right away.<span className="itHint" style={{ display: "block" }}>Il recupero via email non è ancora attivo. Contatta l&rsquo;amministratore: può darti subito una password temporanea, poi la cambierai dal tuo Profilo.</span></div>
+          <div className="notice">Il recupero via email non è ancora attivo. Contatta l&rsquo;amministratore: può darti subito una password temporanea, poi la cambierai dal tuo Profilo.</div>
         ) : (
           <form onSubmit={submit}>
-            <input className="field" type="email" autoComplete="email" required placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <p className="itHint" style={{ margin: "0 4px 6px" }}>L&rsquo;email usata alla registrazione</p>
+            <input className="field" type="email" autoComplete="email" required placeholder="La tua email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <p className="composerNote" style={{ margin: "0 4px 6px" }}>L&rsquo;email usata alla registrazione</p>
             <button className="primary full" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Send reset link · Invia il link"}</button>
           </form>
         )}

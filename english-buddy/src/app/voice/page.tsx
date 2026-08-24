@@ -16,10 +16,9 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
       <div className="topbar"><div className="brand">{diary ? "Diary" : "Voice"}</div><a className="chip" href="/home">← Home</a></div>
       <NotificationReminder />
       <section className="hero">
-        <div className="kicker">{diary ? "Spoken diary" : "Realtime voice"}</div>
-        <h1>{diary ? "Tell me about your day." : "Speak. Really speak."}</h1>
-        <p className="muted">{diary ? "One minute, out loud. The coach listens, then helps you say it better." : "The fastest way to confidence is your own voice."}</p>
-        <p className="itHint">{diary ? "Racconta la tua giornata a voce per un minuto: il coach ascolta e poi ti aiuta a dirla meglio. L'abitudine più potente per sbloccare il parlato." : "Parla davvero: la strada più veloce verso la sicurezza è la tua voce."}</p>
+        <div className="kicker">{diary ? "Diario parlato" : "Voce dal vivo"}</div>
+        <h1>{diary ? "Raccontami la tua giornata." : "Parla. Parla davvero."}</h1>
+        <p className="muted">{diary ? "Un minuto a voce: Sam ascolta e poi ti aiuta a dirla meglio. È l'abitudine più potente per sbloccare il parlato." : "La strada più veloce verso la sicurezza è la tua stessa voce."}</p>
       </section>
       <VoiceClient mode={diary ? "diary" : "voice"} />
       <BottomNav active="home" />

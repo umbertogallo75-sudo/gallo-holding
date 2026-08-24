@@ -94,7 +94,7 @@ export function Speak({ text, compact = false, lang = "en-US" }: { text: string;
     <span className="speakRow">
       <button type="button" className="speakBtn" aria-label="Listen" title="Listen · Ascolta" disabled={busy} onClick={() => play(1)}>{busy ? "…" : "🔊"}</button>
       <button type="button" className="speakBtn" aria-label="Listen slowly" title="Slow · Lento" disabled={busy} onClick={() => play(0.7)}>🐢</button>
-      {!compact ? <span className="itHint" style={{ fontStyle: "normal" }}>listen</span> : null}
+      {!compact ? <span className="speakLabel">ascolta</span> : null}
     </span>
   );
 }

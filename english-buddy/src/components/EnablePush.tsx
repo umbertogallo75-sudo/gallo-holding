@@ -35,7 +35,7 @@ export function EnablePush() {
   }
 
   if (state === "subscribed") {
-    return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Sam&rsquo;s notifications are on. <span className="itHint">Le notifiche di Sam sono attive.</span></p>;
+    return <p className="muted" style={{ fontSize: 13, margin: "4px 2px" }}>🔔 Le notifiche di Sam sono attive.</p>;
   }
 
   // The persistent NotificationReminder bar handles every other state once
@@ -43,31 +43,26 @@ export function EnablePush() {
   if (state === "checking" || state === "unsupported" || state === "denied" || dismissed) return null;
 
   return (
-    <div className="sheetBackdrop" role="dialog" aria-label="Enable notifications">
+    <div className="sheetBackdrop" role="dialog" aria-label="Attiva le notifiche">
       <div className="sheet">
-        <h2>🔔 Hear from Sam</h2>
+        <h2>🔔 Fatti scrivere da Sam</h2>
         <p className="muted">
           {state === "need-install"
-            ? "To get Sam's questions during the day, first add this app to your Home Screen: tap Share → Add to Home Screen, then open it from there."
-            : "ExecLingo was born to give you a coach who texts you during the day — short questions at natural moments, like a friend. Answer when you want; no streaks, no guilt."}
-        </p>
-        <p className="itHint">
-          {state === "need-install"
             ? "L'app nasce per darti un coach che ti scrive durante il giorno. Per ricevere i suoi messaggi, prima installala: Condividi (⬆️) → Aggiungi alla schermata Home, poi aprila dall'icona."
-            : "L'app nasce per darti un coach che ti scrive durante il giorno, come un amico. Attiva le notifiche per riceverne le domande — rispondi quando vuoi."}
+            : "ExecLingo nasce per darti un coach che ti scrive durante il giorno, come un amico: domande brevi nei momenti giusti. Rispondi quando vuoi — nessuna serie da non interrompere, nessun senso di colpa."}
         </p>
         {state !== "need-install" ? (
           <button className="primary full" style={{ marginTop: 12 }} disabled={state === "subscribing"} onClick={enable}>
-            {state === "subscribing" ? "Enabling…" : "Enable notifications · Attiva le notifiche"}
+            {state === "subscribing" ? "Attivo…" : "Attiva le notifiche"}
           </button>
         ) : null}
         {failed ? (
-          <p className="itHint" style={{ marginTop: 8 }}>
+          <p className="composerNote" style={{ marginTop: 8 }}>
             ⚠️ Non sono riuscito ad attivarle da qui. <strong>Su Android</strong>: apri Impostazioni → App → ExecLingo → Notifiche, attiva &ldquo;Consenti notifiche&rdquo; e poi riprova qui. <strong>Su Mac</strong> serve Safari recente o Chrome; <strong>su iPhone</strong> prima installa l&rsquo;app. Puoi continuare comunque e attivarle più tardi.
             {lastPushError ? <span style={{ display: "block", opacity: 0.6, marginTop: 4 }}>Dettaglio tecnico: {lastPushError}</span> : null}
           </p>
         ) : null}
-        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche · Continue" : "Not now · Non ora"}</button>
+        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche" : "Non ora"}</button>
         <p className="warnText">⚠️ Senza notifiche il coach non può cercarti: l&rsquo;app perde la sua forza.</p>
       </div>
     </div>

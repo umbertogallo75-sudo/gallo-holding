@@ -109,21 +109,19 @@ export function VoiceClient({ mode }: { mode?: string }) {
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
           {status === "ended" ? (
             <>
-              <h2>Great session! 🎉</h2>
-              <p className="muted">{mm}:{ss} of real spoken English.</p>
-              <p className="itHint">Ottima sessione: {mm}:{ss} di vero inglese parlato, registrati nei tuoi progressi.</p>
+              <h2>Ottima sessione! 🎉</h2>
+              <p className="muted">{mm}:{ss} di inglese parlato davvero, registrati nei tuoi progressi.</p>
             </>
           ) : (
             <>
-              <h2>Talk with your coach</h2>
-              <p className="muted">A real spoken conversation: the coach listens, answers and gently corrects you. Max 10 minutes.</p>
-              <p className="itHint">Una vera conversazione a voce: il coach ti ascolta, risponde e ti corregge con delicatezza. Serve il permesso del microfono. Massimo 10 minuti a sessione.</p>
+              <h2>Parla con Sam</h2>
+              <p className="muted">Una conversazione vera: ti ascolta, risponde e ti corregge con delicatezza. Serve il permesso del microfono, e dura al massimo 10 minuti.</p>
             </>
           )}
           {status === "error" ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
-          <p className="itHint" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
+          <p className="composerNote" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
           <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} onClick={start}>
-            🎙️ {status === "ended" ? "Talk again · Parla ancora" : "Start talking · Inizia a parlare"}
+            🎙️ {status === "ended" ? "Parla ancora" : "Inizia a parlare"}
           </button>
         </section>
       ) : null}
@@ -131,7 +129,7 @@ export function VoiceClient({ mode }: { mode?: string }) {
       {status === "connecting" ? (
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
           <div className="voiceOrb pulsing">🎙️</div>
-          <p className="muted" style={{ marginTop: 14 }}>Connecting… <span className="itHint">Connessione in corso…</span></p>
+          <p className="muted" style={{ marginTop: 14 }}>Connessione in corso…</p>
         </section>
       ) : null}
 
@@ -139,13 +137,13 @@ export function VoiceClient({ mode }: { mode?: string }) {
         <>
           <section className="card" style={{ textAlign: "center", padding: 24 }}>
             <div className="voiceOrb pulsing">🎙️</div>
-            <p style={{ margin: "12px 0 2px", fontWeight: 750, fontSize: 18 }}>In conversation · {mm}:{ss}</p>
-            <p className="itHint">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
-            <button className="secondary full" style={{ marginTop: 12 }} onClick={stop}>⏹ End conversation · Termina</button>
+            <p style={{ margin: "12px 0 2px", fontWeight: 750, fontSize: 18 }}>In conversazione · {mm}:{ss}</p>
+            <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
+            <button className="secondary full" style={{ marginTop: 12 }} onClick={stop}>⏹ Termina</button>
           </section>
           {lines.length > 0 ? (
             <section className="card">
-              <div className="kicker">Live transcript</div>
+              <div className="kicker">Trascrizione dal vivo</div>
               {lines.map((l, i) => (
                 <p key={i} style={{ margin: "8px 0", fontSize: 15.5 }}>
                   <strong style={{ color: l.role === "coach" ? "var(--brandText)" : "inherit" }}>{l.role === "coach" ? "Coach: " : "You: "}</strong>{l.text}

@@ -28,19 +28,18 @@ export default async function HomePage() {
   // must route brand-new users through onboarding itself.
   if (!profile) redirect("/onboarding");
   const metric = metricResult.rows[0];
-  const name = profile?.display_name ? String(profile.display_name) : "there";
+  const name = profile?.display_name ? String(profile.display_name) : "";
   const minutes = Number(metric?.minutes_practiced || 0), interactions = Number(metric?.interactions || 0), reviewed = Number(metric?.expressions_reviewed || 0);
   return <main className="shell">
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <NotificationReminder />
-    <section className="hero"><div className="kicker">Hello, {name}</div><h1>What can you do right now?</h1><p className="muted">Pick the smallest thing that fits. A useful two minutes still counts.</p><p className="itHint">Cosa riesci a fare adesso? Scegli l&rsquo;attività più piccola che entra nel tuo tempo: anche 2 minuti contano.</p></section>
+    <section className="hero"><div className="kicker">Ciao{name ? `, ${name}` : ""}</div><h1>Cosa facciamo oggi?</h1><p className="muted">Scegli quello che entra nel tempo che hai: anche due minuti contano.</p></section>
     {!entitlement.access ? (
       <a href="/abbonamento" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--amber) 55%, var(--line))" }}>
         <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 22%, var(--surface))" }}>🔓</span>
         <div>
-          <div className="modeTitle">Unlock your coach</div>
-          <div className="modeMeta">The 3-minute level check is free — full training needs an active plan</div>
-          <div className="itHint">{embedded ? "Il test del livello (3 minuti) è gratis. Hai un codice aziendale? Inseriscilo qui" : "Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il tuo codice aziendale → tocca qui"}</div>
+          <div className="modeTitle">Sblocca il tuo coach</div>
+          <div className="modeMeta">{embedded ? "Il test del livello (3 minuti) è gratis. Hai un codice aziendale? Inseriscilo qui" : "Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il codice aziendale"}</div>
         </div>
       </a>
     ) : null}
@@ -48,26 +47,23 @@ export default async function HomePage() {
       <a href="/buddy?mode=levelcheck" className="mode wide firstStep" style={{display:"flex", marginBottom:10}}>
         <span className="modeIcon" style={{background:"color-mix(in srgb, #1d6b4c 20%, var(--surface))"}}>🧭</span>
         <div>
-          <div className="modeTitle">First step: find your level</div>
-          <div className="modeMeta">A friendly 3-minute chat — no exam, no scores</div>
-          <div className="itHint">Primo passo: scopri il tuo livello con 3 minuti di chiacchierata. Niente esame, niente voti — e poi si parte: seguimi e in 3 mesi sei operativo in inglese.</div>
+          <div className="modeTitle">Primo passo: scopriamo il tuo livello</div>
+          <div className="modeMeta">Tre minuti di chiacchierata. Niente esame, niente voti.</div>
         </div>
       </a>
     ) : null}
     <Link href="/riunione" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
       <span className="modeIcon" style={{ background: "color-mix(in srgb, #1d6b4c 20%, var(--surface))" }}>🎧</span>
       <div>
-        <div className="modeTitle">In a meeting right now?</div>
-        <div className="modeMeta">Lifelines, your phrases, and &ldquo;how do I say…&rdquo; — one thumb</div>
-        <div className="itHint">Modalità Riunione: tienila accanto al portatile mentre parli. Quattro salvagenti per quando ti blocchi, le tue frasi e il &ldquo;come si dice&rdquo;.</div>
+        <div className="modeTitle">Sei in riunione adesso?</div>
+        <div className="modeMeta">Tienila accanto al portatile: quattro salvagenti per quando ti blocchi e il &laquo;come si dice&raquo;.</div>
       </div>
     </Link>
     <Link href="/prepara" className="mode wide" style={{ display: "flex", marginBottom: 10 }}>
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>📅</span>
       <div>
-        <div className="modeTitle">What&rsquo;s coming up?</div>
-        <div className="modeMeta">A meeting, a call, a trip — Sam gets you ready for it</div>
-        <div className="itHint">Hai una riunione, una call o un viaggio? Scrivilo in una riga: Sam ti prepara le frasi che ti serviranno e le domande che ti faranno, e il giorno prima te lo ricorda.</div>
+        <div className="modeTitle">Cosa hai in arrivo?</div>
+        <div className="modeMeta">Una riunione, una call, un viaggio: scrivilo in una riga e Sam ti prepara.</div>
       </div>
     </Link>
     <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
@@ -75,14 +71,13 @@ export default async function HomePage() {
         would tell somebody who has just arrived is that they have done
         nothing. Numbers appear once there is something to count. */}
     {sessionCount > 0 ? (
-      <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
+      <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minuti oggi</span></div><div className="stat"><strong>{interactions}</strong><span>scambi</span></div><div className="stat"><strong>{reviewed}</strong><span>ripassi</span></div></section>
     ) : null}
     <a href="/partner/dashboard" className="mode wide" style={{ display: "flex", marginTop: 10 }}>
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>🤝</span>
       <div>
-        <div className="modeTitle">Recommend ExecLingo, earn 5%</div>
-        <div className="modeMeta">Share your personal link — every sale pays you back</div>
-        <div className="itHint">Ti trovi bene? Consiglia ExecLingo con il tuo link personale e guadagni il 5% su ogni vendita: immagini pronte e condivisione WhatsApp in un tocco</div>
+        <div className="modeTitle">Consiglia ExecLingo, guadagni il 5%</div>
+        <div className="modeMeta">Il tuo link personale: su ogni vendita prendi il 5%, con le immagini già pronte da condividere.</div>
       </div>
     </a>
     <EnablePush />
