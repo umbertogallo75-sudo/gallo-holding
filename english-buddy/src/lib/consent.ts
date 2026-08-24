@@ -80,11 +80,26 @@ export function marketingTags(): { metaPixelId: string; googleAdsId: string; ana
   return {
     metaPixelId: (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "").trim(),
     googleAdsId: (process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "").trim(),
-    // Google Analytics 4. It rides the same gtag loader as the Ads tag: one
-    // script, two configs, and — the reason it belongs here rather than in the
-    // layout — one consent gate. An analytics tag that loads before the
-    // visitor has answered the banner is the exact thing the banner exists to
-    // prevent.
+    // Google Analytics 4, and a warning: as of 25 August 2026 this must stay
+    // EMPTY.
+    //
+    // The Ads tag AW-18392308446 already carries G-Y5BX21MQYQ as a configured
+    // destination — verified by reading the loader Google itself serves for
+    // that id, which declares both. Analytics is therefore already collecting
+    // whenever the tag fires, and setting this variable would add a second
+    // config for the same property: every page view counted twice, in the
+    // property's first weeks, invisibly.
+    //
+    // Fill it only if that destination is ever removed on Google's side, so
+    // the site configures GA4 explicitly instead. Either mechanism is fine;
+    // both at once is not. Check first at
+    // https://www.googletagmanager.com/gtag/js?id=AW-18392308446 — if the G-
+    // id appears in there, leave this alone.
+    //
+    // It rides the same loader as the Ads tag, which is the reason it lives
+    // here rather than in the layout: one consent gate. An analytics tag that
+    // loads before the visitor has answered the banner is the exact thing the
+    // banner exists to prevent.
     analyticsId: (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "").trim(),
   };
 }
