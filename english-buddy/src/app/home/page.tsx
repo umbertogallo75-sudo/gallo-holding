@@ -19,7 +19,8 @@ export default async function HomePage() {
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
   ]);
-  const isFirstTime = Number(sessionsResult.rows[0]?.c ?? 0) === 0;
+  const sessionCount = Number(sessionsResult.rows[0]?.c ?? 0);
+  const isFirstTime = sessionCount === 0;
   const entitlement = billingEnforced() ? await getEntitlement(userId) : { access: true };
   const embedded = await isEmbeddedApp();
   const profile = profileResult.rows[0];
@@ -70,7 +71,12 @@ export default async function HomePage() {
       </div>
     </Link>
     <ModeGrid beginner={["zero","basics"].includes(String(profile.starting_level ?? ""))} />
-    <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
+    {/* Three zeros are the worst possible welcome: the first thing the app
+        would tell somebody who has just arrived is that they have done
+        nothing. Numbers appear once there is something to count. */}
+    {sessionCount > 0 ? (
+      <section className="stats"><div className="stat"><strong>{minutes}</strong><span>minutes today</span><div className="itHint">minuti oggi</div></div><div className="stat"><strong>{interactions}</strong><span>interactions</span><div className="itHint">interazioni</div></div><div className="stat"><strong>{reviewed}</strong><span>reviews</span><div className="itHint">ripassi</div></div></section>
+    ) : null}
     <a href="/partner/dashboard" className="mode wide" style={{ display: "flex", marginTop: 10 }}>
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>🤝</span>
       <div>
