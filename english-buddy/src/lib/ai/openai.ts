@@ -38,6 +38,9 @@ export async function runStructured(
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
+      // Deliberately not moved to the 5.6 family: it is 1.6x-3x the price for
+      // a turn that is already accurate. Revisit before 11 December 2026, when
+      // the gpt-5 snapshot behind this alias is retired.
       model: process.env.OPENAI_MODEL || "gpt-5",
       instructions,
       input,

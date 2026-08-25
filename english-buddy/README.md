@@ -59,7 +59,7 @@ Open http://localhost:3000, enter your `APP_ACCESS_CODE`, complete the 60-second
 
 ## Roadmap
 
-All six phases shipped: Phase 2 Web Push Buddy notifications · Phase 3 Listen + Type dictation · Phase 4 realtime voice (WebRTC + gpt-realtime-mini, 10-min capped) · Phase 5 deep adaptation (automatic CEFR progression from skill evidence, auto-fading Italian support, performance-signal difficulty calibration, spaced-repetition woven into push notifications) · Phase 6 polish (offline shell v3, branded 404, tactile UI). Next ideas: richer accent/listening stages, weekly email digest.
+All six phases shipped: Phase 2 Web Push Buddy notifications · Phase 3 Listen + Type dictation · Phase 4 realtime voice (WebRTC + gpt-realtime-2.1, 10-min capped) · Phase 5 deep adaptation (automatic CEFR progression from skill evidence, auto-fading Italian support, performance-signal difficulty calibration, spaced-repetition woven into push notifications) · Phase 6 polish (offline shell v3, branded 404, tactile UI). Next ideas: richer accent/listening stages, weekly email digest.
 
 ## Docs
 

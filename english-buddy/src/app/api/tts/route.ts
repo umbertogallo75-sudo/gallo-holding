@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { ttsRequest } from "@/lib/tts-request";
 
 export const maxDuration = 30;
+
+// `tts-1` has no way to be told *how* to read: it just reads. The newer
+// speech model takes delivery notes, which is the whole point for an app
+// whose job is pronunciation — the slow button can now actually articulate
+// instead of merely playing the same take stretched out.
+const TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 
 const bodySchema = z.object({
   text: z.string().trim().min(1).max(400),
@@ -37,14 +44,16 @@ export async function POST(request: Request) {
   const response = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: process.env.OPENAI_TTS_MODEL || "tts-1",
-      // Male and warm, to match the voice Sam already has on iOS.
-      voice: process.env.SAM_TTS_VOICE || "onyx",
-      input: parsed.data.text.replace(/\([^)]*\)/g, ""),
-      speed: parsed.data.rate ?? 0.95,
-      response_format: "mp3",
-    }),
+    body: JSON.stringify(
+      ttsRequest({
+        model: TTS_MODEL,
+        // Male and warm, to match the voice Sam already has on iOS.
+        voice: process.env.SAM_TTS_VOICE || "onyx",
+        text: parsed.data.text,
+        rate: parsed.data.rate,
+        lang: parsed.data.lang,
+      })
+    ),
   }).catch(() => null);
 
   if (!response?.ok) {

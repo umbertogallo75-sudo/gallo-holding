@@ -9,7 +9,15 @@ import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 export const maxDuration = 30;
 
 // Best-available speech model, per product decision: quality over cost.
-const VOICE_MODEL = process.env.VOICE_MODEL || "gpt-realtime";
+// `gpt-realtime` is deprecated and shuts down on 20 January 2027; 2.1
+// is its GA successor and costs exactly the same per minute of audio.
+const VOICE_MODEL = process.env.VOICE_MODEL || "gpt-realtime-2.1";
+
+// What turns the learner's speech into the text Sam reasons about — and into
+// the transcript the end-of-session review is built from. `gpt-transcribe`
+// replaced `gpt-4o-transcribe` as the recommended model and is 25% cheaper
+// per minute, which matters here because it runs for the whole call.
+const TRANSCRIBE_MODEL = process.env.VOICE_TRANSCRIBE_MODEL || "gpt-transcribe";
 
 /**
  * Creates a short-lived OpenAI Realtime token so the browser can open a
@@ -69,7 +77,7 @@ Conversation rules:
         model: VOICE_MODEL,
         instructions,
         audio: {
-          input: { transcription: { model: "gpt-4o-transcribe" } },
+          input: { transcription: { model: TRANSCRIBE_MODEL } },
           // Sam is male with a warm, gentle delivery: cedar is the natural
           // male voice in the GA Realtime lineup.
           output: { voice: "cedar" },
