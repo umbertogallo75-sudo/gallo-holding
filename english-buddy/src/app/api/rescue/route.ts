@@ -6,6 +6,7 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { ensureProfile, saveExpression } from "@/lib/learning/service";
+import { modelFor } from "@/lib/ai/models";
 
 export const maxDuration = 30;
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+        model: modelFor("text"),
         instructions: `Translate what an Italian professional wants to say into English in three registers:
 - simple: short, easy words, easy to pronounce (for a ${level} learner to say aloud right now)
 - natural: how a fluent speaker would naturally say it

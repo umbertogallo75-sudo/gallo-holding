@@ -2,15 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { modelFor } from "@/lib/ai/models";
 import { SAM_VOICE, ttsRequest } from "@/lib/tts-request";
 
 export const maxDuration = 30;
-
-// `tts-1` has no way to be told *how* to read: it just reads. The newer
-// speech model takes delivery notes, which is the whole point for an app
-// whose job is pronunciation — the slow button can now actually articulate
-// instead of merely playing the same take stretched out.
-const TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 
 const bodySchema = z.object({
   text: z.string().trim().min(1).max(400),
@@ -46,7 +41,7 @@ export async function POST(request: Request) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(
       ttsRequest({
-        model: TTS_MODEL,
+        model: modelFor("speech"),
         voice: process.env.SAM_TTS_VOICE || SAM_VOICE,
         text: parsed.data.text,
         rate: parsed.data.rate,

@@ -1,4 +1,5 @@
 import { coachResultJsonSchema, coachResultSchema, type CoachResult } from "./types";
+import { modelFor } from "./models";
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
 
@@ -38,10 +39,7 @@ export async function runStructured(
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      // The flagship of the current family. Quality is the product here, so
-      // this is the top tier rather than the balanced one — with effort "low",
-      // which keeps a conversational turn conversational.
-      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+      model: modelFor("text"),
       instructions,
       input,
       reasoning: { effort: "low" },

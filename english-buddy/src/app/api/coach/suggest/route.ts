@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { modelFor } from "@/lib/ai/models";
 
 export const maxDuration = 30;
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+        model: modelFor("text"),
         instructions: `An Italian ${level}-level English learner doesn't know how to answer their coach's question. Suggest exactly 3 short, natural example answers in English they could give, matched to their level (simple for A1/A2). First person, ready to use, max 14 words each, no numbering.${context ? ` Their background: ${context}.` : ""}`,
         input: `The coach asked: ${parsed.data.question}`,
         reasoning: { effort: "low" },

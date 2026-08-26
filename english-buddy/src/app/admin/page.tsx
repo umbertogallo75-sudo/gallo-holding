@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CAPABILITIES } from "@/lib/learning/capabilities";
+import { modelStatus } from "@/lib/ai/models";
 import { AdminActions } from "./AdminActions";
 import { AdminTools } from "./AdminTools";
 
@@ -15,6 +16,11 @@ export default async function AdminPage() {
   const userId = await getUserId();
   if (!userId) redirect("/login");
   if (userId !== OWNER_ID) redirect("/home");
+
+  // Which models are actually serving. Reads the environment of the running
+  // deployment, which is the only place the answer really lives.
+  const models = modelStatus();
+  const overridden = models.filter((m) => m.overridden);
 
   const database = db();
   const [profiles, minutes, lastSessions, caps, pushes, lastNotifs, authUsers] = await Promise.all([
@@ -257,6 +263,31 @@ export default async function AdminPage() {
           </p>
         </section>
       ) : null}
+      <section className="card">
+        <h2 style={{ marginTop: 0 }}>🧠 Modelli in uso</h2>
+        <div style={{ overflowX: "auto" }}>
+          <table className="adminTable">
+            <thead><tr><th>Dove</th><th>Modello attivo</th><th></th></tr></thead>
+            <tbody>
+              {models.map((m) => (
+                <tr key={m.slot}>
+                  <td>{m.label}<br /><span className="muted" style={{ fontSize: 12 }}>{m.why}</span></td>
+                  <td><code>{m.inUse}</code></td>
+                  <td>{m.overridden ? <strong>⚠️ non è {m.best}</strong> : "✅"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="itHint" style={{ marginBottom: 0 }}>
+          Questo è ciò che sta girando <strong>adesso in produzione</strong>, non ciò che c&rsquo;è scritto nel codice.
+          {overridden.length ? (
+            <> Una variabile d&rsquo;ambiente sta tenendo indietro {overridden.length === 1 ? "una voce" : `${overridden.length} voci`}: cancella {overridden.map((m, i) => <span key={m.slot}>{i ? ", " : ""}<code>{m.env}</code></span>)} dalle impostazioni del progetto e il valore giusto torna da solo al primo rideploy.</>
+          ) : (
+            <> Nessuna variabile d&rsquo;ambiente sta scavalcando le scelte fatte nel codice.</>
+          )}
+        </p>
+      </section>
       {rows.map((r) => (
         <section className="card" key={r.id}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>

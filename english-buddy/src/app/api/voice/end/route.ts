@@ -4,6 +4,7 @@ import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureProfile, recordDailyMetric, saveExpression, saveMistake } from "@/lib/learning/service";
 import { randomUUID } from "node:crypto";
+import { modelFor } from "@/lib/ai/models";
 
 export const maxDuration = 30;
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+          model: modelFor("text"),
           instructions:
             "From this spoken-English practice transcript, extract ONLY clearly worthwhile learning items for an Italian professional: up to 2 real mistakes the learner made (with the natural correction) and up to 2 useful expressions the coach taught. Ignore transcription noise and pronunciation slips. Empty arrays are fine.",
           input: transcript.map((l) => `${l.role === "you" ? "LEARNER" : "COACH"}: ${l.text}`).join("\n"),

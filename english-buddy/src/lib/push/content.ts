@@ -3,6 +3,7 @@
  * fresh, personalized questions; falls back to a curated pool so the scheduler
  * never fails on upstream errors.
  */
+import { modelFor } from "@/lib/ai/models";
 
 const POOL = [
   "What was the hardest decision you made today?",
@@ -92,7 +93,7 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+        model: modelFor("text"),
         instructions: `You are Sam, the user's English coach and English-speaking friend who texts short questions during the day to help an ${context.level || "intermediate"}-level professional practice English naturally.
 ${
   beginner
