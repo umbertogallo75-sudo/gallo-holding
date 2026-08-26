@@ -81,27 +81,24 @@ export function renderEmail(options: {
     : "";
   const cta =
     ctaLabel && ctaUrl
-      ? `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:26px auto 8px;">
-           <tr><td style="border-radius:999px;background:#2f8f63;background-image:linear-gradient(135deg,#2f8f63,#37a774);text-align:center;box-shadow:0 4px 14px rgba(47,143,99,.35);">
-             <a href="${ctaUrl}" style="display:inline-block;padding:16px 36px;color:#ffffff;font-weight:700;font-size:16px;text-decoration:none;border-radius:999px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${ctaLabel}</a>
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" align="left" style="margin:22px 0 6px;">
+           <tr><td style="border-radius:8px;background:#2f8f63;text-align:center;">
+             <a href="${ctaUrl}" style="display:inline-block;padding:13px 28px;color:#ffffff;font-weight:600;font-size:15px;text-decoration:none;border-radius:8px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${ctaLabel}</a>
            </td></tr>
-         </table>
-         <p style="margin:10px 0 0;font-size:12.5px;color:#8a917f;text-align:center;word-break:break-all;">Se il pulsante non funziona, copia questo link nel browser:<br><a href="${ctaUrl}" style="color:#2f8f63;">${ctaUrl}</a></p>`
+         </table>`
       : "";
   return `<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#eef0ea;">
+<body style="margin:0;padding:0;background-color:#ffffff;">
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef0ea;">
-    <tr><td align="center" style="padding:30px 14px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background-color:#ffffff;border-radius:20px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        <tr><td style="background-color:#0a100c;padding:30px 30px 26px;text-align:center;">
-          <div style="display:inline-block;width:50px;height:50px;line-height:50px;border-radius:15px;background-image:linear-gradient(135deg,#2f8f63,#e6a94e);color:#0a100c;font-weight:800;font-size:21px;font-family:Georgia,serif;">EL</div>
-          <div style="color:#f4f6f0;font-size:21px;font-weight:800;letter-spacing:.1em;margin-top:12px;">EXECLINGO</div>
-          <div style="color:#9aa396;font-size:12.5px;margin-top:5px;letter-spacing:.02em;">In 3 mesi sei operativo in inglese</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;">
+    <tr><td align="center" style="padding:16px 14px 30px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background-color:#ffffff;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <tr><td style="padding:26px 30px 0;">
+          <div style="color:#18201a;font-size:15px;font-weight:700;letter-spacing:.08em;">EXECLINGO</div>
         </td></tr>
-        <tr><td style="padding:32px 30px 26px;">
-          <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;color:#18201a;">${heading}</h1>
+        <tr><td style="padding:20px 30px 22px;">
+          <h1 style="margin:0 0 14px;font-size:20px;font-weight:600;line-height:1.25;color:#18201a;">${heading}</h1>
           ${bodyHtml}
           ${cta}
         </td></tr>

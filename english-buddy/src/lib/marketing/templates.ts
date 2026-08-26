@@ -28,15 +28,15 @@ export function welcomeTrial(userId: string, name: string | null): Message {
   const url = trialUrl(userId);
   const first = firstName(name);
   return {
-    subject: first ? `${first}, il tuo inglese parte adesso — 24 ore gratis` : "Il tuo inglese parte adesso — 24 ore gratis",
+    subject: first ? `${first}, il tuo accesso a ExecLingo è pronto` : "Il tuo accesso a ExecLingo è pronto",
     html: renderEmail({
       preheader: "Attiva 24 ore di ExecLingo completo. E se completi il percorso del primo giorno, te ne regaliamo altre 24.",
       heading: `Benvenuto${first ? " " + first : ""}. Il tuo coach è già pronto.`,
       bodyHtml: `<p style="${P}">Hai creato il tuo account <strong>ExecLingo</strong>. Sam — il tuo coach — sa già parlare con te: chat, voce, riunioni simulate, English Rescue quando ti blocchi davanti a un cliente.</p>
-        <p style="${P}">🎁 <strong>Ti apriamo tutto per 24 ore, gratis.</strong> Nessuna carta, nessun impegno: un clic qui sotto e il tuo assaggio parte.</p>
-        <p style="${P}">⏳ E c'è di più: se <strong>entro quelle 24 ore</strong> rispondi alle tre domande del percorso e fai <strong>almeno 10 minuti</strong> di pratica, ti regaliamo <strong>altre 24 ore</strong>. Due giorni interi per capire se l'inglese può davvero smettere di essere un problema. Dopo, se vorrai continuare, si passa all'abbonamento.</p>
-        <p style="${SMALL}">🏢 La tua azienda ti ha dato un codice? Inseriscilo in Profilo → Abbonamento e non serve altro.</p>`,
-      ctaLabel: "🎁 Attiva le mie 24 ore gratis",
+        <p style="${P}"><strong>Ti apriamo tutto per 24 ore, senza costi.</strong> Nessuna carta, nessun impegno: un clic qui sotto e il tuo assaggio parte.</p>
+        <p style="${P}">E c'è dell'altro: se <strong>entro quelle 24 ore</strong> rispondi alle tre domande del percorso e fai <strong>almeno 10 minuti</strong> di pratica, ti regaliamo <strong>altre 24 ore</strong>. Due giorni interi per capire se l'inglese può davvero smettere di essere un problema. Dopo, se vorrai continuare, si passa all'abbonamento.</p>
+        <p style="${SMALL}">La tua azienda ti ha dato un codice? Inseriscilo in Profilo → Abbonamento e non serve altro.</p>`,
+      ctaLabel: "Attiva il tuo accesso",
       ctaUrl: url,
       footerNote: "Hai ricevuto questa email perché ti sei appena registrato a ExecLingo.",
       unsubscribeUrl: unsubscribeUrl(userId),
@@ -49,12 +49,12 @@ export function welcomeTrial(userId: string, name: string | null): Message {
 export function trialReminder(userId: string, name: string | null, hours: number): Message {
   const url = `${appBase()}/home`;
   return {
-    subject: `Ti restano ${hours} ore di ExecLingo completo`,
+    subject: `Ti restano ${hours} ore di accesso completo`,
     html: renderEmail({
       preheader: "Tre domande e dieci minuti: bastano a raddoppiare il tuo tempo gratis.",
       heading: `${hello(name)}mancano ${hours} ore.`,
       bodyHtml: `<p style="${P}">Il tuo accesso completo a Sam è ancora aperto, ma non per molto.</p>
-        <p style="${P}">✅ Rispondi alle <strong>tre domande</strong> del percorso (30 secondi) e fai <strong>10 minuti</strong> di pratica: il tuo tempo gratis <strong>raddoppia</strong>, altre 24 ore, senza pagare nulla.</p>
+        <p style="${P}">Rispondi alle <strong>tre domande</strong> del percorso (30 secondi) e fai <strong>10 minuti</strong> di pratica: il tuo tempo gratis <strong>raddoppia</strong>, altre 24 ore, senza pagare nulla.</p>
         <p style="${SMALL}">Dieci minuti sono una call in metropolitana, o la coda alla cassa. È esattamente così che si impara: poco, ma tutti i giorni.</p>`,
       ctaLabel: "Continua da dove eri",
       ctaUrl: url,
@@ -69,7 +69,7 @@ export function trialReminder(userId: string, name: string | null, hours: number
 export function trialExtended(userId: string, name: string | null): Message {
   const url = `${appBase()}/home`;
   return {
-    subject: "Fatto! Altre 24 ore gratis sono tue 🎁",
+    subject: "Hai completato il primo giorno: altre 24 ore per te",
     html: renderEmail({
       preheader: "Hai completato il percorso del primo giorno. Il tuo accesso continua per altre 24 ore.",
       heading: `${hello(name)}te le sei guadagnate.`,
@@ -125,7 +125,7 @@ export function winBack(
 
   if (step.stage === "soft") {
     return {
-      subject: "Sam ti aspetta ancora 👋",
+      subject: "Tutto bene?",
       html: renderEmail({
         preheader: "Tre giorni non cancellano niente. Cinque minuti oggi rimettono tutto in moto.",
         heading: `${hello(name)}tutto bene?`,
@@ -211,15 +211,15 @@ export function eveningRecap(
   const url = `${appBase()}/progress`;
   const streakLine =
     stats.streak >= 2
-      ? `<p style="${P}">🔥 <strong>${stats.streak} giorni di fila.</strong> Questa è la parte che conta: non la giornata buona, la catena.</p>`
+      ? `<p style="${P}"><strong>${stats.streak} giorni di fila.</strong> Questa è la parte che conta: non la giornata buona, la catena.</p>`
       : `<p style="${P}">Domani è il giorno che decide tutto: due giorni di fila valgono più di una domenica intera.</p>`;
   return {
-    subject: `${stats.minutes} minuti di inglese oggi 👏`,
+    subject: `${stats.minutes} minuti di inglese oggi`,
     html: renderEmail({
       preheader: `Oggi hai parlato inglese per ${stats.minutes} minuti. Ecco cosa ti porti a casa.`,
       heading: `${hello(name)}oggi hai fatto sul serio.`,
-      bodyHtml: `<p style="${P}">⏱️ <strong>${stats.minutes} minuti</strong> di inglese vero — non di teoria, di conversazione.</p>
-        ${stats.expressions > 0 ? `<p style="${P}">🧠 <strong>${stats.expressions} espressioni</strong> ripassate: sono quelle che Sam ti riproporrà quando stanno per sfuggirti.</p>` : ""}
+      bodyHtml: `<p style="${P}"><strong>${stats.minutes} minuti</strong> di inglese vero — non di teoria, di conversazione.</p>
+        ${stats.expressions > 0 ? `<p style="${P}"><strong>${stats.expressions} espressioni</strong> ripassate: sono quelle che Sam ti riproporrà quando stanno per sfuggirti.</p>` : ""}
         ${streakLine}
         <p style="${SMALL}">Domani ti basta lo stesso identico gesto: apri, e parla per cinque minuti. È tutto qui il metodo.</p>`,
       ctaLabel: "Guarda i tuoi progressi",
