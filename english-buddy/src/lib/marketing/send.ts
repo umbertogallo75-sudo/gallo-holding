@@ -63,19 +63,27 @@ export async function sendMarketing(
      * earned, and a campaign the owner deliberately wrote, do not.
      */
     throttleHours?: number;
+    /**
+     * The clock. Threaded through rather than read from the system, the same
+     * way the rest of the scheduling is: a pass that consults `Date.now()`
+     * halfway cannot be replayed, and cannot be tested across days at all.
+     */
+    now?: Date;
   },
   client: Client = db(),
   send: Sender = sendEmail
 ): Promise<SendResult> {
-  const { userId, email, kind, claimKey, message, throttleHours } = opts;
+  const { userId, email, kind, claimKey, message, throttleHours, now = new Date() } = opts;
   if (!isRealAddress(email)) return "invalid";
   if (await isUnsubscribed(userId, client)) return "unsubscribed";
-  if (throttleHours && (await sentWithin(userId, throttleHours, client))) return "throttled";
+  if (throttleHours && (await sentWithin(userId, throttleHours, client, now))) return "throttled";
 
   const claim = async () =>
     client.execute({
-      sql: "INSERT OR IGNORE INTO email_sends (claim_key, user_id, kind) VALUES (?, ?, ?)",
-      args: [claimKey, userId, kind],
+      // sent_at written from the caller's clock, not SQLite's, so the
+      // throttle above measures against the same time the pass is using.
+      sql: "INSERT OR IGNORE INTO email_sends (claim_key, user_id, kind, sent_at) VALUES (?, ?, ?, ?)",
+      args: [claimKey, userId, kind, now.toISOString().slice(0, 19).replace("T", " ")],
     });
   let claimed;
   try {
@@ -117,8 +125,13 @@ export async function sendMarketing(
  * has lost control of itself — and that is the moment people unsubscribe,
  * whatever any individual email said.
  */
-export async function sentWithin(userId: string, hours: number, client: Client = db()): Promise<boolean> {
-  const since = new Date(Date.now() - hours * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
+export async function sentWithin(
+  userId: string,
+  hours: number,
+  client: Client = db(),
+  now: Date = new Date()
+): Promise<boolean> {
+  const since = new Date(now.getTime() - hours * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
   try {
     const result = await client.execute({
       sql: "SELECT 1 FROM email_sends WHERE user_id = ? AND sent_at >= ? LIMIT 1",

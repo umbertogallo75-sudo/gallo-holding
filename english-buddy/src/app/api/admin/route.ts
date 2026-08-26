@@ -25,8 +25,11 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("campaign"),
     segment: z.enum(["all", "no_plan", "paying", "lapsed", "trial_done"]),
-    subject: z.string().trim().min(3).max(120),
-    body: z.string().trim().min(10).max(4000),
+    // Optional here, required below only when actually sending: asking how
+    // many people are in a segment has nothing to do with the letter, and
+    // wanting to know before writing it is the natural order.
+    subject: z.string().trim().max(120).optional(),
+    body: z.string().trim().max(4000).optional(),
     ctaLabel: z.string().trim().max(40).optional(),
     ctaUrl: z.string().trim().url().max(300).optional(),
     // Absent means "tell me who this would reach", present means send.
@@ -92,11 +95,16 @@ export async function POST(request: Request) {
       const audience = await audienceFor(segment);
       return NextResponse.json({ preview: true, segment: SEGMENT_LABELS[segment], audience: audience.length });
     }
-    const paragraphs = data.body.split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+    const subject = (data.subject ?? "").trim();
+    const bodyText = (data.body ?? "").trim();
+    if (subject.length < 3 || bodyText.length < 10) {
+      return NextResponse.json({ error: "Servono un oggetto e un testo prima di inviare." }, { status: 400 });
+    }
+    const paragraphs = bodyText.split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
     const result = await sendCampaign({
       segment,
       campaignId: data.campaignId,
-      subject: data.subject,
+      subject,
       paragraphs,
       cta: data.ctaLabel && data.ctaUrl ? { label: data.ctaLabel, url: data.ctaUrl } : undefined,
     });

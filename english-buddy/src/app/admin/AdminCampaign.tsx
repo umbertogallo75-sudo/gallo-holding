@@ -15,7 +15,7 @@ const SEGMENTS = [
  * purpose: the only irreversible thing on this page is an email that has
  * already left.
  */
-export function AdminCampaign({ from, replyTo, ready: configured }: { from: string; replyTo: string | null; ready: boolean }) {
+export function AdminCampaign({ from, replyTo, startsOn, ready: configured }: { from: string; replyTo: string | null; startsOn: string; ready: boolean }) {
   const [segment, setSegment] = useState("lapsed");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -32,7 +32,12 @@ export function AdminCampaign({ from, replyTo, ready: configured }: { from: stri
       const response = await fetch("/api/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "campaign", segment, subject, body, ctaLabel: ctaLabel || undefined, ctaUrl: ctaUrl || undefined, campaignId }),
+        // Counting asks about the segment only. Sending carries the letter.
+        body: JSON.stringify(
+          campaignId
+            ? { action: "campaign", segment, subject, body, ctaLabel: ctaLabel || undefined, ctaUrl: ctaUrl || undefined, campaignId }
+            : { action: "campaign", segment }
+        ),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore");
@@ -96,12 +101,15 @@ export function AdminCampaign({ from, replyTo, ready: configured }: { from: stri
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-        <button className="secondary" disabled={busy || !ready} onClick={() => void call()}>Quanti sono?</button>
+        <button className="secondary" disabled={busy} onClick={() => void call()}>{busy ? "…" : "Quanti sono?"}</button>
         <button className="primary" disabled={busy || !ready || audience === null} onClick={send}>
           {busy ? "…" : audience === null ? "Prima conta i destinatari" : `Invia a ${audience}`}
         </button>
       </div>
       {status ? <div className="notice" style={{ marginTop: 12 }}>{status}</div> : null}
+      <p className="itHint" style={{ marginBottom: 0 }}>
+        Le email automatiche (benvenuto, prova, riepilogo della sera, solleciti) partono dal <strong>{startsOn}</strong>. Il silenzio si conta da quella data, così nessuno riceve la lettera dura come primo contatto. Le campagne scritte qui partono invece subito.
+      </p>
     </section>
   );
 }

@@ -33,6 +33,24 @@ const REMINDER_WINDOW_MS = 6 * 60 * 60 * 1000;
 
 export type LifecycleReport = Record<string, number | string>;
 
+/**
+ * The day the automatic emails are allowed to start.
+ *
+ * Two jobs, and the second is the one that matters. It stops anything going
+ * out before the date — but it is also the earliest moment silence is counted
+ * from, so nobody arrives at the opening bell already twenty days lapsed and
+ * receives the harshest letter in the set as their first contact. On the
+ * start date everybody stands at day zero; the soft letter can then reach a
+ * genuinely quiet account three days later, in the right order.
+ */
+export function lifecycleStart(): Date {
+  const fallback = new Date("2026-09-01T00:00:00Z");
+  const raw = process.env.LIFECYCLE_START_AT?.trim();
+  if (!raw) return fallback;
+  const at = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(at.getTime()) ? fallback : at;
+}
+
 function day(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -60,6 +78,8 @@ export async function runLifecycleEmails(
   send: Sender | null = null
 ): Promise<LifecycleReport> {
   if (!send && !isEmailConfigured()) return { skipped: "config" };
+  const start = lifecycleStart();
+  if (now < start) return { skipped: "before-start", start: start.toISOString().slice(0, 10) };
   const hour = now.getUTCHours();
   if (hour < DAY_START_UTC || hour >= DAY_END_UTC) return { skipped: "quiet-hours" };
   const evening = hour >= EVENING_START_UTC && hour < EVENING_END_UTC;
@@ -154,7 +174,11 @@ export async function runLifecycleEmails(
       // ladder — they are the clearest case for it.
       const last = lastSessionAt.get(userId);
       const registered = parseStamp(row.created_at);
-      const lastSeen = Number.isFinite(last) ? (last as number) : registered;
+      const seen = Number.isFinite(last) ? (last as number) : registered;
+      // Never earlier than the opening date. Somebody who went quiet weeks
+      // before this system existed has not ignored anything — writing to them
+      // as if they had would be untrue, and the worst possible first contact.
+      const lastSeen = Number.isFinite(seen) ? Math.max(seen, start.getTime()) : NaN;
       if (Number.isFinite(lastSeen)) {
         const days = Math.floor((now.getTime() - lastSeen) / 86_400_000);
         const step = winBackFor(days);
@@ -173,7 +197,7 @@ export async function runLifecycleEmails(
     // A reward that has just been earned arrives now; everything else waits
     // its turn, so nobody gets two automatic emails in a day.
     const throttleHours = kind === "trial_extended" ? undefined : THROTTLE_HOURS;
-    const result = await sendMarketing({ userId, email, kind, claimKey, message, throttleHours }, client, send ?? undefined);
+    const result = await sendMarketing({ userId, email, kind, claimKey, message, throttleHours, now }, client, send ?? undefined);
     if (result === "sent") {
       sends++;
       const bucket = kind.startsWith("win_back") ? kind : kind.replace("trial_", "").replace("evening_recap", "recap");
