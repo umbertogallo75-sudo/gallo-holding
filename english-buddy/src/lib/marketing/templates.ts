@@ -236,12 +236,17 @@ export function broadcast(userId: string, name: string | null, subject: string, 
   const escape = (value: string) =>
     value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const body = paragraphs.map((line) => `<p style="${P}">${escape(line)}</p>`).join("");
+  const first = firstName(name);
   return {
     subject,
     html: renderEmail({
       preheader: paragraphs[0]?.slice(0, 140) ?? subject,
-      heading: `${hello(name)}${subject}`,
-      bodyHtml: body,
+      // The subject stands as the heading, and the greeting is its own line.
+      // Gluing them together produced "Umberto, Cosa puoi farci" — a capital
+      // after a comma, on every campaign, which reads as a mail merge that
+      // nobody proofread.
+      heading: subject,
+      bodyHtml: `${first ? `<p style="${P}">Ciao ${escape(first)},</p>` : ""}${body}`,
       ctaLabel: cta?.label,
       ctaUrl: cta?.url,
       footerNote: "Ricevi questa email perché hai un account ExecLingo.",
