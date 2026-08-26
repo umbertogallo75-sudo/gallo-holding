@@ -44,7 +44,7 @@ Re-running is safe; applied files are tracked in `schema_migrations`.
 | `OPENAI_API_KEY` | yes | Server-side only |
 | `EMAIL_FROM` | yes (email) | Address on a **verified** domain, e.g. `Sam di ExecLingo <sam@execlingo.it>`. Unset falls back to the provider sandbox and lands in spam |
 | `EMAIL_REPLY_TO` | no | Where replies from readers arrive; unset means they are lost |
-| `LIFECYCLE_START_AT` | no | `YYYY-MM-DD`; defaults to `2026-09-01`. Nothing automatic goes out before it, and silence is counted from it |
+| `LIFECYCLE_START_AT` | no | `YYYY-MM-DD`; defaults to `2026-09-15`. Nothing automatic goes out before it, and silence is counted from it |
 | `OPENAI_MODEL` | no | Defaults to `gpt-5.6-sol` |
 | `VOICE_MODEL` | no | Realtime voice; defaults to `gpt-realtime-2.1` |
 | `VOICE_TRANSCRIBE_MODEL` | no | Transcription inside a voice call; defaults to `gpt-transcribe` |

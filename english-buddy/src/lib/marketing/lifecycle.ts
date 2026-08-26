@@ -44,7 +44,10 @@ export type LifecycleReport = Record<string, number | string>;
  * genuinely quiet account three days later, in the right order.
  */
 export function lifecycleStart(): Date {
-  const fallback = new Date("2026-09-01T00:00:00Z");
+  // Moved from 1 to 15 September: the sending domain had no history at all
+  // and the first four messages went to spam. Ten days of warming, with
+  // Postmaster Tools watching, before anything automatic starts.
+  const fallback = new Date("2026-09-15T00:00:00Z");
   const raw = process.env.LIFECYCLE_START_AT?.trim();
   if (!raw) return fallback;
   const at = new Date(`${raw}T00:00:00Z`);

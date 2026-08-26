@@ -32,7 +32,10 @@ describe("the opening date", () => {
   it("is read from the environment, with a safe fallback", () => {
     expect(lifecycleStart().toISOString().slice(0, 10)).toBe("2026-09-01");
     process.env.LIFECYCLE_START_AT = "non-una-data";
-    expect(lifecycleStart().toISOString().slice(0, 10)).toBe("2026-09-01");
+    // A typo in the dashboard must not become "start immediately".
+    expect(lifecycleStart().toISOString().slice(0, 10)).toBe("2026-09-15");
+    delete process.env.LIFECYCLE_START_AT;
+    expect(lifecycleStart().toISOString().slice(0, 10)).toBe("2026-09-15");
   });
 
   it("sends nothing at all before it", async () => {
