@@ -1,31 +1,41 @@
 import { googleAdsSignupTarget } from "@/lib/consent";
 
 /**
- * Reports a completed registration to Google Ads.
- *
- * Only fires when the visitor accepted the advertising cookies, because
- * `gtag` simply does not exist otherwise — the tag is never loaded without a
- * yes. That is not a limitation to work around: it means Google will always
- * count fewer registrations than the admin dashboard does, and the first-party
- * funnel stays the number to trust. Google's copy exists to steer the bidding,
- * not to measure the business.
+ * Reports a completed registration to the advertising platforms whose tags
+ * are available. Those tags are loaded only after advertising consent, so an
+ * absent function means the event must not be sent. First-party analytics
+ * remains the source of truth for the business.
  */
-
 type Gtag = (command: string, action: string, params?: Record<string, unknown>) => void;
+type Fbq = (command: string, eventName: string, params?: Record<string, unknown>) => void;
 
-/** Once per page load: a re-render must never report a second signup. */
-let reported = false;
+/** Once per platform and page load: a re-render must never double count. */
+let googleReported = false;
+let metaReported = false;
 
 export function reportSignupConversion(): void {
-  if (typeof window === "undefined" || reported) return;
+  if (typeof window === "undefined") return;
+
+  const trackingWindow = window as unknown as { gtag?: Gtag; fbq?: Fbq };
   const sendTo = googleAdsSignupTarget();
-  if (!sendTo) return;
-  const gtag = (window as unknown as { gtag?: Gtag }).gtag;
-  if (typeof gtag !== "function") return;
-  reported = true;
-  try {
-    gtag("event", "conversion", { send_to: sendTo });
-  } catch {
-    // A campaign counter is never worth interrupting a registration for.
+  const gtag = trackingWindow.gtag;
+
+  if (!googleReported && sendTo && typeof gtag === "function") {
+    try {
+      gtag("event", "conversion", { send_to: sendTo });
+      googleReported = true;
+    } catch {
+      // A campaign counter is never worth interrupting a registration for.
+    }
+  }
+
+  const fbq = trackingWindow.fbq;
+  if (!metaReported && typeof fbq === "function") {
+    try {
+      fbq("track", "CompleteRegistration");
+      metaReported = true;
+    } catch {
+      // A campaign counter is never worth interrupting a registration for.
+    }
   }
 }
