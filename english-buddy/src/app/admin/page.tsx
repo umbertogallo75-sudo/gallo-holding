@@ -5,6 +5,7 @@ import { CAPABILITIES } from "@/lib/learning/capabilities";
 import { modelStatus } from "@/lib/ai/models";
 import { emailFrom, emailReplyTo, isEmailConfigured } from "@/lib/email";
 import { lifecycleStart } from "@/lib/marketing/lifecycle";
+import { emailLabel, emailStats } from "@/lib/marketing/stats";
 import { AdminActions } from "./AdminActions";
 import { AdminTools } from "./AdminTools";
 import { AdminCampaign } from "./AdminCampaign";
@@ -23,6 +24,7 @@ export default async function AdminPage() {
   // Which models are actually serving. Reads the environment of the running
   // deployment, which is the only place the answer really lives.
   const models = modelStatus();
+  const mail = await emailStats();
   const overridden = models.filter((m) => m.overridden);
 
   const database = db();
@@ -267,6 +269,33 @@ export default async function AdminPage() {
         </section>
       ) : null}
       <AdminCampaign from={emailFrom()} replyTo={emailReplyTo()} startsOn={lifecycleStart().toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })} ready={isEmailConfigured()} />
+      <section className="card">
+        <h2 style={{ marginTop: 0 }}>📬 Email partite — ultimi 30 giorni</h2>
+        {mail.rows.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <table className="adminTable">
+              <thead><tr><th>Tipo</th><th>Totale</th><th>Ultimi 7 gg</th><th>Ultima</th></tr></thead>
+              <tbody>
+                {mail.rows.map((row) => (
+                  <tr key={row.kind}>
+                    <td>{emailLabel(row.kind)}</td>
+                    <td>{row.total}</td>
+                    <td>{row.last7 || "—"}</td>
+                    <td className="muted">{row.lastAt ? row.lastAt.slice(0, 16) : "—"}</td>
+                  </tr>
+                ))}
+                <tr><td><strong>Totale</strong></td><td><strong>{mail.total}</strong></td><td colSpan={2}></td></tr>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">Non è ancora partita nessuna email.</p>
+        )}
+        <p className="itHint" style={{ marginBottom: 0 }}>
+          Disiscritti: <strong>{mail.unsubscribed}</strong>. Su un dominio nuovo il volume giornaliero conta più del totale:
+          poche email al giorno che vengono aperte costruiscono reputazione, un invio in blocco la brucia.
+        </p>
+      </section>
       <section className="card">
         <h2 style={{ marginTop: 0 }}>🧠 Modelli in uso</h2>
         <div style={{ overflowX: "auto" }}>
