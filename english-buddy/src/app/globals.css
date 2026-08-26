@@ -514,3 +514,16 @@ p { line-height:1.55; font-size:16px; }
 }
 .keepRow { display: flex; align-items: baseline; gap: 8px; font-size: 15.5px; line-height: 1.45; }
 .keepNote { margin: 5px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+
+/* Live transcript during a voice call.
+   It scrolls inside itself rather than lengthening the page: the timer and
+   the stop button have to stay reachable while both hands are busy talking,
+   and nobody should have to scroll with a finger mid-sentence. */
+.voiceLog { max-height:38vh; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.voiceLine { margin:9px 0; font-size:15.5px; line-height:1.5; }
+.voiceLine:last-child { margin-bottom:2px; }
+.voiceCatchUp {
+  position:sticky; bottom:0; display:block; width:100%; margin-top:6px; padding:9px 12px;
+  border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--brandText);
+  font:inherit; font-size:14px; font-weight:650; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.12);
+}

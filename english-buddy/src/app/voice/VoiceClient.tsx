@@ -18,8 +18,42 @@ export function VoiceClient({ mode }: { mode?: string }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const secondsRef = useRef(0);
   const linesRef = useRef<Line[]>([]);
+  const logRef = useRef<HTMLDivElement | null>(null);
+  const followRef = useRef(true);
+  const [detached, setDetached] = useState(false);
 
   useEffect(() => () => { cleanup(false); }, []);
+
+  /**
+   * Keep the newest line in view.
+   *
+   * Without this the transcript simply grew and the page stayed where it was,
+   * so whoever was speaking had to scroll with a finger to read what had just
+   * been said — mid-sentence, in a foreign language, while listening. The jump
+   * is instant rather than animated on purpose: a smooth scroll is still
+   * travelling when the next line lands, and it would also fire scroll events
+   * short of the bottom, which the handler below would read as the user
+   * deliberately scrolling away.
+   */
+  useEffect(() => {
+    const log = logRef.current;
+    if (log && followRef.current) log.scrollTop = log.scrollHeight;
+  }, [lines]);
+
+  /** Reading something further up is a decision: stop dragging them back. */
+  function onLogScroll(event: React.UIEvent<HTMLDivElement>) {
+    const log = event.currentTarget;
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    followRef.current = atBottom;
+    setDetached(!atBottom);
+  }
+
+  function catchUp() {
+    followRef.current = true;
+    setDetached(false);
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }
 
   function cleanup(report: boolean) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -46,6 +80,7 @@ export function VoiceClient({ mode }: { mode?: string }) {
 
   async function start() {
     setStatus("connecting"); setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
+    followRef.current = true; setDetached(false);
     try {
       const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
       const tokenData = await tokenResponse.json();
@@ -144,11 +179,16 @@ export function VoiceClient({ mode }: { mode?: string }) {
           {lines.length > 0 ? (
             <section className="card">
               <div className="kicker">Trascrizione dal vivo</div>
-              {lines.map((l, i) => (
-                <p key={i} style={{ margin: "8px 0", fontSize: 15.5 }}>
-                  <strong style={{ color: l.role === "coach" ? "var(--brandText)" : "inherit" }}>{l.role === "coach" ? "Coach: " : "You: "}</strong>{l.text}
-                </p>
-              ))}
+              <div className="voiceLog" ref={logRef} onScroll={onLogScroll}>
+                {lines.map((l, i) => (
+                  <p key={i} className="voiceLine">
+                    <strong style={{ color: l.role === "coach" ? "var(--brandText)" : "inherit" }}>{l.role === "coach" ? "Coach: " : "You: "}</strong>{l.text}
+                  </p>
+                ))}
+                {detached ? (
+                  <button type="button" className="voiceCatchUp" onClick={catchUp}>↓ Segui la conversazione</button>
+                ) : null}
+              </div>
             </section>
           ) : null}
         </>
