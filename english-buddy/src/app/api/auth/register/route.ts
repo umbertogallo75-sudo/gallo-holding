@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { createAuthUser } from "@/lib/auth-users";
-import { isEmailConfigured, renderEmail, sendEmail } from "@/lib/email";
+import { sendMarketing, onceKey } from "@/lib/marketing/send";
+import { welcomeTrial } from "@/lib/marketing/templates";
 import { trackEvent } from "@/lib/analytics";
 import { parseAttributionCookie, saveAttribution } from "@/lib/attribution";
 import { attributeSignup } from "@/lib/partners";
@@ -49,31 +50,19 @@ export async function POST(request: Request) {
   });
   await saveAttribution(userId, attribution);
 
-  // Welcome email: the legal bridge between the store apps (no purchases
-  // shown, per Apple rules) and the web, where plans are bought. Must never
-  // break a registration.
-  if (isEmailConfigured()) {
-    try {
-      const base = (process.env.APP_BASE_URL || "https://www.execlingo.it").replace(/\/$/, "");
-      await sendEmail(
-        email,
-        "Benvenuto in ExecLingo — ecco come iniziare",
-        renderEmail({
-          preheader: "Il test del livello è gratis. E quando vuoi tutto Sam, ecco come si sblocca.",
-          heading: `Benvenuto, ${name}!`,
-          bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Il tuo account <strong>ExecLingo</strong> è pronto. Da dove iniziare:</p>
-            <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">🧭 <strong>Fai subito il test del livello</strong> — 3 minuti di chiacchierata con Sam, gratis, senza voti. Da lì parte il tuo percorso.</p>
-            <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">🔓 <strong>Per allenarti ogni giorno</strong> — chat e voce con Sam, missioni business, Meeting Warm-up, English Rescue — attiva il piano che preferisci dal sito. Prezzi IVA inclusa, si disdice quando si vuole.</p>
-            <p style="margin:0;font-size:14px;line-height:1.6;color:#6b736a;">🏢 La tua azienda ti ha dato un <strong>codice</strong>? Inseriscilo in Profilo → Abbonamento e sei operativo.<br>📲 Vuoi ExecLingo sul telefono? <a href="${base}/scarica" style="color:#2f8f63;">Installala in 10 secondi</a>.</p>`,
-          ctaLabel: "Scopri i piani e sblocca Sam",
-          ctaUrl: `${base}/abbonamento`,
-          footerNote: "Hai ricevuto questa email perché ti sei appena registrato a ExecLingo.",
-        }),
-        `Benvenuto, ${name}!\n\nIl tuo account ExecLingo è pronto.\n\n1) Fai il test del livello: 3 minuti con Sam, gratis, senza voti.\n2) Per allenarti ogni giorno, attiva un piano: ${base}/abbonamento (prezzi IVA inclusa).\n3) Hai un codice aziendale? Inseriscilo in Profilo → Abbonamento.\n\nApp sul telefono: ${base}/scarica\n\nExecLingo · un servizio VASP ITALIA SRL\nhttps://execlingo.it`
-      );
-    } catch {
-      // Email problems must never block a registration.
-    }
+  // Welcome email. It carries the free-trial offer, so it is marketing as
+  // well as a greeting and goes through the marketing door like everything
+  // else: claimed once, and carrying a way out. Must never break a signup.
+  try {
+    await sendMarketing({
+      userId,
+      email,
+      kind: "welcome_trial",
+      claimKey: onceKey(userId, "welcome_trial"),
+      message: welcomeTrial(userId, name),
+    });
+  } catch {
+    // Email problems must never block a registration.
   }
 
   // Referral attribution: cookie set by /r/CODE, manual code, or offline lead.

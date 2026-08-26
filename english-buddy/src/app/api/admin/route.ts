@@ -9,6 +9,7 @@ import { generateLicenses } from "@/lib/licenses";
 import { audit, MIN_PAYOUT_CENTS, promoteHeldCommissions, setPartnerRate, setPartnerStatus } from "@/lib/partners";
 import { bannerForNotification } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
+import { SEGMENT_LABELS, audienceFor, sendCampaign, type Segment } from "@/lib/marketing/campaign";
 
 const bodySchema = z.discriminatedUnion("action", [
   z.object({
@@ -20,6 +21,16 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("intensity"),
     userId: z.string().min(1).max(80),
     intensity: z.enum(["low", "normal", "immersive"]),
+  }),
+  z.object({
+    action: z.literal("campaign"),
+    segment: z.enum(["all", "no_plan", "paying", "lapsed", "trial_done"]),
+    subject: z.string().trim().min(3).max(120),
+    body: z.string().trim().min(10).max(4000),
+    ctaLabel: z.string().trim().max(40).optional(),
+    ctaUrl: z.string().trim().url().max(300).optional(),
+    // Absent means "tell me who this would reach", present means send.
+    campaignId: z.string().trim().min(4).max(60).optional(),
   }),
   z.object({
     action: z.literal("resetcode"),
@@ -71,6 +82,26 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const data = parsed.data;
+
+  if (data.action === "campaign") {
+    const segment = data.segment as Segment;
+    // Without a campaign id this is a dry run: the owner sees the size of the
+    // audience before anything leaves. Sending to the wrong segment is not a
+    // mistake that can be taken back.
+    if (!data.campaignId) {
+      const audience = await audienceFor(segment);
+      return NextResponse.json({ preview: true, segment: SEGMENT_LABELS[segment], audience: audience.length });
+    }
+    const paragraphs = data.body.split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+    const result = await sendCampaign({
+      segment,
+      campaignId: data.campaignId,
+      subject: data.subject,
+      paragraphs,
+      cta: data.ctaLabel && data.ctaUrl ? { label: data.ctaLabel, url: data.ctaUrl } : undefined,
+    });
+    return NextResponse.json({ ...result, segment: SEGMENT_LABELS[segment] });
+  }
 
   if (data.action === "resetcode") {
     const temp = await adminResetCode(data.userId);

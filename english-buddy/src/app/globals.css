@@ -555,3 +555,13 @@ p { line-height:1.55; font-size:16px; }
   border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--brandText);
   font:inherit; font-size:14px; font-weight:650; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.12);
 }
+
+/* The free trial, on the home screen. Amber rather than the usual green: it
+   is a clock running down, and it should not read as one more thing to tap. */
+.trialBanner { border:1px solid color-mix(in srgb, var(--amber) 55%, var(--line)); background:color-mix(in srgb, var(--amber) 10%, var(--surface)); border-radius:18px; padding:14px 16px; margin-bottom:10px; }
+.trialTop { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.trialTag { font-size:11px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--amber); }
+.trialClock { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+.trialLine { margin:6px 0 0; font-size:15px; line-height:1.5; }
+.trialNote { margin:5px 0 0; font-size:13.5px; line-height:1.45; color:var(--muted); }
+.trialBanner .pathBar { margin-top:10px; }

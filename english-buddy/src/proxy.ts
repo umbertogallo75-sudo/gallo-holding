@@ -18,6 +18,11 @@ export function proxy(request: NextRequest) {
     path === "/inglese-lavoro" ||
     path === "/app" ||
     path.startsWith("/r/") ||
+    // From an email, so there is no session yet by definition.
+    path.startsWith("/disiscriviti/") ||
+    path.startsWith("/prova/") ||
+    path.startsWith("/api/disiscriviti/") ||
+    path.startsWith("/api/prova/") ||
     path.startsWith("/.well-known/") ||
     path === "/api/billing/company-checkout" ||
     path.startsWith("/api/auth") ||

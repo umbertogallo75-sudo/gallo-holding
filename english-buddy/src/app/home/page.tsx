@@ -12,6 +12,8 @@ import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { readProfile } from "@/lib/learning/profile-columns";
 import { billingEnforced, getEntitlement } from "@/lib/stripe";
+import { readTrial } from "@/lib/marketing/trial";
+import { TrialBanner } from "@/components/TrialBanner";
 
 export default async function HomePage() {
   const userId = await requireUserId();
@@ -25,6 +27,9 @@ export default async function HomePage() {
   const sessionCount = Number(sessionsResult.rows[0]?.c ?? 0);
   const isFirstTime = sessionCount === 0;
   const entitlement = billingEnforced() ? await getEntitlement(userId) : { access: true };
+  // Only for someone actually inside it: a countdown shown to a paying
+  // customer would be a threat rather than a gift.
+  const trial = "reason" in entitlement && entitlement.reason === "trial" ? await readTrial(userId, database) : null;
   const embedded = await isEmbeddedApp();
   const profile = profileResult.rows[0];
   // The installed PWA starts here directly (manifest start_url), so this page
@@ -78,6 +83,7 @@ export default async function HomePage() {
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <AppTracker />
     <NotificationReminder />
+    {trial ? <TrialBanner trial={trial} onboarded={Boolean(profile.onboarding_done_at)} minutes={Number(metric?.minutes_practiced || 0)} /> : null}
     {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
     <section className="pathHeader">
       <div className="pathLine"><strong>Giorno {dayOfPath}</strong> di 90{goal ? <> · {goal.toLowerCase()}</> : null}</div>

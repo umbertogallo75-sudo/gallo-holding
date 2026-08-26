@@ -28,7 +28,16 @@ const PUBLIC_PAGES = new Set([
 ]);
 
 export function isPublicPage(pathname: string): boolean {
-  return PUBLIC_PAGES.has(pathname) || pathname.startsWith("/reset/") || pathname.startsWith("/r/");
+  return (
+    PUBLIC_PAGES.has(pathname) ||
+    pathname.startsWith("/reset/") ||
+    pathname.startsWith("/r/") ||
+    // Both arrive from an email, and both must work for someone who is not
+    // signed in: nobody should have to log in to be left alone, and the trial
+    // exists precisely for people who have not got as far as the app yet.
+    pathname.startsWith("/disiscriviti/") ||
+    pathname.startsWith("/prova/")
+  );
 }
 
 /**
@@ -40,5 +49,7 @@ export function trackablePath(pathname: string): string | null {
   if (PUBLIC_PAGES.has(pathname)) return pathname;
   if (pathname.startsWith("/reset/")) return "/reset/:token";
   if (pathname.startsWith("/r/")) return "/r/:code";
+  if (pathname.startsWith("/disiscriviti/")) return "/disiscriviti/:token";
+  if (pathname.startsWith("/prova/")) return "/prova/:token";
   return null;
 }

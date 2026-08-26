@@ -3,7 +3,13 @@
  * set (free tier: 3000 emails/month); until then callers get `false` and
  * should fall back to the admin-mediated flow.
  */
-export async function sendEmail(to: string, subject: string, html: string, text?: string): Promise<boolean> {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  text?: string,
+  headers?: Record<string, string>
+): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
   try {
@@ -11,11 +17,15 @@ export async function sendEmail(to: string, subject: string, html: string, text?
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "ExecLingo <onboarding@resend.dev>",
+        from: emailFrom(),
         to: [to],
         subject,
         html,
         ...(text ? { text } : {}),
+        // List-Unsubscribe lives here rather than only in the footer: the big
+        // mailbox providers now expect bulk senders to offer it, and the ones
+        // who do not are the ones who end up in the spam folder.
+        ...(headers ? { headers } : {}),
       }),
     });
     if (!response.ok) console.error("email send failed:", response.status, (await response.text()).slice(0, 200));
@@ -24,6 +34,16 @@ export async function sendEmail(to: string, subject: string, html: string, text?
     console.error("email send error:", error);
     return false;
   }
+}
+
+/**
+ * The address every email leaves from. Exposed because a marketing campaign
+ * sent from the provider's shared sandbox domain lands in spam, and nothing
+ * in the send result says so — the admin page shows this instead.
+ */
+export const DEFAULT_FROM = "ExecLingo <onboarding@resend.dev>";
+export function emailFrom(): string {
+  return process.env.EMAIL_FROM || DEFAULT_FROM;
 }
 
 export function isEmailConfigured(): boolean {
@@ -41,8 +61,13 @@ export function renderEmail(options: {
   ctaLabel?: string;
   ctaUrl?: string;
   footerNote?: string;
+  /** Present on anything that is not strictly transactional. */
+  unsubscribeUrl?: string;
 }): string {
-  const { preheader, heading, bodyHtml, ctaLabel, ctaUrl, footerNote } = options;
+  const { preheader, heading, bodyHtml, ctaLabel, ctaUrl, footerNote, unsubscribeUrl } = options;
+  const unsubscribe = unsubscribeUrl
+    ? `<br><a href="${unsubscribeUrl}" style="color:#828a80;text-decoration:underline;">Non voglio più ricevere queste email</a> — un clic, e smettiamo.`
+    : "";
   const cta =
     ctaLabel && ctaUrl
       ? `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:26px auto 8px;">
@@ -71,7 +96,7 @@ export function renderEmail(options: {
         </td></tr>
         <tr><td style="padding:20px 30px 28px;border-top:1px solid #e6e9e2;">
           <p style="margin:0;font-size:12px;line-height:1.6;color:#828a80;">
-            ${footerNote || "Hai ricevuto questa email perché esiste un account ExecLingo associato a questo indirizzo."}<br>
+            ${footerNote || "Hai ricevuto questa email perché esiste un account ExecLingo associato a questo indirizzo."}${unsubscribe}<br>
             <strong style="color:#5c665e;">ExecLingo</strong> · un servizio VASP ITALIA SRL — Via M. Schipa 22, 80122 Napoli<br>
             <a href="https://execlingo.it" style="color:#2f8f63;text-decoration:none;">execlingo.it</a>
           </p>

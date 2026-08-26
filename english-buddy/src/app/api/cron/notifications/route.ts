@@ -5,6 +5,7 @@ import { shouldSend, type Intensity } from "@/lib/push/windows";
 import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 import { runUpgradeNudges } from "@/lib/nudges";
+import { runLifecycleEmails } from "@/lib/marketing/lifecycle";
 import { eventsToDebrief, eventsToRemind, markDebriefAsked, markReminded } from "@/lib/events";
 import { refreshGoogleSubscriptions } from "@/lib/playstore";
 
@@ -235,6 +236,17 @@ async function run(request: Request) {
     nudges = { error: "failed" };
   }
 
+  // Lifecycle: the trial clock, the evening recap, and the person who has
+  // gone quiet. Separate from the upgrade series above, and separately
+  // wrapped: a failure here must not cost the notifications their run.
+  let lifecycle: Record<string, number | string>;
+  try {
+    lifecycle = await runLifecycleEmails(database, now);
+  } catch (error) {
+    console.error("lifecycle emails failed:", error);
+    lifecycle = { error: "failed" };
+  }
+
   // Google Play renewals: no webhook wired, so nearly-expired subs re-verify here.
   let googleSubs: Record<string, number> = {};
   try {
@@ -243,7 +255,7 @@ async function run(request: Request) {
     console.error("google subscription refresh failed:", error);
   }
 
-  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, reminders, debriefs, nudges, googleSubs });
+  return NextResponse.json({ ok: true, at: now.toISOString(), users: users.rows.length, devices, results, reminders, debriefs, nudges, lifecycle, googleSubs });
 }
 
 export async function POST(request: Request) {

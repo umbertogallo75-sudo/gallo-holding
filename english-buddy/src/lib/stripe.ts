@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { OWNER_ID } from "@/lib/auth";
+import { readTrial } from "@/lib/marketing/trial";
 
 /**
  * Stripe integration via plain REST (no SDK dependency, same approach as
@@ -280,7 +281,7 @@ export async function userIdByCustomer(customerId: string, client: Client = db()
 
 // ---------- entitlement ----------
 
-export type Entitlement = { access: boolean; reason: "owner" | "plan" | "free" | "locked"; plan?: string | null };
+export type Entitlement = { access: boolean; reason: "owner" | "plan" | "free" | "trial" | "locked"; plan?: string | null };
 
 /** Paywall is ON by default; BILLING_ENFORCED=0 switches it off for testing. */
 export function billingEnforced(): boolean {
@@ -302,6 +303,13 @@ export async function getEntitlement(userId: string, client: Client = db()): Pro
     const end = billing.currentPeriodEnd ? Date.parse(billing.currentPeriodEnd) : null;
     if (!end || end + 3 * 86_400_000 > Date.now()) return { access: true, reason: "plan", plan: billing.plan };
   }
+
+  // Only once every paid route has said no: the free trial is a way in for
+  // people who have not bought, never a discount for people who have. Reading
+  // it here also means it expires on its own, with no job to run.
+  const trial = await readTrial(userId, client);
+  if (trial?.active) return { access: true, reason: "trial", plan: billing?.plan ?? null };
+
   return { access: false, reason: "locked", plan: billing?.plan ?? null };
 }
 

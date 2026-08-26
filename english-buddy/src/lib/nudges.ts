@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { OWNER_ID } from "@/lib/auth";
 import { isEmailConfigured, renderEmail, sendEmail } from "@/lib/email";
 import { billingEnforced, getEntitlement } from "@/lib/stripe";
+import { unsubscribedIds } from "@/lib/marketing/prefs";
+import { unsubscribeUrl } from "@/lib/marketing/tokens";
 
 /**
  * Netflix-style upgrade emails: the store apps show no purchase flows, so
@@ -26,7 +28,7 @@ function base(): string {
   return (process.env.APP_BASE_URL || "https://www.execlingo.it").replace(/\/$/, "");
 }
 
-function day1Email(name: string): { subject: string; html: string; text: string } {
+function day1Email(userId: string, name: string): { subject: string; html: string; text: string } {
   const url = `${base()}/abbonamento`;
   return {
     subject: "Sam ti aspetta — ecco come sbloccare il tuo coach",
@@ -39,12 +41,13 @@ function day1Email(name: string): { subject: string; html: string; text: string 
       ctaLabel: "Accedi e attiva il tuo piano",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché hai un account ExecLingo senza piano attivo.",
+      unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${name ? name + ", il" : "Il"} tuo coach è pronto.\n\nPer allenarti ogni giorno con Sam ti manca solo il piano:\n1) apri execlingo.it dal browser\n2) accedi con la tua email\n3) scegli il piano — l'app si sblocca da sola\n\n${url}\n\nHai un codice aziendale? Inseriscilo in Profilo → Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL`,
+    text: `${name ? name + ", il" : "Il"} tuo coach è pronto.\n\nPer allenarti ogni giorno con Sam ti manca solo il piano:\n1) apri execlingo.it dal browser\n2) accedi con la tua email\n3) scegli il piano — l'app si sblocca da sola\n\n${url}\n\nHai un codice aziendale? Inseriscilo in Profilo → Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
-function day3Email(name: string): { subject: string; html: string; text: string } {
+function day3Email(userId: string, name: string): { subject: string; html: string; text: string } {
   const url = `${base()}/abbonamento`;
   return {
     subject: "In 3 mesi operativo in inglese — il percorso completo",
@@ -57,8 +60,9 @@ function day3Email(name: string): { subject: string; html: string; text: string 
       ctaLabel: "Inizia il Programma 3 mesi",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché hai un account ExecLingo senza piano attivo. È l'ultima di questa serie.",
+      unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${name ? name + "," : "Ciao,"} facciamo sul serio?\n\nIl 3-Month Executive Path (99,90 € una volta, IVA inclusa) è il percorso completo verso l'inglese operativo. In alternativa c'è il mensile senza vincoli.\n\nAccedi dal sito con la tua email e attiva in due minuti: ${url}\n\nExecLingo · un servizio VASP ITALIA SRL`,
+    text: `${name ? name + "," : "Ciao,"} facciamo sul serio?\n\nIl 3-Month Executive Path (99,90 € una volta, IVA inclusa) è il percorso completo verso l'inglese operativo. In alternativa c'è il mensile senza vincoli.\n\nAccedi dal sito con la tua email e attiva in due minuti: ${url}\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
@@ -79,6 +83,15 @@ export async function runUpgradeNudges(
 
   // Cutoff from the caller's clock, not SQLite's, so runs are reproducible.
   const cutoff = new Date(now.getTime() - 86_400_000).toISOString().slice(0, 19).replace("T", " ");
+  // Two groups this series must not reach: people who asked to be left alone,
+  // and people inside the free trial — that funnel has its own closing email,
+  // and being sold to twice by two different systems is how a mailing list
+  // teaches people to unsubscribe.
+  const optedOut = await unsubscribedIds(client);
+  const inTrial = new Set(
+    (await client.execute("SELECT user_id FROM trials").catch(() => ({ rows: [] }))).rows.map((row) => String(row.user_id))
+  );
+
   const candidates = await client.execute({
     sql: "SELECT id, email, display_name, created_at FROM auth_users WHERE email IS NOT NULL AND email != '' AND created_at <= ?",
     args: [cutoff],
@@ -89,6 +102,7 @@ export async function runUpgradeNudges(
     if (sends >= MAX_SENDS_PER_RUN) break;
     const userId = String(row.id);
     if (userId === OWNER_ID) continue;
+    if (optedOut.has(userId) || inTrial.has(userId)) continue;
     const email = String(row.email);
     if (/@example\./i.test(email)) continue;
 
@@ -106,7 +120,7 @@ export async function runUpgradeNudges(
       if (!prior.rows.length) {
         const claimed = await client.execute({ sql: "INSERT OR IGNORE INTO email_nudges (user_id, kind) VALUES (?, 'day1')", args: [userId] });
         if (claimed.rowsAffected > 0) {
-          const message = day1Email(String(row.display_name ?? ""));
+          const message = day1Email(userId, String(row.display_name ?? ""));
           if (await sender(email, message.subject, message.html, message.text)) { day1++; sends++; }
         }
         continue;
@@ -115,7 +129,7 @@ export async function runUpgradeNudges(
 
     const claimed = await client.execute({ sql: "INSERT OR IGNORE INTO email_nudges (user_id, kind) VALUES (?, ?)", args: [userId, kind] });
     if (claimed.rowsAffected === 0) continue;
-    const message = kind === "day1" ? day1Email(String(row.display_name ?? "")) : day3Email(String(row.display_name ?? ""));
+    const message = kind === "day1" ? day1Email(userId, String(row.display_name ?? "")) : day3Email(userId, String(row.display_name ?? ""));
     if (await sender(email, message.subject, message.html, message.text)) {
       if (kind === "day1") day1++; else day3++;
       sends++;

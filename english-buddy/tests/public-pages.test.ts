@@ -18,6 +18,14 @@ describe("isPublicPage", () => {
     expect(isPublicPage("/r/UMBERTO")).toBe(true);
   });
 
+  it("covers the pages an email sends people to", () => {
+    // Both are opened by someone who is not signed in, and the unsubscribe
+    // page most of all: asking for a password before agreeing to stop writing
+    // to somebody is not a way out, it is an obstacle.
+    expect(isPublicPage("/disiscriviti/abc.def")).toBe(true);
+    expect(isPublicPage("/prova/abc.def")).toBe(true);
+  });
+
   it("leaves the signed-in app alone", () => {
     for (const path of ["/home", "/chat", "/progress", "/profile", "/admin", "/riunione", "/prepara"]) {
       expect(isPublicPage(path), path).toBe(false);
@@ -32,6 +40,8 @@ describe("trackablePath", () => {
   });
 
   it("collapses the parameterised routes so one row does not become a thousand", () => {
+    expect(trackablePath("/disiscriviti/aaa.bbb")).toBe("/disiscriviti/:token");
+    expect(trackablePath("/prova/aaa.bbb")).toBe("/prova/:token");
     expect(trackablePath("/r/UMBERTO")).toBe("/r/:code");
     expect(trackablePath("/r/GIULIA")).toBe("/r/:code");
     expect(trackablePath("/reset/9f3a-token")).toBe("/reset/:token");
