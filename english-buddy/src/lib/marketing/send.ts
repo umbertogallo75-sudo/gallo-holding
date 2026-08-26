@@ -2,6 +2,7 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { isUnsubscribed } from "./prefs";
+import { isSuppressed } from "./suppression";
 import { unsubscribeUrl } from "./tokens";
 
 /**
@@ -75,7 +76,11 @@ export async function sendMarketing(
 ): Promise<SendResult> {
   const { userId, email, kind, claimKey, message, throttleHours, now = new Date() } = opts;
   if (!isRealAddress(email)) return "invalid";
+  // Two lists, and both are checked: the account preference, and the address
+  // itself. The second is what still holds when the account that expressed
+  // the objection no longer exists.
   if (await isUnsubscribed(userId, client)) return "unsubscribed";
+  if (await isSuppressed(email, client)) return "unsubscribed";
   if (throttleHours && (await sentWithin(userId, throttleHours, client, now))) return "throttled";
 
   const claim = async () =>

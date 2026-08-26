@@ -10,6 +10,8 @@ import { audit, MIN_PAYOUT_CENTS, promoteHeldCommissions, setPartnerRate, setPar
 import { bannerForNotification } from "@/lib/push/content";
 import { randomUUID } from "node:crypto";
 import { SEGMENT_LABELS, audienceFor, sendCampaign, type Segment } from "@/lib/marketing/campaign";
+import { isUnsubscribed } from "@/lib/marketing/prefs";
+import { suppress } from "@/lib/marketing/suppression";
 
 const bodySchema = z.discriminatedUnion("action", [
   z.object({
@@ -175,13 +177,34 @@ export async function POST(request: Request) {
   if (data.action === "deleteuser") {
     if (data.userId === OWNER_ID) return NextResponse.json({ error: "Non puoi eliminare il tuo account" }, { status: 400 });
     const target = data.userId;
-    // Full cascade across every table that references the user.
+
+    // Before anything is removed: if this person had objected to marketing,
+    // that objection has to outlive the row that recorded it. Otherwise
+    // deleting the account also deletes the only proof they asked not to be
+    // written to, and the same address arriving again would be written to as
+    // if nothing had been said. Only a hash of it is kept.
+    try {
+      const account = await db().execute({ sql: "SELECT email FROM auth_users WHERE id = ? LIMIT 1", args: [target] });
+      const email = account.rows[0]?.email ? String(account.rows[0].email) : null;
+      if (email && (await isUnsubscribed(target))) await suppress(email, "account-deleted");
+    } catch { /* never block a deletion request */ }
+
+    // Everything keyed to the person. This list is the whole promise of the
+    // deletion page, so a table left out of it is a promise quietly broken.
     const tables = [
       ["messages", "user_id"], ["sessions", "user_id"], ["mistakes", "user_id"], ["expressions", "user_id"],
       ["daily_metrics", "user_id"], ["push_subscriptions", "user_id"], ["notification_history", "user_id"],
+      ["apns_tokens", "user_id"], ["fcm_tokens", "user_id"],
       ["user_capabilities", "user_id"], ["learning_state", "user_id"], ["billing", "user_id"],
-      ["analytics_events", "user_id"], ["profiles", "id"], ["auth_users", "id"],
+      ["analytics_events", "user_id"], ["events", "user_id"], ["user_attribution", "user_id"],
+      ["consent_log", "user_id"], ["trials", "user_id"],
+      ["email_prefs", "user_id"], ["email_sends", "user_id"], ["email_nudges", "user_id"],
+      ["partner_attributions", "user_id"], ["partner_clicks", "user_id"], ["partner_leads", "user_id"],
+      ["profiles", "id"], ["auth_users", "id"],
     ];
+    // Deliberately NOT here: commissions, payouts and partners. Those are
+    // accounting records of money owed or paid, which Italian law requires be
+    // kept for ten years — GDPR art. 17(3)(b) is the exception that covers it.
     for (const [table, column] of tables) {
       await db().execute({ sql: `DELETE FROM ${table} WHERE ${column} = ?`, args: [target] }).catch(() => {});
     }

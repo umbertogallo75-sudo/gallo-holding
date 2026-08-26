@@ -54,16 +54,13 @@ describe("the opening date", () => {
     // Three days after the opening, and only now, the gentle one.
     await runLifecycleEmails(client, at("2026-09-04T10:00:00Z"), send);
     expect(sent).toHaveLength(1);
-    expect(sent[0].subject).toContain("Sam ti aspetta");
+    expect(sent[0].subject).toBe("Tutto bene?"); // il tono morbido, non quello duro
   });
 
   it("reaches the firm letter a week in, in the right order", async () => {
     await runLifecycleEmails(client, at("2026-09-04T10:00:00Z"), send);
     await runLifecycleEmails(client, at("2026-09-08T10:00:00Z"), send);
-    expect(sent.map((m) => m.subject)).toEqual([
-      expect.stringContaining("Sam ti aspetta"),
-      expect.stringContaining("Una settimana"),
-    ]);
+    expect(sent.map((m) => m.subject)).toEqual(["Tutto bene?", "Una settimana senza inglese"]);
   });
 
   it("never writes to somebody who asked to be left alone", async () => {
