@@ -3,7 +3,7 @@ import { getUserId, OWNER_ID } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CAPABILITIES } from "@/lib/learning/capabilities";
 import { modelStatus } from "@/lib/ai/models";
-import { emailFrom, isEmailConfigured } from "@/lib/email";
+import { emailFrom, emailReplyTo, isEmailConfigured } from "@/lib/email";
 import { AdminActions } from "./AdminActions";
 import { AdminTools } from "./AdminTools";
 import { AdminCampaign } from "./AdminCampaign";
@@ -265,7 +265,7 @@ export default async function AdminPage() {
           </p>
         </section>
       ) : null}
-      <AdminCampaign from={emailFrom()} ready={isEmailConfigured()} />
+      <AdminCampaign from={emailFrom()} replyTo={emailReplyTo()} ready={isEmailConfigured()} />
       <section className="card">
         <h2 style={{ marginTop: 0 }}>🧠 Modelli in uso</h2>
         <div style={{ overflowX: "auto" }}>

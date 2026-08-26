@@ -42,6 +42,8 @@ Re-running is safe; applied files are tracked in `schema_migrations`.
 | `INVITE_CODE` | no | Optional lock: when set, `/register` requires this invite code; unset = open self-registration |
 | `SESSION_SECRET` | yes | 32+ random chars, e.g. `openssl rand -hex 32` |
 | `OPENAI_API_KEY` | yes | Server-side only |
+| `EMAIL_FROM` | yes (email) | Address on a **verified** domain, e.g. `Sam di ExecLingo <sam@execlingo.it>`. Unset falls back to the provider sandbox and lands in spam |
+| `EMAIL_REPLY_TO` | no | Where replies from readers arrive; unset means they are lost |
 | `OPENAI_MODEL` | no | Defaults to `gpt-5.6-sol` |
 | `VOICE_MODEL` | no | Realtime voice; defaults to `gpt-realtime-2.1` |
 | `VOICE_TRANSCRIBE_MODEL` | no | Transcription inside a voice call; defaults to `gpt-transcribe` |

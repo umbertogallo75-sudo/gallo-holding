@@ -18,6 +18,7 @@ export async function sendEmail(
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: emailFrom(),
+        ...(emailReplyTo() ? { reply_to: emailReplyTo() } : {}),
         to: [to],
         subject,
         html,
@@ -44,6 +45,16 @@ export async function sendEmail(
 export const DEFAULT_FROM = "ExecLingo <onboarding@resend.dev>";
 export function emailFrom(): string {
   return process.env.EMAIL_FROM || DEFAULT_FROM;
+}
+
+/**
+ * Where a reply goes. Sam's emails invite a conversation — "come back and
+ * practise", "how did it go" — and some people answer them. Without this the
+ * answer goes to the sending address, which usually has no mailbox behind it
+ * and drops on the floor: the most engaged reader in the list, ignored.
+ */
+export function emailReplyTo(): string | null {
+  return process.env.EMAIL_REPLY_TO?.trim() || null;
 }
 
 export function isEmailConfigured(): boolean {

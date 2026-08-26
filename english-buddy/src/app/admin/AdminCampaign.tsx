@@ -15,7 +15,7 @@ const SEGMENTS = [
  * purpose: the only irreversible thing on this page is an email that has
  * already left.
  */
-export function AdminCampaign({ from, ready: configured }: { from: string; ready: boolean }) {
+export function AdminCampaign({ from, replyTo, ready: configured }: { from: string; replyTo: string | null; ready: boolean }) {
   const [segment, setSegment] = useState("lapsed");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -73,7 +73,10 @@ export function AdminCampaign({ from, ready: configured }: { from: string; ready
           ⚠️ Le email partono da <code>{from}</code>, il dominio di prova del fornitore. Una campagna spedita da lì finisce in spam quasi sempre. Imposta <code>EMAIL_FROM</code> con un indirizzo del dominio execlingo.it verificato su Resend.
         </div>
       ) : (
-        <p className="muted" style={{ margin: "0 0 10px", fontSize: 13 }}>Mittente: <code>{from}</code></p>
+        <p className="muted" style={{ margin: "0 0 10px", fontSize: 13 }}>
+          Mittente: <code>{from}</code>
+          {replyTo ? <> · le risposte arrivano a <code>{replyTo}</code></> : <> · <strong>le risposte si perdono</strong>: imposta <code>EMAIL_REPLY_TO</code></>}
+        </p>
       )}
 
       <label className="kicker" htmlFor="seg">A chi</label>
