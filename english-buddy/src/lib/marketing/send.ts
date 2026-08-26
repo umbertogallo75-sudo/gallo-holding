@@ -32,7 +32,7 @@ export type Sender = (
 
 export type Message = { subject: string; html: string; text: string };
 
-export type SendResult = "sent" | "unsubscribed" | "already" | "failed" | "invalid";
+export type SendResult = "sent" | "unsubscribed" | "already" | "throttled" | "failed" | "invalid";
 
 /**
  * A claim key that repeats is a second email. `once` for the emails a person
@@ -51,13 +51,26 @@ export function isRealAddress(email: string | null | undefined): email is string
 }
 
 export async function sendMarketing(
-  opts: { userId: string; email: string | null; kind: string; claimKey: string; message: Message },
+  opts: {
+    userId: string;
+    email: string | null;
+    kind: string;
+    claimKey: string;
+    message: Message;
+    /**
+     * Refuse if anything has already been sent to this person inside this
+     * many hours. The automatic passes set it; a reward the person just
+     * earned, and a campaign the owner deliberately wrote, do not.
+     */
+    throttleHours?: number;
+  },
   client: Client = db(),
   send: Sender = sendEmail
 ): Promise<SendResult> {
-  const { userId, email, kind, claimKey, message } = opts;
+  const { userId, email, kind, claimKey, message, throttleHours } = opts;
   if (!isRealAddress(email)) return "invalid";
   if (await isUnsubscribed(userId, client)) return "unsubscribed";
+  if (throttleHours && (await sentWithin(userId, throttleHours, client))) return "throttled";
 
   const claim = async () =>
     client.execute({
@@ -94,6 +107,28 @@ export async function sendMarketing(
     return "failed";
   }
   return "sent";
+}
+
+/**
+ * Anything at all sent to this person recently.
+ *
+ * Several passes run in the same hour and each has a good reason to write.
+ * Together they would arrive as a pile, which reads as a mailing list that
+ * has lost control of itself — and that is the moment people unsubscribe,
+ * whatever any individual email said.
+ */
+export async function sentWithin(userId: string, hours: number, client: Client = db()): Promise<boolean> {
+  const since = new Date(Date.now() - hours * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
+  try {
+    const result = await client.execute({
+      sql: "SELECT 1 FROM email_sends WHERE user_id = ? AND sent_at >= ? LIMIT 1",
+      args: [userId, since],
+    });
+    return result.rows.length > 0;
+  } catch {
+    // Unreadable history is not permission to pile on.
+    return true;
+  }
 }
 
 /** Whether this person has already been sent this kind of email, ever. */

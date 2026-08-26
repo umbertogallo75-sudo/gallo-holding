@@ -90,3 +90,32 @@ describe("isRealAddress", () => {
     expect(isRealAddress(null)).toBe(false);
   });
 });
+
+describe("the daily throttle", () => {
+  it("refuses a second automatic email on the same day", async () => {
+    // Several passes run in the same hour and each has a good reason to
+    // write. Arriving together they read as a list that has lost control.
+    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "win_back_soft", claimKey: "k1", message, throttleHours: 20 }, client, send)).toBe("sent");
+    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "evening_recap", claimKey: "k2", message, throttleHours: 20 }, client, send)).toBe("throttled");
+    expect(sent).toHaveLength(1);
+  });
+
+  it("lets a reward through immediately, because it was just earned", async () => {
+    await sendMarketing({ userId: "u1", email: "a@test.it", kind: "win_back_soft", claimKey: "k1", message, throttleHours: 20 }, client, send);
+    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "trial_extended", claimKey: "k2", message }, client, send)).toBe("sent");
+  });
+
+  it("does not burn the claim of the email it held back", async () => {
+    await sendMarketing({ userId: "u1", email: "a@test.it", kind: "win_back_soft", claimKey: "k1", message, throttleHours: 20 }, client, send);
+    await sendMarketing({ userId: "u1", email: "a@test.it", kind: "evening_recap", claimKey: "k2", message, throttleHours: 20 }, client, send);
+    // Tomorrow it must still be sendable: a throttled email is postponed, not
+    // cancelled, so the claim must not have been taken.
+    const rows = await client.execute({ sql: "SELECT 1 FROM email_sends WHERE claim_key = 'k2'", args: [] });
+    expect(rows.rows).toHaveLength(0);
+  });
+
+  it("throttles nobody when no window is asked for", async () => {
+    await sendMarketing({ userId: "u1", email: "a@test.it", kind: "campaign", claimKey: "k1", message }, client, send);
+    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "campaign", claimKey: "k2", message }, client, send)).toBe("sent");
+  });
+});

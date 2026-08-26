@@ -1,6 +1,7 @@
 import { renderEmail } from "@/lib/email";
 import type { Message } from "./send";
 import { appBase, trialUrl, unsubscribeUrl } from "./tokens";
+import type { WinBackStep } from "./winback";
 
 /**
  * Every lifecycle email, in one file, so the whole voice can be read at once.
@@ -104,23 +105,100 @@ export function trialEnded(userId: string, name: string | null): Message {
   };
 }
 
-/** 5 — Three days of silence. Warm, not scolding: guilt does not teach. */
-export function comeBack(userId: string, name: string | null, days: number): Message {
+/**
+ * 5 — The win-back ladder. One function, four voices.
+ *
+ * The tone hardens on purpose as the silence lengthens, because the same
+ * gentle sentence repeated for six weeks stops meaning anything. What none of
+ * them do is blame: guilt does not teach a language, and somebody who feels
+ * told off does not open the next one either.
+ */
+export function winBack(
+  userId: string,
+  name: string | null,
+  step: WinBackStep,
+  days: number
+): Message {
   const url = `${appBase()}/home`;
+  const out = unsubscribeUrl(userId);
+  const foot = (note: string) => ({ footerNote: note, unsubscribeUrl: out });
+
+  if (step.stage === "soft") {
+    return {
+      subject: "Sam ti aspetta ancora 👋",
+      html: renderEmail({
+        preheader: "Tre giorni non cancellano niente. Cinque minuti oggi rimettono tutto in moto.",
+        heading: `${hello(name)}tutto bene?`,
+        bodyHtml: `<p style="${P}">Sono ${days} giorni che non ci sentiamo. Nessun rimprovero — la settimana lavorativa è quella che è, succede a tutti.</p>
+          <p style="${P}">Solo una cosa vale la pena ricordare: l&rsquo;inglese non si perde in tre giorni, <strong>si perde in tre mesi di rinvii</strong>. E si riprende in <strong>cinque minuti</strong>, oggi, da dove eri.</p>
+          <p style="${SMALL}">Sam si ricorda di te: il tuo livello, i tuoi errori ricorrenti, le espressioni che stavi imparando. Non devi ricominciare da capo.</p>`,
+        ctaLabel: "Riprendo in 5 minuti",
+        ctaUrl: url,
+        ...foot("Ricevi questa email perché non apri ExecLingo da qualche giorno."),
+      }),
+      text: `${hello(name)}tutto bene?\n\nSono ${days} giorni che non ci sentiamo. L'inglese non si perde in tre giorni, si perde in tre mesi di rinvii. E si riprende in cinque minuti.\n\n${url}\n\nDisiscriviti: ${out}`,
+    };
+  }
+
+  if (step.stage === "firm") {
+    return {
+      subject: "Una settimana senza inglese",
+      html: renderEmail({
+        preheader: "Non è l'inglese che si perde in una settimana. È l'abitudine — ed è quella che vale.",
+        heading: `${hello(name)}parliamoci chiaro.`,
+        bodyHtml: `<p style="${P}">È passata <strong>una settimana</strong>. In una settimana non si dimentica l&rsquo;inglese: si perde l&rsquo;abitudine. Ed è l&rsquo;abitudine la cosa difficile da costruire — le parole tornano da sole, il ritmo no.</p>
+          <p style="${P}">Ti eri iscritto per una ragione precisa: una call, una riunione, un cliente, un colloquio. <strong>Quella ragione è ancora lì.</strong> Non se n&rsquo;è andata perché questa settimana è stata piena.</p>
+          <p style="${P}">Non ti serve un&rsquo;ora. Ti servono <strong>cinque minuti oggi</strong> e cinque domani. È letteralmente tutto il metodo.</p>
+          <p style="${SMALL}">Sam riparte esattamente da dove vi eravate lasciati.</p>`,
+        ctaLabel: "Riprendo adesso",
+        ctaUrl: url,
+        ...foot("Ricevi questa email perché non apri ExecLingo da una settimana."),
+      }),
+      text: `${hello(name)}parliamoci chiaro.\n\nÈ passata una settimana. Non si dimentica l'inglese in sette giorni: si perde l'abitudine, ed è quella la parte difficile.\n\nTi eri iscritto per una ragione precisa. Quella ragione è ancora lì.\n\nCinque minuti oggi, cinque domani: ${url}\n\nDisiscriviti: ${out}`,
+    };
+  }
+
+  if (step.stage === "hard") {
+    return {
+      subject: "Due settimane. Te lo dico onestamente.",
+      html: renderEmail({
+        preheader: "A questo punto o riprendi oggi, o questo diventa un altro proposito lasciato a metà.",
+        heading: `${hello(name)}ti dico la verità.`,
+        bodyHtml: `<p style="${P}">Sono <strong>${days} giorni</strong>. A questo punto so come va a finire, perché va così quasi sempre: o si riprende <em>oggi</em>, o questo resta l&rsquo;ennesimo proposito lasciato a metà — insieme al corso comprato e mai finito, e all&rsquo;abbonamento in palestra di gennaio.</p>
+          <p style="${P}">Non è una colpa. È che l&rsquo;inglese non è mai <strong>urgente</strong> finché non lo diventa tutto insieme: la call che non puoi rimandare, il cliente che passa all&rsquo;inglese, la riunione dove sai cosa dire e non sai come dirlo.</p>
+          <p style="${P}">Il tuo percorso è ancora lì, intatto, con il tuo livello e i tuoi errori. <strong>Cinque minuti.</strong> Se dopo averli fatti pensi ancora che non faccia per te, disiscriviti in fondo a questa email e non ti scrivo più — davvero, senza rancore.</p>`,
+        ctaLabel: "Va bene, cinque minuti",
+        ctaUrl: url,
+        ...foot("Ricevi questa email perché non apri ExecLingo da due settimane."),
+      }),
+      text: `${hello(name)}ti dico la verità.\n\nSono ${days} giorni. O si riprende oggi, o questo resta l'ennesimo proposito lasciato a metà.\n\nL'inglese non è mai urgente finché non lo diventa tutto insieme: la call che non puoi rimandare, il cliente che passa all'inglese.\n\nCinque minuti: ${url}\n\nSe dopo pensi che non faccia per te, disiscriviti qui e non ti scrivo più: ${out}`,
+    };
+  }
+
+  // The reminders. Short by design — at this distance a long letter is not
+  // read, and the variations exist so six of them do not read as one robot
+  // repeating itself.
+  const lines = [
+    { subject: "Cinque minuti?", body: "Nessun discorso. Solo la domanda: cinque minuti di inglese, oggi?" },
+    { subject: "La tua call in inglese, quando arriva", body: "Arriverà con due giorni di preavviso e nessun tempo per prepararsi. È l'unico motivo per cui vale la pena farlo adesso che non serve." },
+    { subject: "Sam si ricorda ancora di te", body: "Il tuo livello, i tuoi errori, le espressioni che stavi imparando: è tutto lì. Non si è cancellato niente." },
+    { subject: "Un minuto, allora", body: "Se cinque sono troppi: uno. Una domanda, una risposta in inglese, e hai finito. È già meglio di zero." },
+    { subject: "L'inglese di chi lo parla male", body: "Non è chi ha studiato di più. È chi si è esposto di più — sbagliando, davanti a qualcuno. Sam è il posto dove farlo senza pubblico." },
+    { subject: "Ultimo promemoria", body: "Questo è l'ultimo che ti mando: dopo smetto, e resta solo l'app se un giorno ti va. Nessun rancore, e la porta resta aperta." },
+  ];
+  const pick = lines[Math.min(step.index - 1, lines.length - 1)] ?? lines[0];
+  const last = step.index >= lines.length;
   return {
-    subject: "Sam ti aspetta ancora 👋",
+    subject: pick.subject,
     html: renderEmail({
-      preheader: "Tre giorni senza inglese non cancellano niente. Cinque minuti oggi lo rimettono in moto.",
-      heading: `${hello(name)}tutto bene?`,
-      bodyHtml: `<p style="${P}">Sono ${days} giorni che non ci sentiamo. Nessun rimprovero — succede a tutti, e la settimana lavorativa è quella che è.</p>
-        <p style="${P}">Solo una cosa vale la pena ricordare: l'inglese non si perde in tre giorni, <strong>si perde in tre mesi di rinvii</strong>. E si riprende in <strong>cinque minuti</strong>, oggi, da dove eri.</p>
-        <p style="${SMALL}">Sam si ricorda di te: il tuo livello, i tuoi errori ricorrenti, le espressioni che stavi imparando. Non devi ricominciare da capo.</p>`,
-      ctaLabel: "Riprendo in 5 minuti",
+      preheader: pick.body.slice(0, 130),
+      heading: pick.subject,
+      bodyHtml: `<p style="${P}">${pick.body}</p>${last ? "" : `<p style="${SMALL}">Se non è il momento, va bene così — basta che non diventi mai il momento.</p>`}`,
+      ctaLabel: "Apri ExecLingo",
       ctaUrl: url,
-      footerNote: "Ricevi questa email perché hai un account ExecLingo e non lo usi da qualche giorno.",
-      unsubscribeUrl: unsubscribeUrl(userId),
+      ...foot(last ? "È l'ultimo promemoria di questa serie: dopo non ti scriviamo più." : "Ricevi questa email perché non apri ExecLingo da un po'."),
     }),
-    text: `${hello(name)}tutto bene?\n\nSono ${days} giorni che non ci sentiamo. L'inglese non si perde in tre giorni, si perde in tre mesi di rinvii. E si riprende in cinque minuti.\n\nSam si ricorda di te: livello, errori ricorrenti, espressioni in corso. Non ricominci da capo.\n\n${url}\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${pick.body}\n\n${url}\n\nDisiscriviti: ${out}`,
   };
 }
 

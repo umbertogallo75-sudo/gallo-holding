@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { isEmailConfigured } from "@/lib/email";
 import { unsubscribedIds } from "./prefs";
 import { dailyKey, isRealAddress, onceKey, sendMarketing, type Sender } from "./send";
-import { comeBack, eveningRecap, trialEnded, trialExtended, trialReminder } from "./templates";
+import { eveningRecap, trialEnded, trialExtended, trialReminder, winBack } from "./templates";
+import { winBackFor, winBackKey, winBackKind } from "./winback";
 import { hoursLeft, readTrial } from "./trial";
 
 /**
@@ -16,6 +17,8 @@ import { hoursLeft, readTrial } from "./trial";
  */
 
 const MAX_SENDS_PER_RUN = 60;
+/** At most one automatic email per person per day, whatever is queued. */
+const THROTTLE_HOURS = 20;
 /** Daytime in Italy. Nobody wants a marketing email at four in the morning. */
 const DAY_START_UTC = 7;
 const DAY_END_UTC = 20;
@@ -23,8 +26,6 @@ const DAY_END_UTC = 20;
 const EVENING_START_UTC = 17;
 const EVENING_END_UTC = 20;
 
-/** Silence long enough to be a lapse rather than a busy Tuesday. */
-const COME_BACK_HOURS = 72;
 /** Ten minutes: the same bar the trial extension uses. One promise, one number. */
 const RECAP_MINUTES = 10;
 /** The last hours of the trial, when a nudge can still change the outcome. */
@@ -64,7 +65,7 @@ export async function runLifecycleEmails(
   const evening = hour >= EVENING_START_UTC && hour < EVENING_END_UTC;
 
   const [users, lastSessions, metrics, billing, optedOut] = await Promise.all([
-    client.execute("SELECT id, email, display_name FROM auth_users WHERE email IS NOT NULL AND email != ''"),
+    client.execute("SELECT id, email, display_name, created_at FROM auth_users WHERE email IS NOT NULL AND email != ''"),
     client.execute("SELECT user_id, MAX(ended_at) AS last_at FROM sessions GROUP BY user_id").catch(() => ({ rows: [] })),
     client
       .execute({
@@ -99,7 +100,7 @@ export async function runLifecycleEmails(
     billing.rows.filter((row) => String(row.status) === "active").map((row) => String(row.user_id))
   );
 
-  const counts: Record<string, number> = { reminder: 0, extended: 0, ended: 0, comeback: 0, recap: 0 };
+  const counts: Record<string, number> = { reminder: 0, extended: 0, ended: 0, recap: 0, win_back_soft: 0, win_back_firm: 0, win_back_hard: 0, win_back_reminder: 0 };
   let sends = 0;
 
   for (const row of users.rows) {
@@ -146,23 +147,36 @@ export async function runLifecycleEmails(
     }
 
     if (!kind) {
-      // Nothing pending: has this person simply gone quiet?
+      // Nothing pending: has this person gone quiet, and for how long?
+      //
+      // Never having practised at all counts from the day they registered.
+      // Someone who signed up and never opened the app is not outside the
+      // ladder — they are the clearest case for it.
       const last = lastSessionAt.get(userId);
-      const silentFor = Number.isFinite(last) ? now.getTime() - (last as number) : NaN;
-      if (Number.isFinite(silentFor) && silentFor >= COME_BACK_HOURS * 3_600_000) {
-        kind = "come_back";
-        // At most one per calendar month, so a lapsed account is reminded
-        // again months later without ever becoming a weekly drip.
-        claimKey = dailyKey(userId, kind, today.slice(0, 7));
-        message = comeBack(userId, name, Math.floor(silentFor / 86_400_000));
+      const registered = parseStamp(row.created_at);
+      const lastSeen = Number.isFinite(last) ? (last as number) : registered;
+      if (Number.isFinite(lastSeen)) {
+        const days = Math.floor((now.getTime() - lastSeen) / 86_400_000);
+        const step = winBackFor(days);
+        if (step) {
+          kind = winBackKind(step);
+          // The day they were last seen is part of the key, so coming back
+          // and drifting away again starts the ladder from the beginning
+          // instead of finding every rung already spent.
+          claimKey = winBackKey(userId, step, day(new Date(lastSeen)));
+          message = winBack(userId, name, step, days);
+        }
       }
     }
 
     if (!kind || !message) continue;
-    const result = await sendMarketing({ userId, email, kind, claimKey, message }, client, send ?? undefined);
+    // A reward that has just been earned arrives now; everything else waits
+    // its turn, so nobody gets two automatic emails in a day.
+    const throttleHours = kind === "trial_extended" ? undefined : THROTTLE_HOURS;
+    const result = await sendMarketing({ userId, email, kind, claimKey, message, throttleHours }, client, send ?? undefined);
     if (result === "sent") {
       sends++;
-      const bucket = kind.replace("trial_", "").replace("come_back", "comeback").replace("evening_recap", "recap");
+      const bucket = kind.startsWith("win_back") ? kind : kind.replace("trial_", "").replace("evening_recap", "recap");
       counts[bucket] = (counts[bucket] ?? 0) + 1;
     }
   }
