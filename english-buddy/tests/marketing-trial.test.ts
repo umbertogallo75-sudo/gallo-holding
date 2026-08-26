@@ -95,3 +95,29 @@ describe("streakFrom", () => {
     expect(streakFrom(new Set(), today)).toBe(0);
   });
 });
+
+/**
+ * The rule that makes the whole funnel work: free access exists only for
+ * accounts. An anonymous trial is a stranger nobody can write to again — no
+ * welcome, no reminder, no reason to come back.
+ */
+describe("free access requires an account", () => {
+  it("is always attached to a user id, never to a browser", async () => {
+    // grantTrial has no anonymous form: there is no code path that produces a
+    // trial without an id, and the id only exists after registration.
+    const trial = await grantTrial("u1", client, START);
+    const row = await client.execute("SELECT user_id FROM trials");
+    expect(row.rows).toHaveLength(1);
+    expect(String(row.rows[0].user_id)).toBe("u1");
+    expect(trial?.active).toBe(true);
+  });
+
+  it("gives one trial per account however many doors it is claimed through", async () => {
+    // The emailed link and the in-app button both land here; two doors must
+    // not become two trials.
+    await grantTrial("u1", client, START);
+    const viaApp = await grantTrial("u1", client, new Date(START.getTime() + 30 * 3_600_000));
+    expect(viaApp?.endsAt.toISOString()).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
+    expect(viaApp?.active).toBe(false);
+  });
+});

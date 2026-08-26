@@ -8,11 +8,13 @@ export function TrialStart({
   alreadyStarted,
   extended,
   active,
+  signedIn,
 }: {
   token: string;
   alreadyStarted: boolean;
   extended: boolean;
   active: boolean;
+  signedIn: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "busy" | "error">("idle");
@@ -22,7 +24,10 @@ export function TrialStart({
     try {
       const response = await fetch(`/api/prova/${token}`, { method: "POST" });
       if (!response.ok) throw new Error("failed");
-      router.push("/home");
+      // The trial is on the account, not on the browser. Somebody reading the
+      // email on a phone they have never signed into would otherwise be
+      // bounced to a bare login screen the instant they accepted a gift.
+      router.push(signedIn ? "/home" : "/login?attivata=1");
     } catch {
       setState("error");
     }

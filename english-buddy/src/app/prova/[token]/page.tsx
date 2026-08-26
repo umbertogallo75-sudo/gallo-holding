@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getUserId } from "@/lib/auth";
 import { readEmailToken } from "@/lib/marketing/tokens";
 import { readTrial } from "@/lib/marketing/trial";
 import { TrialStart } from "./TrialStart";
@@ -16,6 +17,7 @@ export default async function TrialPage({ params }: { params: Promise<{ token: s
   const { token } = await params;
   const userId = readEmailToken(token, "trial");
   const existing = userId ? await readTrial(userId) : null;
+  const signedIn = (await getUserId()) === userId && Boolean(userId);
 
   return (
     <main className="shell">
@@ -33,7 +35,7 @@ export default async function TrialPage({ params }: { params: Promise<{ token: s
             <p style={{ marginBottom: 0 }}>Questo link non è più valido. Accedi con la tua email da <Link href="/login">execlingo.it</Link> e scrivici se il problema resta.</p>
           </>
         ) : (
-          <TrialStart token={token} alreadyStarted={Boolean(existing)} extended={Boolean(existing?.extended)} active={Boolean(existing?.active)} />
+          <TrialStart token={token} alreadyStarted={Boolean(existing)} extended={Boolean(existing?.extended)} active={Boolean(existing?.active)} signedIn={signedIn} />
         )}
       </section>
 

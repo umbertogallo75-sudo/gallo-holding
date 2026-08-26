@@ -565,3 +565,4 @@ p { line-height:1.55; font-size:16px; }
 .trialLine { margin:6px 0 0; font-size:15px; line-height:1.5; }
 .trialNote { margin:5px 0 0; font-size:13.5px; line-height:1.45; color:var(--muted); }
 .trialBanner .pathBar { margin-top:10px; }
+.trialOffer { border:1.5px solid color-mix(in srgb, var(--amber) 60%, var(--line)); background:color-mix(in srgb, var(--amber) 12%, var(--surface)); border-radius:18px; padding:16px 18px; margin-bottom:10px; }

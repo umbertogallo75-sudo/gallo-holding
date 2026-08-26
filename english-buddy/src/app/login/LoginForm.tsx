@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 
-export function LoginForm({ oauth, oauthError, embedded = false }: { oauth: React.ReactNode; oauthError?: string | null; embedded?: boolean }) {
+export function LoginForm({ oauth, oauthError, embedded = false, trialClaimed = false }: { oauth: React.ReactNode; oauthError?: string | null; embedded?: boolean; trialClaimed?: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,10 @@ export function LoginForm({ oauth, oauthError, embedded = false }: { oauth: Reac
     <div className="brand">ExecLingo</div>
     <div className="hero"><div className="kicker">Il tuo coach personale</div><h1>L&rsquo;inglese che entra nella tua giornata.</h1><p className="muted">Entra con la tua email e la tua password.</p></div>
     {oauthError ? <div className="notice" style={{marginBottom:8}}>⚠️ {oauthError}</div> : null}
+    {/* Arriving from the emailed trial link on a device with no session: the
+        gift is already on the account, and saying so turns a login wall into
+        the last step of accepting it. */}
+    {trialClaimed ? <div className="notice" style={{marginBottom:8}}>🎁 Le tue 24 ore gratis sono attive. Accedi con la tua email e Sam è tutto aperto.</div> : null}
     {oauth}<form onSubmit={submit}>
     <input className="field" type="email" autoComplete="email" required placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
     <input className="field" type="password" autoComplete="current-password" required placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} style={{marginTop:8}} />

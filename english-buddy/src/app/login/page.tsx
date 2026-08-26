@@ -12,12 +12,12 @@ const OAUTH_ERRORS: Record<string, string> = {
   "not-configured": "Questo accesso non è ancora attivo.",
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ oauth_error?: string }> }) {
-  const { oauth_error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ oauth_error?: string; attivata?: string }> }) {
+  const { oauth_error, attivata } = await searchParams;
   const oauthError = oauth_error ? (OAUTH_ERRORS[oauth_error] ?? `Accesso non riuscito (codice: ${oauth_error}).`) : null;
   // Store-app wrappers: email/password only — Google forbids OAuth inside
   // embedded webviews and Apple's web flow is clunky there. With no social
   // login shown, Apple's Sign-in-with-Apple mandate (4.8) doesn't apply.
   const embedded = await isEmbeddedApp();
-  return <LoginForm oauth={embedded ? null : <OAuthButtons google={googleEnabled()} apple={appleEnabled()} />} oauthError={oauthError} embedded={embedded} />;
+  return <LoginForm oauth={embedded ? null : <OAuthButtons google={googleEnabled()} apple={appleEnabled()} />} oauthError={oauthError} embedded={embedded} trialClaimed={attivata === "1"} />;
 }
