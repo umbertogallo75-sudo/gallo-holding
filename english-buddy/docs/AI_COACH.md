@@ -2,7 +2,7 @@
 
 ## Model usage
 
-- One model call per turn: OpenAI **Responses API**, model `OPENAI_MODEL` (default `gpt-5`), `reasoning.effort: low`, `max_output_tokens: 1200`.
+- One model call per turn: OpenAI **Responses API**, model `OPENAI_MODEL` (default `gpt-5.6-sol`), `reasoning.effort: low`, `max_output_tokens: 1200`.
 - Output is forced through a **strict JSON schema** (`coach_turn` in `src/lib/ai/types.ts`) and re-validated with Zod. A malformed response never breaks the conversation — it degrades to a plain reply.
 - The API key lives server-side only. The browser talks to `/api/coach`.
 

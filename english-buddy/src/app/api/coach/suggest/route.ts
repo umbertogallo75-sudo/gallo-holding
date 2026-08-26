@@ -42,13 +42,13 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
         instructions: `An Italian ${level}-level English learner doesn't know how to answer their coach's question. Suggest exactly 3 short, natural example answers in English they could give, matched to their level (simple for A1/A2). First person, ready to use, max 14 words each, no numbering.${context ? ` Their background: ${context}.` : ""}`,
         input: `The coach asked: ${parsed.data.question}`,
         reasoning: { effort: "low" },
         // Reasoning shares this budget: a tight cap intermittently truncates
         // the JSON and silently downgrades to the static fallback list.
-        max_output_tokens: 700,
+        max_output_tokens: 1600,
         text: {
           format: {
             type: "json_schema",

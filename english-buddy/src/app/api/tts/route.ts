@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
-import { ttsRequest } from "@/lib/tts-request";
+import { SAM_VOICE, ttsRequest } from "@/lib/tts-request";
 
 export const maxDuration = 30;
 
@@ -47,8 +47,7 @@ export async function POST(request: Request) {
     body: JSON.stringify(
       ttsRequest({
         model: TTS_MODEL,
-        // Male and warm, to match the voice Sam already has on iOS.
-        voice: process.env.SAM_TTS_VOICE || "onyx",
+        voice: process.env.SAM_TTS_VOICE || SAM_VOICE,
         text: parsed.data.text,
         rate: parsed.data.rate,
         lang: parsed.data.lang,

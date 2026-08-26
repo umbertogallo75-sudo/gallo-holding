@@ -24,6 +24,13 @@ export function delivery(slow: boolean, lang: TtsLang): string {
   ].join("\n");
 }
 
+/**
+ * Sam's voice. `cedar` is the same voice the realtime call uses, which is the
+ * point: before this, the listen buttons and the voice conversation were two
+ * different men, and the app's own coach did not sound like himself.
+ */
+export const SAM_VOICE = "cedar";
+
 export function ttsRequest(opts: { model: string; voice: string; text: string; rate?: number; lang?: TtsLang }) {
   // The turtle button, from the server's side: anything below conversational.
   const slow = (opts.rate ?? 1) < 0.9;

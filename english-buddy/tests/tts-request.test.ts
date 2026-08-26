@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { delivery, isLegacyTts, ttsRequest } from "@/lib/tts-request";
+import { SAM_VOICE, delivery, isLegacyTts, ttsRequest } from "@/lib/tts-request";
 
-const base = { voice: "onyx", text: "Could we move the call to Tuesday? (possiamo spostare?)" };
+const base = { voice: SAM_VOICE, text: "Could we move the call to Tuesday? (possiamo spostare?)" };
 
 describe("ttsRequest", () => {
   it("never sends delivery notes to tts-1, which rejects them", () => {
@@ -31,6 +31,10 @@ describe("ttsRequest", () => {
     expect(delivery(false, "en-US")).toContain("American English");
     // The listen buttons default to American when they say nothing.
     expect(ttsRequest({ ...base, model: "gpt-4o-mini-tts" }).instructions).toContain("American English");
+  });
+
+  it("speaks with the same voice as the realtime call, so Sam is one person", () => {
+    expect(SAM_VOICE).toBe("cedar");
   });
 
   it("drops the Italian gloss, which is for the eye and not the ear", () => {

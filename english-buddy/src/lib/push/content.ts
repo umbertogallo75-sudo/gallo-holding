@@ -92,7 +92,7 @@ export async function generateBuddyQuestion(context: QuestionContext, seed: stri
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
         instructions: `You are Sam, the user's English coach and English-speaking friend who texts short questions during the day to help an ${context.level || "intermediate"}-level professional practice English naturally.
 ${
   beginner
@@ -105,10 +105,12 @@ ${context.dueExpression ? `They are due to review the expression "${context.dueE
 ${context.professionalContext ? `Their background: ${context.professionalContext}.` : ""}
 Avoid repeating these recent questions: ${JSON.stringify(context.recentQuestions.slice(0, 6))}`,
         input: `Write the next question for ${context.name || "your friend"}.`,
-        reasoning: { effort: "low" },
+        // The only model call nobody waits for: a cron writes tomorrow's
+        // notifications. Thinking time is free here, so it is bought.
+        reasoning: { effort: "medium" },
         // Generous cap: reasoning shares the budget and a truncated response
         // would fall back to the static pool more often than necessary.
-        max_output_tokens: 700,
+        max_output_tokens: 1600,
       }),
     });
     if (!response.ok) return fallback();

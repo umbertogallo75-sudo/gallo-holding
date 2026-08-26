@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
         instructions: `Translate what an Italian professional wants to say into English in three registers:
 - simple: short, easy words, easy to pronounce (for a ${level} learner to say aloud right now)
 - natural: how a fluent speaker would naturally say it
@@ -48,7 +48,10 @@ export async function POST(request: Request) {
 Keep the meaning faithful. No quotes, no explanations.`,
         input: parsed.data.text,
         reasoning: { effort: "low" },
-        max_output_tokens: 500,
+        // Reasoning is spent from this budget, and a stronger model thinks
+        // more before it answers. Unused headroom is free; a truncated answer
+        // is not.
+        max_output_tokens: 1200,
         text: {
           format: {
             type: "json_schema",

@@ -42,11 +42,11 @@ Re-running is safe; applied files are tracked in `schema_migrations`.
 | `INVITE_CODE` | no | Optional lock: when set, `/register` requires this invite code; unset = open self-registration |
 | `SESSION_SECRET` | yes | 32+ random chars, e.g. `openssl rand -hex 32` |
 | `OPENAI_API_KEY` | yes | Server-side only |
-| `OPENAI_MODEL` | no | Defaults to `gpt-5` |
+| `OPENAI_MODEL` | no | Defaults to `gpt-5.6-sol` |
 | `VOICE_MODEL` | no | Realtime voice; defaults to `gpt-realtime-2.1` |
 | `VOICE_TRANSCRIBE_MODEL` | no | Transcription inside a voice call; defaults to `gpt-transcribe` |
 | `OPENAI_TTS_MODEL` | no | Listen buttons; defaults to `gpt-4o-mini-tts` |
-| `SAM_TTS_VOICE` | no | Defaults to `onyx` |
+| `SAM_TTS_VOICE` | no | Defaults to `cedar`, the same voice as the realtime call |
 | `NEXT_PUBLIC_APP_URL` | no | Public URL of the deployment |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | yes (push) | `npx web-push generate-vapid-keys` |
 | `CRON_SECRET` | yes (push) | Bearer token protecting `/api/cron/notifications` (used by GitHub Actions + Vercel cron) |
