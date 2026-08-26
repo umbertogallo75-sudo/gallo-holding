@@ -170,11 +170,11 @@ export function VoiceClient({ mode }: { mode?: string }) {
 
       {status === "live" ? (
         <>
-          <section className="card" style={{ textAlign: "center", padding: 24 }}>
+          <section className="card voiceLive">
             <div className="voiceOrb pulsing">🎙️</div>
-            <p style={{ margin: "12px 0 2px", fontWeight: 750, fontSize: 18 }}>In conversazione · {mm}:{ss}</p>
+            <p className="voiceTimer">In conversazione · {mm}:{ss}</p>
             <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
-            <button className="secondary full" style={{ marginTop: 12 }} onClick={stop}>⏹ Termina</button>
+            <button className="secondary full voiceStop" onClick={stop}>⏹ Termina</button>
           </section>
           {lines.length > 0 ? (
             <section className="card">

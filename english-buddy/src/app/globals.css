@@ -290,6 +290,23 @@ p { line-height:1.55; font-size:16px; }
 
 .voiceOrb { width:110px; height:110px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:44px; background:linear-gradient(135deg, var(--accent), #b0567a); box-shadow:0 8px 30px color-mix(in srgb, var(--accent) 40%, transparent); }
 .voiceOrb.pulsing { animation:orbPulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .voiceOrb.pulsing { animation:none; } }
+/* Landscape, and any short screen. The orb is decoration and gives way first,
+   so the timer and Termina stay on screen without scrolling for them. */
+.voiceLive { text-align:center; padding:24px; }
+.voiceTimer { margin:12px 0 2px; font-weight:750; font-size:18px; }
+.voiceStop { margin-top:12px; }
+/* Short screen — a phone turned sideways. Stacked, the orb and the timer eat
+   the whole viewport and push the transcript off the bottom, which is the one
+   thing that must stay visible. So the controls collapse into a single row. */
+@media (max-height: 560px) {
+  .voiceLive { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; text-align:left; padding:12px 14px; }
+  .voiceLive .voiceOrb { width:44px; height:44px; font-size:20px; margin:0; }
+  .voiceLive .voiceTimer { margin:0; font-size:16px; }
+  .voiceLive .composerNote { display:none; }
+  .voiceLive .voiceStop { width:auto; margin:0; padding:11px 15px; }
+  .voiceOrb { width:62px; height:62px; font-size:26px; }
+}
 @keyframes orbPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.07); box-shadow:0 10px 40px color-mix(in srgb, var(--accent) 55%, transparent); } }
 
 .dictation { display:block; margin:10px 0 4px; padding:14px 16px; border:1.5px dashed color-mix(in srgb, #7a5aa0 45%, var(--line)); border-radius:16px; background:color-mix(in srgb, #7a5aa0 8%, var(--surface)); }
@@ -519,7 +536,18 @@ p { line-height:1.55; font-size:16px; }
    It scrolls inside itself rather than lengthening the page: the timer and
    the stop button have to stay reachable while both hands are busy talking,
    and nobody should have to scroll with a finger mid-sentence. */
-.voiceLog { max-height:38vh; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.voiceLog {
+  /* dvh and not vh: on mobile Safari 100vh is the height the page would have
+     with the address bar hidden, so a vh box is taller than what is actually
+     on screen and pushes the stop button below the fold — on the small phones
+     first. The floor keeps a short screen from leaving a useless sliver. */
+  max-height: 38vh; /* fallback where dvh is unknown */
+  max-height: max(150px, 38dvh);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}
+/* Landscape and other short screens. Must come after the rule above: same
+   specificity, so it is source order that decides which max-height wins. */
+@media (max-height: 560px) { .voiceLog { max-height: max(120px, 30dvh); } }
 .voiceLine { margin:9px 0; font-size:15.5px; line-height:1.5; }
 .voiceLine:last-child { margin-bottom:2px; }
 .voiceCatchUp {
