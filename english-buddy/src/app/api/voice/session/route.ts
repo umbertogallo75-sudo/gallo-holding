@@ -67,7 +67,27 @@ Conversation rules:
         model: modelFor("voice"),
         instructions,
         audio: {
-          input: { transcription: { model: modelFor("transcribe") } },
+          input: {
+            transcription: {
+              model: modelFor("transcribe"),
+              // Both languages, because that is what actually happens: they
+              // speak English and drop into Italian when stuck. Left to guess,
+              // the transcriber turned a burst of speaker echo into Chinese
+              // characters and put them in the learner's mouth.
+              languages: ["en", "it"],
+              prompt:
+                "An Italian professional practising business English with a coach. They speak English, and sometimes Italian when they are stuck. Never transcribe into any other language.",
+            },
+            // A phone held in the hand, in a room. Tells the far end to expect
+            // near-field audio and filter the rest.
+            noise_reduction: { type: "near_field" },
+            // Semantic rather than level-based: it judges whether the speaker
+            // actually meant to take a turn instead of reacting to whatever
+            // crossed a volume threshold. Low eagerness on purpose — a learner
+            // searching for a word in a foreign language pauses a lot, and
+            // being cut off mid-thought is the fastest way to stop trying.
+            turn_detection: { type: "semantic_vad", eagerness: "low" },
+          },
           // Sam is male with a warm, gentle delivery: cedar is the natural
           // male voice in the GA Realtime lineup.
           output: { voice: "cedar" },

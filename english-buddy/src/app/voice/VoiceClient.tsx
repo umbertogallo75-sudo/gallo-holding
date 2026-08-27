@@ -86,7 +86,15 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       const tokenData = await tokenResponse.json();
       if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Asked for explicitly, not left to the browser's defaults. Without echo
+      // cancellation the phone's loudspeaker feeds Sam's own voice straight
+      // back into the microphone, the far end hears it as the learner
+      // speaking, and it cuts Sam off mid-sentence — which is exactly what a
+      // tester reported, and why it behaved on headphones: no speaker, no
+      // acoustic path, no problem.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       streamRef.current = stream;
 
       const pc = new RTCPeerConnection();
