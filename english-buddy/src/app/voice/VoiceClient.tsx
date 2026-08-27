@@ -7,7 +7,7 @@ type Status = "idle" | "connecting" | "live" | "ended" | "error";
 
 const MAX_SECONDS = 600; // hard cap per conversation to keep costs sane
 
-export function VoiceClient({ mode }: { mode?: string }) {
+export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -139,6 +139,7 @@ export function VoiceClient({ mode }: { mode?: string }) {
   return (
     <>
       <audio ref={audioRef} autoPlay playsInline hidden />
+      {status === "live" ? null : hero}
 
       {status === "idle" || status === "error" || status === "ended" ? (
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
@@ -169,7 +170,7 @@ export function VoiceClient({ mode }: { mode?: string }) {
       ) : null}
 
       {status === "live" ? (
-        <>
+        <div className="voiceStage">
           <section className="card voiceLive">
             <div className="voiceOrb pulsing">🎙️</div>
             <p className="voiceTimer">In conversazione · {mm}:{ss}</p>
@@ -191,7 +192,7 @@ export function VoiceClient({ mode }: { mode?: string }) {
               </div>
             </section>
           ) : null}
-        </>
+        </div>
       ) : null}
     </>
   );

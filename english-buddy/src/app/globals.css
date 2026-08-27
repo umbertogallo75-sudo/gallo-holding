@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* What the voice stage must subtract from the viewport: the shell padding
+     above and below (22 + 110), the top bar, and the safe areas. */
+  --voiceChrome: calc(196px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
   --bg: #f6f6f2;
   --surface: #ffffff;
   --ink: #11120f;
@@ -293,20 +296,24 @@ p { line-height:1.55; font-size:16px; }
 @media (prefers-reduced-motion: reduce) { .voiceOrb.pulsing { animation:none; } }
 /* Landscape, and any short screen. The orb is decoration and gives way first,
    so the timer and Termina stay on screen without scrolling for them. */
-.voiceLive { text-align:center; padding:24px; }
-.voiceTimer { margin:12px 0 2px; font-weight:750; font-size:18px; }
-.voiceStop { margin-top:12px; }
+/* The controls during a call. One row, always: stacked they took 321px — on a
+   375x667 phone that is 55% of the screen spent on an orb and a hint, and the
+   transcript underneath was left with nothing. The orb is decoration; the
+   conversation is the point. */
+.voiceLive {
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px;
+  text-align:left; padding:12px 14px;
+}
+.voiceLive .voiceOrb { width:52px; height:52px; font-size:22px; margin:0; }
+.voiceLive .voiceTimer { margin:0; font-size:16px; }
+/* "Parla normalmente in inglese" answers a question you only have before you
+   start. Once you are talking it is one more thing between you and the words. */
+.voiceLive .composerNote { display:none; }
+.voiceLive .voiceStop { width:auto; margin:0; padding:11px 15px; }
+.voiceTimer { font-weight:750; }
 /* Short screen — a phone turned sideways. Stacked, the orb and the timer eat
    the whole viewport and push the transcript off the bottom, which is the one
    thing that must stay visible. So the controls collapse into a single row. */
-@media (max-height: 560px) {
-  .voiceLive { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; text-align:left; padding:12px 14px; }
-  .voiceLive .voiceOrb { width:44px; height:44px; font-size:20px; margin:0; }
-  .voiceLive .voiceTimer { margin:0; font-size:16px; }
-  .voiceLive .composerNote { display:none; }
-  .voiceLive .voiceStop { width:auto; margin:0; padding:11px 15px; }
-  .voiceOrb { width:62px; height:62px; font-size:26px; }
-}
 @keyframes orbPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.07); box-shadow:0 10px 40px color-mix(in srgb, var(--accent) 55%, transparent); } }
 
 .dictation { display:block; margin:10px 0 4px; padding:14px 16px; border:1.5px dashed color-mix(in srgb, #7a5aa0 45%, var(--line)); border-radius:16px; background:color-mix(in srgb, #7a5aa0 8%, var(--surface)); }
@@ -536,18 +543,29 @@ p { line-height:1.55; font-size:16px; }
    It scrolls inside itself rather than lengthening the page: the timer and
    the stop button have to stay reachable while both hands are busy talking,
    and nobody should have to scroll with a finger mid-sentence. */
+/* During a call the whole view is one stage that fits the screen: controls at
+   a fixed height, transcript taking the rest. This is what stops the page
+   itself from scrolling — and with only one scrollable box left there is
+   nothing for a finger to fight. Two containers, one of which refuses to hand
+   the scroll on, is how the last spoken line ends up unreachable. */
+.voiceStage {
+  display: flex; flex-direction: column; gap: 10px;
+  height: calc(100dvh - var(--voiceChrome));
+}
+.voiceStage > .card { margin: 0; }
+.voiceStage > .card:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .voiceLog {
   /* dvh and not vh: on mobile Safari 100vh is the height the page would have
-     with the address bar hidden, so a vh box is taller than what is actually
-     on screen and pushes the stop button below the fold — on the small phones
-     first. The floor keeps a short screen from leaving a useless sliver. */
-  max-height: 38vh; /* fallback where dvh is unknown */
-  max-height: max(150px, 38dvh);
+     with the address bar hidden, so a vh box is taller than what is on screen.
+     Inside the stage the height comes from the flex parent instead, and this
+     max-height is only the fallback for browsers without dvh. */
+  max-height: 38vh;
+  flex: 1; min-height: 0; max-height: none;
   overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
 }
 /* Landscape and other short screens. Must come after the rule above: same
    specificity, so it is source order that decides which max-height wins. */
-@media (max-height: 560px) { .voiceLog { max-height: max(120px, 30dvh); } }
+
 .voiceLine { margin:9px 0; font-size:15.5px; line-height:1.5; }
 .voiceLine:last-child { margin-bottom:2px; }
 .voiceCatchUp {
@@ -566,3 +584,16 @@ p { line-height:1.55; font-size:16px; }
 .trialNote { margin:5px 0 0; font-size:13.5px; line-height:1.45; color:var(--muted); }
 .trialBanner .pathBar { margin-top:10px; }
 .trialOffer { border:1.5px solid color-mix(in srgb, var(--amber) 60%, var(--line)); background:color-mix(in srgb, var(--amber) 12%, var(--surface)); border-radius:18px; padding:16px 18px; margin-bottom:10px; }
+
+/* A phone turned sideways has no room for a stage: there the page scrolls as
+   normal and the transcript keeps a modest fixed height. Crucially the scroll
+   trap goes with it — a box that refuses to hand the scroll on is only safe
+   when the page behind it does not need to move. */
+@media (max-height: 560px) {
+  .voiceStage { height:auto; min-height:0; }
+  /* The stage is no longer sized, so its children must stop stretching to
+     fill it — a flex child of an auto-height parent collapses to nothing. */
+  .voiceStage > .card:last-child { flex:none; min-height:auto; display:block; }
+  .voiceLive .voiceOrb { width:44px; height:44px; font-size:20px; }
+  .voiceLog { flex:none; max-height:max(120px, 30dvh); overscroll-behavior:auto; }
+}
