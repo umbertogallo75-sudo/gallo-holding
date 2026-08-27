@@ -7,6 +7,16 @@ type Status = "idle" | "connecting" | "live" | "ended" | "error";
 
 const MAX_SECONDS = 600; // hard cap per conversation to keep costs sane
 
+/**
+ * How long the app waits before deciding an interruption is over for good.
+ *
+ * A glance at a notification is seconds; a phone call is not. Below this the
+ * conversation is picked up where it stopped, above it the call is closed
+ * properly rather than left running against a microphone somebody else is
+ * using.
+ */
+const RESUME_GRACE_MS = 45_000;
+
 export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -21,8 +31,54 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const logRef = useRef<HTMLDivElement | null>(null);
   const followRef = useRef(true);
   const [detached, setDetached] = useState(false);
+  /** Something took the microphone or the screen: a call, a lock, a swipe. */
+  const [interrupted, setInterrupted] = useState<null | "paused" | "lost">(null);
+  const awaySinceRef = useRef<number | null>(null);
+  const statusRef = useRef<Status>("idle");
 
   useEffect(() => () => { cleanup(false); }, []);
+
+  /**
+   * What happens when a phone call arrives in the middle of a conversation.
+   *
+   * The system takes the microphone and puts the page in the background. From
+   * inside the app nothing announced this: Sam kept talking to an empty room,
+   * the timer kept crediting minutes nobody practised, and the person came
+   * back to a screen still claiming to be in conversation.
+   *
+   * Leaving the page is treated as the same event, because from here it is
+   * indistinguishable and the right answer is the same either way: stop the
+   * clock at once, and say so.
+   */
+  useEffect(() => {
+    function onVisibility() {
+      if (statusRef.current !== "live") return;
+      if (document.hidden) {
+        awaySinceRef.current = Date.now();
+        pauseClock();
+        setInterrupted("paused");
+        return;
+      }
+      const away = awaySinceRef.current ? Date.now() - awaySinceRef.current : 0;
+      awaySinceRef.current = null;
+      // A glance at a notification is picked up where it stopped. A phone
+      // call is not: by then the connection is usually gone, and pretending
+      // otherwise leaves somebody talking to a line that closed minutes ago.
+      const alive = pcRef.current && ["connected", "connecting", "new"].includes(pcRef.current.connectionState);
+      if (!alive || away > RESUME_GRACE_MS) {
+        endInterrupted();
+        return;
+      }
+      setInterrupted(null);
+      startClock();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // The handler reads everything through refs, so it must be registered once
+    // and never rebound: re-binding on each render would tear the listener down
+    // and put it back in the middle of a call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Keep the newest line in view.
@@ -55,6 +111,25 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (log) log.scrollTop = log.scrollHeight;
   }
 
+  /**
+   * The clock counts practice, not elapsed time.
+   *
+   * If it kept running through an incoming call it would credit minutes
+   * nobody practised, and spend the ten-minute cap on a conversation Sam was
+   * having with an empty room.
+   */
+  function startClock() {
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => {
+      secondsRef.current += 1;
+      setSeconds(secondsRef.current);
+      if (secondsRef.current >= MAX_SECONDS) stop();
+    }, 1000);
+  }
+  function pauseClock() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }
+
   function cleanup(report: boolean) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     pcRef.current?.close(); pcRef.current = null;
@@ -79,7 +154,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   }
 
   async function start() {
-    setStatus("connecting"); setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
+    setStatus("connecting"); statusRef.current = "connecting";
+    setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
+    setInterrupted(null); awaySinceRef.current = null;
     followRef.current = true; setDetached(false);
     try {
       const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
@@ -102,7 +179,22 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       pc.ontrack = (event) => {
         if (audioRef.current) { audioRef.current.srcObject = event.streams[0]; void audioRef.current.play().catch(() => null); }
       };
-      pc.addTrack(stream.getAudioTracks()[0], stream);
+      const mic = stream.getAudioTracks()[0];
+      // The most direct signal there is: the system mutes this track when
+      // something else takes the audio session — a call, usually — and
+      // unmutes it when it gives it back.
+      mic.onmute = () => { if (statusRef.current === "live") { pauseClock(); setInterrupted("paused"); } };
+      mic.onunmute = () => { if (statusRef.current === "live" && !document.hidden) { setInterrupted(null); startClock(); } };
+      mic.onended = () => { if (statusRef.current === "live") endInterrupted(); };
+      pc.addTrack(mic, stream);
+
+      // A connection that has genuinely failed must not leave a screen saying
+      // "in conversazione". "disconnected" can recover on its own, so only the
+      // final states end the call.
+      pc.onconnectionstatechange = () => {
+        if (statusRef.current !== "live") return;
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") endInterrupted();
+      };
 
       const channel = pc.createDataChannel("oai-events");
       channel.onmessage = (message) => {
@@ -123,14 +215,11 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       if (!answerResponse.ok) throw new Error("Voice connection failed");
       await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
 
-      setStatus("live");
-      timerRef.current = setInterval(() => {
-        secondsRef.current += 1;
-        setSeconds(secondsRef.current);
-        if (secondsRef.current >= MAX_SECONDS) stop();
-      }, 1000);
+      setStatus("live"); statusRef.current = "live";
+      startClock();
     } catch (e) {
       cleanup(false);
+      statusRef.current = "error";
       setStatus("error");
       setError(e instanceof Error ? e.message : "Voice unavailable");
     }
@@ -138,6 +227,15 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
   function stop() {
     cleanup(true);
+    statusRef.current = "ended";
+    setStatus("ended");
+  }
+
+  /** Ended by something outside the app rather than by the person. */
+  function endInterrupted() {
+    cleanup(true);
+    statusRef.current = "ended";
+    setInterrupted("lost");
     setStatus("ended");
   }
 
@@ -151,7 +249,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
       {status === "idle" || status === "error" || status === "ended" ? (
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
-          {status === "ended" ? (
+          {status === "ended" && interrupted === "lost" ? (
+            <>
+              <h2>Conversazione interrotta</h2>
+              <p className="muted">Qualcosa ha preso il microfono — di solito è una telefonata in arrivo. I <strong>{mm}:{ss}</strong> che avevi fatto sono salvati nei tuoi progressi: il tempo dell&rsquo;interruzione non è stato contato.</p>
+            </>
+          ) : status === "ended" ? (
             <>
               <h2>Ottima sessione! 🎉</h2>
               <p className="muted">{mm}:{ss} di inglese parlato davvero, registrati nei tuoi progressi.</p>
@@ -180,10 +283,13 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       {status === "live" ? (
         <div className="voiceStage">
           <section className="card voiceLive">
-            <div className="voiceOrb pulsing">🎙️</div>
-            <p className="voiceTimer">In conversazione · {mm}:{ss}</p>
+            <div className={interrupted === "paused" ? "voiceOrb" : "voiceOrb pulsing"}>🎙️</div>
+            <p className="voiceTimer">{interrupted === "paused" ? "In pausa" : "In conversazione"} · {mm}:{ss}</p>
             <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
             <button className="secondary full voiceStop" onClick={stop}>⏹ Termina</button>
+            {interrupted === "paused" ? (
+              <p className="voiceAlert">📞 Audio sospeso — probabilmente una telefonata. <strong>Il tempo è fermo</strong>: torna qui e riprendi da dove eravate.</p>
+            ) : null}
           </section>
           {lines.length > 0 ? (
             <section className="card">

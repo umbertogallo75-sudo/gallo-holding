@@ -597,3 +597,13 @@ p { line-height:1.55; font-size:16px; }
   .voiceLive .voiceOrb { width:44px; height:44px; font-size:20px; }
   .voiceLog { flex:none; max-height:max(120px, 30dvh); overscroll-behavior:auto; }
 }
+
+/* Shown when the system takes the microphone mid-call. Amber and full width:
+   it is the answer to "what just happened", and it has to be readable at a
+   glance by somebody who has just put down a phone call. */
+.voiceAlert {
+  grid-column: 1 / -1; margin: 4px 0 0; padding: 10px 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--amber) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line));
+  font-size: 14px; line-height: 1.45;
+}
