@@ -83,10 +83,16 @@ Conversation rules:
             noise_reduction: { type: "near_field" },
             // Semantic rather than level-based: it judges whether the speaker
             // actually meant to take a turn instead of reacting to whatever
-            // crossed a volume threshold. Low eagerness on purpose — a learner
-            // searching for a word in a foreign language pauses a lot, and
-            // being cut off mid-thought is the fastest way to stop trying.
-            turn_detection: { type: "semantic_vad", eagerness: "low" },
+            // crossed a volume threshold.
+            //
+            // Medium, not low. Low was added to stop Sam being interrupted,
+            // but the interruptions were speaker echo and echo cancellation
+            // fixes that at the source. What low bought instead was a long
+            // silence after the learner stopped talking — on speakerphone,
+            // long enough that people asked whether the app had broken. A
+            // coach who answers late is a worse problem than one who
+            // occasionally answers early.
+            turn_detection: { type: "semantic_vad", eagerness: "medium" },
           },
           // Sam is male with a warm, gentle delivery: cedar is the natural
           // male voice in the GA Realtime lineup.

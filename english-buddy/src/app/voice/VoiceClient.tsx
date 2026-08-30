@@ -5,6 +5,27 @@ import { useEffect, useRef, useState } from "react";
 type Line = { role: "you" | "coach"; text: string };
 type Status = "idle" | "connecting" | "live" | "ended" | "error";
 
+/**
+ * Whose turn it is, as far as the far end is concerned.
+ *
+ * On speakerphone the app is at arm's length and silence is ambiguous: a
+ * pause while the model composes an answer is indistinguishable from a
+ * crash. People waited, then started talking over it to check it was alive,
+ * which produced exactly the mess they were trying to diagnose. Saying which
+ * of the four things is happening costs one line and removes the guesswork.
+ */
+type Phase = "waiting" | "hearing" | "thinking" | "speaking";
+
+const PHASE_LABEL: Record<Phase, string> = {
+  waiting: "Tocca a te",
+  hearing: "Ti ascolto",
+  thinking: "Sam sta pensando",
+  speaking: "Sam parla",
+};
+
+/** If the far end goes quiet without saying why, stop claiming it is thinking. */
+const THINKING_TIMEOUT_MS = 12_000;
+
 const MAX_SECONDS = 600; // hard cap per conversation to keep costs sane
 
 /**
@@ -33,6 +54,8 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const [detached, setDetached] = useState(false);
   /** Something took the microphone or the screen: a call, a lock, a swipe. */
   const [interrupted, setInterrupted] = useState<null | "paused" | "lost">(null);
+  const [phase, setPhase] = useState<Phase>("waiting");
+  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const awaySinceRef = useRef<number | null>(null);
   const statusRef = useRef<Status>("idle");
 
@@ -118,6 +141,31 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
    * nobody practised, and spend the ten-minute cap on a conversation Sam was
    * having with an empty room.
    */
+  /**
+   * Translates the session's events into the one word on screen.
+   *
+   * The names are matched rather than exhaustively switched because the
+   * transport sends more than is listed here and will send more still: an
+   * unrecognised event should leave the label alone, never blank it.
+   */
+  function markPhase(type: string) {
+    if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
+    if (type === "input_audio_buffer.speech_started") { setPhase("hearing"); return; }
+    if (type === "input_audio_buffer.speech_stopped" || type === "response.created") {
+      setPhase("thinking");
+      // A promise that the far end will answer is not one this app can keep.
+      // If nothing arrives, say the turn is free again rather than leave
+      // "sta pensando" on screen forever.
+      thinkingTimerRef.current = setTimeout(() => setPhase("waiting"), THINKING_TIMEOUT_MS);
+      return;
+    }
+    if (type === "output_audio_buffer.started" || type === "response.output_audio.delta" || type === "response.output_item.added") {
+      setPhase("speaking");
+      return;
+    }
+    if (type === "response.done" || type === "output_audio_buffer.stopped") setPhase("waiting");
+  }
+
   function startClock() {
     if (timerRef.current) return;
     timerRef.current = setInterval(() => {
@@ -132,6 +180,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
   function cleanup(report: boolean) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     pcRef.current?.close(); pcRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
     if (report && secondsRef.current > 3) {
@@ -156,7 +205,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   async function start() {
     setStatus("connecting"); statusRef.current = "connecting";
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
-    setInterrupted(null); awaySinceRef.current = null;
+    setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     followRef.current = true; setDetached(false);
     try {
       const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
@@ -202,6 +251,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           const event = JSON.parse(message.data as string) as { type?: string; transcript?: string };
           if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) push("you", event.transcript);
           if ((event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") && event.transcript) push("coach", event.transcript);
+          if (event.type) markPhase(event.type);
         } catch { /* non-JSON frame */ }
       };
 
@@ -284,7 +334,11 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
         <div className="voiceStage">
           <section className="card voiceLive">
             <div className={interrupted === "paused" ? "voiceOrb" : "voiceOrb pulsing"}>🎙️</div>
-            <p className="voiceTimer">{interrupted === "paused" ? "In pausa" : "In conversazione"} · {mm}:{ss}</p>
+            <p className="voiceTimer">
+              {interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}
+              {phase === "thinking" && !interrupted ? <span className="voiceDots" aria-hidden>…</span> : null}
+              <span className="voiceClock"> · {mm}:{ss}</span>
+            </p>
             <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
             <button className="secondary full voiceStop" onClick={stop}>⏹ Termina</button>
             {interrupted === "paused" ? (

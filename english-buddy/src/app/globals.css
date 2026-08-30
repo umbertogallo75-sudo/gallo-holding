@@ -607,3 +607,9 @@ p { line-height:1.55; font-size:16px; }
   border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line));
   font-size: 14px; line-height: 1.45;
 }
+/* The turn indicator. The clock is secondary to it: during a conversation
+   whose turn it is matters more than how long it has lasted. */
+.voiceClock { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.voiceDots { display: inline-block; animation: voiceDots 1.2s steps(1) infinite; }
+@keyframes voiceDots { 0% { opacity: .25; } 50% { opacity: 1; } 100% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .voiceDots { animation: none; } }
