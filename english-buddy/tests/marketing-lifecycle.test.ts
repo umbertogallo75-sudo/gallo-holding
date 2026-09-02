@@ -77,3 +77,19 @@ describe("the opening date", () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+/**
+ * Every automatic series must obey the same date, or it is not a switch.
+ *
+ * The upgrade series predated the opening date and was never put behind it:
+ * while everything else waited for the sending domain to warm up, those two
+ * emails went out every hour to anybody without a plan.
+ */
+describe("the opening date covers every automatic series", () => {
+  it("holds the upgrade nudges too", async () => {
+    const { runUpgradeNudges } = await import("@/lib/nudges");
+    const report = await runUpgradeNudges(client, at("2026-08-31T10:00:00Z"), send);
+    expect(report.skipped).toBe("before-start");
+    expect(sent).toHaveLength(0);
+  });
+});

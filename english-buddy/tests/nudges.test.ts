@@ -5,6 +5,10 @@ import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 process.env.SESSION_SECRET = "test-secret-that-is-definitely-32-characters-long";
+// These tests are about which letter reaches whom, not about the date the
+// whole system is allowed to start. Opened in the past so the gate is out of
+// the way; the gate has its own test in marketing-lifecycle.
+process.env.LIFECYCLE_START_AT = "2020-01-01";
 
 import { runUpgradeNudges } from "@/lib/nudges";
 import { saveBilling } from "@/lib/stripe";

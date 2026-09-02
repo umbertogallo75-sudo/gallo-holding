@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { OWNER_ID } from "@/lib/auth";
 import { isEmailConfigured, renderEmail, sendEmail } from "@/lib/email";
 import { billingEnforced, getEntitlement } from "@/lib/stripe";
+import { lifecycleStart } from "@/lib/marketing/lifecycle";
 import { unsubscribedIds } from "@/lib/marketing/prefs";
 import { unsubscribeUrl } from "@/lib/marketing/tokens";
 
@@ -74,6 +75,15 @@ export async function runUpgradeNudges(
 ): Promise<Record<string, number | string>> {
   const sender = send ?? sendEmail;
   if (!send && (!billingEnforced() || !isEmailConfigured())) return { skipped: "config" };
+
+  // The same opening date as everything else. This series predates that date
+  // and was never put behind it, so while the rest of the automatic email was
+  // held back for the domain to warm up, these two kept going out every hour
+  // — which is not what anybody had agreed to. One switch, or it is not a
+  // switch.
+  const start = lifecycleStart();
+  if (now < start) return { skipped: "before-start", start: start.toISOString().slice(0, 10) };
+
   const hour = now.getUTCHours();
   if (hour < 7 || hour > 18) return { skipped: "quiet-hours" };
 
