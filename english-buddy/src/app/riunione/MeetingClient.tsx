@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useWakeLock } from "@/lib/use-wake-lock";
 import { Copy } from "@/components/Copy";
 
 /**
@@ -62,6 +63,10 @@ const LIFELINES: { key: string; label: string; icon: string; lines: string[] }[]
 ];
 
 export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: string | null }) {
+  // You open this during a real call and then look at it without touching it,
+  // which is precisely when the phone decides to lock. Ninety minutes covers
+  // any meeting and stops a screen left on a desk from draining the battery.
+  useWakeLock(true, 90 * 60_000);
   const [open, setOpen] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<{ natural: string; business: string } | null>(null);

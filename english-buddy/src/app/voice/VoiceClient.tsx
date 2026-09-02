@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useWakeLock } from "@/lib/use-wake-lock";
 
 type Line = { role: "you" | "coach"; text: string };
 type Status = "idle" | "connecting" | "live" | "ended" | "error";
@@ -60,6 +61,10 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const statusRef = useRef<Status>("idle");
 
   useEffect(() => () => { cleanup(false); }, []);
+
+  // A spoken conversation is the one screen nobody touches, so the phone locks
+  // and the call dies mid-sentence. Held only while the call is live.
+  useWakeLock(status === "live");
 
   /**
    * What happens when a phone call arrives in the middle of a conversation.
