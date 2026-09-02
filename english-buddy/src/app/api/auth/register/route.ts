@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { createAuthUser } from "@/lib/auth-users";
-import { sendMarketing, onceKey } from "@/lib/marketing/send";
-import { welcomeTrial } from "@/lib/marketing/templates";
+import { sendWelcome } from "@/lib/marketing/welcome";
 import { trackEvent } from "@/lib/analytics";
 import { parseAttributionCookie, saveAttribution } from "@/lib/attribution";
 import { attributeSignup } from "@/lib/partners";
@@ -50,20 +49,8 @@ export async function POST(request: Request) {
   });
   await saveAttribution(userId, attribution);
 
-  // Welcome email. It carries the free-trial offer, so it is marketing as
-  // well as a greeting and goes through the marketing door like everything
-  // else: claimed once, and carrying a way out. Must never break a signup.
-  try {
-    await sendMarketing({
-      userId,
-      email,
-      kind: "welcome_trial",
-      claimKey: onceKey(userId, "welcome_trial"),
-      message: welcomeTrial(userId, name),
-    });
-  } catch {
-    // Email problems must never block a registration.
-  }
+  // One greeting for all three ways in — see src/lib/marketing/welcome.ts.
+  await sendWelcome(userId, email, name);
 
   // Referral attribution: cookie set by /r/CODE, manual code, or offline lead.
   try {

@@ -1,5 +1,6 @@
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * The free trial the welcome email hands out.
@@ -78,7 +79,13 @@ export async function grantTrial(userId: string, client: Client = db(), now: Dat
       return null;
     }
   }
-  return readTrial(userId, client, now);
+  const trial = await readTrial(userId, client, now);
+  // Recorded here rather than at any of the doors that lead here, so the
+  // count is of trials that exist, not of buttons that were pressed.
+  if (trial && Math.abs(trial.startedAt.getTime() - now.getTime()) < 5_000) {
+    await trackEvent("trial_started", { userId }, client);
+  }
+  return trial;
 }
 
 /** Onboarding answered, and ten minutes of practice actually done. */
@@ -130,6 +137,7 @@ export async function readTrial(userId: string, client: Client = db(), now: Date
   } catch {
     return trial;
   }
+  await trackEvent("trial_extended", { userId }, client);
   return { ...trial, endsAt: new Date(extendedEnd), extended: true, active: true, msLeft: new Date(extendedEnd).getTime() - now.getTime() };
 }
 

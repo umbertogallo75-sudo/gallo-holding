@@ -9,6 +9,7 @@ import { runCoach } from "@/lib/ai/openai";
 import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { isFirstSession } from "@/lib/learning/first-use";
+import { trackEvent } from "@/lib/analytics";
 import {
   ensureProfile,
   ensureWeeklyFocus,
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
       // the path was designed. Counted on the server from the sessions table,
       // not taken from a query parameter the browser could invent.
       if (!entitlement.access && !(await isFirstSession(userId))) {
+        // The refusal itself, counted. A funnel that records purchases but not
+        // the moment somebody was stopped cannot say where it loses people.
+        await trackEvent("paywall_shown", { userId, meta: { mode } });
         return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
       }
     }
@@ -85,7 +89,12 @@ export async function POST(request: Request) {
 
     await ensureWeeklyFocus(userId);
     const context = await getRelevantLearningContext(userId, sessionId);
+    const firstEver = !parsed.data.sessionId && (await isFirstSession(userId));
     const result = await runCoach(coachInstructions(context, mode), message);
+    // The aha moment, and the only one that counts: an answer that came back.
+    // "Session started" was already recorded and told us nothing, because a
+    // session that fails on the first turn starts exactly the same way.
+    if (firstEver) await trackEvent("first_reply_ok", { userId, meta: { mode } });
 
     await saveMessage(userId, sessionId, "assistant", result.reply, result.correction || null);
     await touchSession(userId, sessionId);

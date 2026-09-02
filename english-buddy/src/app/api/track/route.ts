@@ -34,6 +34,11 @@ const bodySchema = z.object({
     "home_all_trainings",
     "personalize_shown",
     "personalize_dismissed",
+    // Middle of the funnel. The server records the rest itself, where it can
+    // see the truth rather than what a page chose to report.
+    "prices_shown",
+    "checkout_started",
+    "checkout_cancelled",
   ]),
   visitorId: z.string().min(8).max(64).optional(),
   ref: z.string().max(200).optional(),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
 import { parseAttributionCookie, saveAttribution } from "@/lib/attribution";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
+import { sendWelcome } from "@/lib/marketing/welcome";
 import { appleClientSecret, appleEnabled, baseUrl, decodeIdToken, findOrCreateOAuthUser, validClaims, verifyOauthState } from "@/lib/oauth";
 
 export const maxDuration = 30;
@@ -78,6 +79,10 @@ export async function POST(request: Request) {
 
   const { userId, created } = await findOrCreateOAuthUser("apple", claims.sub, claims.email?.toLowerCase() ?? null, name);
   if (created) await recordSignup(request, userId).catch((error) => console.error("signup tracking failed:", error));
+  // Same greeting the email-and-password route sends, with the same free-trial
+  // offer inside it. Without this, signing in with a provider meant the first
+  // thing ExecLingo ever said to you was the paywall.
+  if (created) await sendWelcome(userId, claims.email?.toLowerCase() ?? null, name);
   const response = NextResponse.redirect(new URL(created ? "/?signup=1" : "/", baseUrl()), 303);
   response.cookies.set(SESSION_COOKIE, createSessionToken(userId), {
     httpOnly: true,

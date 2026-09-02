@@ -9,6 +9,7 @@ import { ManageBilling } from "./ManageBilling";
 import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
 import { RedeemBox } from "./RedeemBox";
+import { PriceTracker } from "./PriceTracker";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Abbonamento · ExecLingo" };
@@ -49,6 +50,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
   if (embedded) {
     return (
       <main className="shell">
+      <PriceTracker esito={esito} />
         <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/home">← Home</Link></div>
         <section className="hero">
           <div className="kicker">Il tuo piano</div>

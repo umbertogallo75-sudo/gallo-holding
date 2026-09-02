@@ -141,7 +141,11 @@ export async function runLifecycleEmails(
     let claimKey = "";
     let message = null;
 
-    if (trial?.extended) {
+    // Only while it is still running. Without the second half this branch
+    // caught every extended trial for ever, and the closing email became
+    // unreachable for exactly the people who had engaged most — the ones who
+    // finished the path and earned the extra day.
+    if (trial?.extended && trial.active) {
       kind = "trial_extended";
       claimKey = onceKey(userId, kind);
       message = trialExtended(userId, name);

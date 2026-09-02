@@ -26,6 +26,18 @@ export type FunnelEvent =
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"
+  // The middle of the funnel, which was invisible: whether the free trial
+  // ever started, whether the first answer actually came back, and every
+  // step between meeting the paywall and paying. Without these, a drop
+  // between "registered" and "bought" had no shape at all.
+  | "trial_started"
+  | "trial_extended"
+  | "first_reply_ok"
+  | "paywall_shown"
+  | "prices_shown"
+  | "checkout_started"
+  | "checkout_cancelled"
+  | "checkout_failed"
   | "purchase_apple"
   | "purchase_google"
   // The web sale is the only one that can be tied back to the click that
