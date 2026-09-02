@@ -6,6 +6,9 @@ import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } fr
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
 import { runCoach } from "@/lib/ai/openai";
+import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
+import { ensureTrial } from "@/lib/marketing/trial";
+import { isFirstSession } from "@/lib/learning/first-use";
 import {
   ensureProfile,
   ensureWeeklyFocus,
@@ -28,14 +31,14 @@ export const maxDuration = 60;
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
-  mode: z.enum(["text-2", "text-5", "guided", "surprise", "buddy", "essentials", "zero", "mission", "listen", "review", "warmup", "shadow", "briefing", "levelcheck"]).default("text-5"),
+  mode: z.enum(COACH_MODES).default("text-5"),
   sessionId: z.string().uuid().optional(),
   // A Buddy question delivered via push, shown client-side before the first
   // reply; recorded as the session's opening assistant turn.
   opener: z.string().trim().max(500).optional(),
 });
 
-const modeMinutes: Record<string, number> = { "text-2": 2, "text-5": 5, guided: 10, surprise: 5, buddy: 3, essentials: 7, zero: 4, mission: 7, listen: 5, review: 3, warmup: 5, shadow: 4, briefing: 3, levelcheck: 3 };
+
 
 export async function POST(request: Request) {
   try {
@@ -53,8 +56,21 @@ export async function POST(request: Request) {
     // The 3-minute level check promised on the landing stays free; every other
     // activity requires a plan (or an admin-granted free account).
     if (billingEnforced() && mode !== "levelcheck") {
-      const entitlement = await getEntitlement(userId);
+      let entitlement = await getEntitlement(userId);
+
+      // Nobody should meet the paywall before they have met Sam. Opening a
+      // conversation is what starts the free trial — the emailed link and the
+      // button on the home screen still work, but they were the only two ways
+      // in and most people saw neither.
       if (!entitlement.access) {
+        await ensureTrial(userId).catch(() => null);
+        entitlement = await getEntitlement(userId);
+      }
+
+      // And the very first session is free whatever happens, as promised when
+      // the path was designed. Counted on the server from the sessions table,
+      // not taken from a query parameter the browser could invent.
+      if (!entitlement.access && !(await isFirstSession(userId))) {
         return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
       }
     }
@@ -86,7 +102,7 @@ export async function POST(request: Request) {
     if (result.capabilities.length) await saveCapabilities(userId, result.capabilities.slice(0, 3));
     await maybeAdjustLevel(userId);
     await recordDailyMetric(userId, {
-      minutes: modeMinutes[mode] ?? 5,
+      minutes: MODE_MINUTES[mode] ?? 5,
       interactions: 1,
       expressionsReviewed: reviewed,
     });

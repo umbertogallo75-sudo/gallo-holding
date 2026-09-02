@@ -6,6 +6,7 @@ import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 import { modelFor } from "@/lib/ai/models";
+import { ensureTrial } from "@/lib/marketing/trial";
 
 export const maxDuration = 30;
 
@@ -17,6 +18,12 @@ export const maxDuration = 30;
 export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Same door as the written coach: somebody reaching for the microphone is
+  // somebody the free trial is for, so it starts here too rather than only
+  // from an email link they may never have opened.
+  if (billingEnforced() && !(await getEntitlement(userId)).access) {
+    await ensureTrial(userId).catch(() => null);
+  }
   if (billingEnforced() && !(await getEntitlement(userId)).access) {
     return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
   }

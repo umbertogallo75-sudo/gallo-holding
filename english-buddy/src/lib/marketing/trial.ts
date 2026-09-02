@@ -133,6 +133,24 @@ export async function readTrial(userId: string, client: Client = db(), now: Date
   return { ...trial, endsAt: new Date(extendedEnd), extended: true, active: true, msLeft: new Date(extendedEnd).getTime() - now.getTime() };
 }
 
+/**
+ * Starts the trial the first time somebody actually tries to use the coach.
+ *
+ * It was only ever started by clicking the link in the welcome email or a
+ * button on the home screen, and most people saw neither — so the offer
+ * existed and almost nobody received it. Somebody opening a conversation with
+ * Sam is exactly who it is for, and this is a real authenticated action
+ * rather than a link a mail gateway might follow, which was the only reason
+ * the emailed version needed a button in the first place.
+ *
+ * Idempotent: one trial per account, whichever door it comes through.
+ */
+export async function ensureTrial(userId: string, client: Client = db(), now: Date = new Date()): Promise<Trial | null> {
+  const existing = await readTrial(userId, client, now);
+  if (existing) return existing;
+  return grantTrial(userId, client, now);
+}
+
 export function hoursLeft(trial: Trial): number {
   return Math.max(0, Math.ceil(trial.msLeft / (60 * 60 * 1000)));
 }
