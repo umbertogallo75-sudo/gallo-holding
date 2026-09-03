@@ -199,7 +199,12 @@ p { line-height:1.55; font-size:16px; }
 
 .sheetBackdrop { position:fixed; inset:0; background:rgba(8,10,8,.5); backdrop-filter:blur(3px); display:flex; align-items:flex-end; justify-content:center; z-index:40; }
 .welcomeOverlay { position:fixed; inset:0; z-index:60; overflow-y:auto; background: radial-gradient(circle at 12% -6%, var(--glow) 0, transparent 40%), var(--bg); }
-.welcomeInner { max-width:560px; margin:0 auto; padding:36px 22px 40px; display:flex; flex-direction:column; min-height:100%; }
+.welcomeInner {
+  max-width:560px; margin:0 auto;
+  /* Full-screen overlay pinned to the physical edges, so the top padding has
+     to clear the status bar the same way the header does. The splash beside
+     it already did; this one did not. */
+  padding:calc(36px + env(safe-area-inset-top, 0px)) 22px calc(40px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; min-height:100%; }
 .welcomeMark { font-size:36px; margin-bottom:10px; }
 .welcomeInner h1 { font-size:38px; margin:10px 0 14px; }
 .welcomeLead { font-size:17px; line-height:1.55; }
@@ -599,7 +604,12 @@ p { line-height:1.55; font-size:16px; }
   .landAudienceGrid { grid-template-columns:1fr; }
   .landPrices { grid-template-columns:1fr; }
   .landAudienceCard { min-height:0; }
-  .landAppSection { margin:42px 16px 0; padding:25px 20px; grid-template-columns:1fr; gap:26px; }
+  /* width:auto matters here. This element also carries .landShell, which
+     sets width:min(760px,100%) — a full-width box that then takes 16px of
+     margin on each side is 32px wider than the screen, and the whole landing
+     page scrolls sideways. With auto, the margins come out of the width
+     instead of being added to it. */
+  .landAppSection { margin:42px 16px 0; width:auto; padding:25px 20px; grid-template-columns:1fr; gap:26px; }
   .landAppAction .storeBadges { justify-content:center; }
 }
 @media (max-width: 390px) {
