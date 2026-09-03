@@ -3,10 +3,9 @@ import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { createAuthUser } from "@/lib/auth-users";
 import { sendWelcome } from "@/lib/marketing/welcome";
-import { trackEvent } from "@/lib/analytics";
-import { parseAttributionCookie, saveAttribution } from "@/lib/attribution";
 import { attributeSignup } from "@/lib/partners";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { recordRegistration } from "@/lib/registration-tracking";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -41,13 +40,9 @@ export async function POST(request: Request) {
   // half: without it the landing views and the accounts are two separate piles
   // of numbers that can never be reconciled. The source is frozen on the user
   // now because the payment arrives later over a webhook, with no browser.
-  const attribution = parseAttributionCookie(request.headers.get("cookie"));
-  await trackEvent("register_done", {
-    userId,
-    visitorId: attribution?.visitorId ?? null,
-    meta: attribution ? { src: attribution.source, medium: attribution.medium, campaign: attribution.campaign } : undefined,
-  });
-  await saveAttribution(userId, attribution);
+  // Keep the funnel join and platform metadata in one shared path for password,
+  // Google and Apple signups. Measurement must never strand a created account.
+  await recordRegistration(request, userId).catch((error) => console.error("signup tracking failed:", error));
 
   // One greeting for all three ways in — see src/lib/marketing/welcome.ts.
   await sendWelcome(userId, email, name);

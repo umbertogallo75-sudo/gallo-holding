@@ -8,7 +8,7 @@ import { isPublicPage, trackablePath } from "@/lib/public-pages";
  */
 describe("isPublicPage", () => {
   it("covers every page a stranger can be sent to", () => {
-    for (const path of ["/", "/inglese-lavoro", "/scarica", "/aziende", "/register", "/login", "/privacy", "/cookie", "/termini"]) {
+    for (const path of ["/", "/inglese-lavoro", "/scarica", "/aziende", "/partner", "/register", "/login", "/privacy", "/cookie", "/termini", "/elimina-account"]) {
       expect(isPublicPage(path), path).toBe(true);
     }
   });

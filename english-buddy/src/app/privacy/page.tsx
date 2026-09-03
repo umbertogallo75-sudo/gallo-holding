@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SitePage } from "@/components/SitePage";
 
 export const metadata = { title: "Privacy · ExecLingo" };
 
@@ -19,8 +20,7 @@ const P = { margin: "0 0 10px" };
 
 export default function PrivacyPage() {
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
+    <SitePage>
       <section className="hero">
         <div className="kicker">Informativa privacy</div>
         <h1>I tuoi dati, in chiaro.</h1>
@@ -106,8 +106,8 @@ export default function PrivacyPage() {
       </section>
 
       <section className="card">
-        <h2>5. Chi tratta i dati per nostro conto</h2>
-        <p className="muted" style={P}>Fornitori nominati responsabili del trattamento ai sensi dell&rsquo;art. 28 GDPR. Nessuno di loro può usare i tuoi dati per finalità proprie.</p>
+        <h2>5. Chi tratta i dati</h2>
+        <p className="muted" style={P}>Ci affidiamo a fornitori tecnici nominati responsabili del trattamento quando applicabile. I gestori di pagamento, accesso e pubblicità possono agire come titolari autonomi per i trattamenti descritti nelle rispettive informative.</p>
         <div style={{ overflowX: "auto" }}>
           <table className="adminTable">
             <thead><tr><th>Fornitore</th><th>Cosa fa</th><th>Dove</th></tr></thead>
@@ -118,12 +118,12 @@ export default function PrivacyPage() {
               <tr><td><strong>Resend</strong></td><td>Recapita le email (registrazione, recupero password, percorso).</td><td>UE (Irlanda)</td></tr>
               <tr><td><strong>Stripe</strong></td><td>Incassa i pagamenti sul web. Titolare autonomo per i dati della carta.</td><td>USA</td></tr>
               <tr><td><strong>Apple</strong> · <strong>Google</strong></td><td>Acquisti in app, accesso con Apple/Google, notifiche push, distribuzione delle app.</td><td>USA</td></tr>
-              <tr><td><strong>Google</strong> · <strong>Meta</strong></td><td>Misurazione delle campagne pubblicitarie — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA</td></tr>
+              <tr><td><strong>Google</strong> · <strong>Meta</strong> · <strong>LinkedIn</strong></td><td>Misurazione delle campagne pubblicitarie e remarketing — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA</td></tr>
             </tbody>
           </table>
         </div>
         <p style={{ margin: "12px 0 0" }}><strong>Trasferimenti fuori dall&rsquo;Unione Europea.</strong> Alcuni fornitori trattano dati negli Stati Uniti. Il trasferimento avviene sulla base delle <strong>Clausole Contrattuali Standard</strong> approvate dalla Commissione europea (art. 46.2.c GDPR) e, dove applicabile, dell&rsquo;adesione del fornitore al <strong>Data Privacy Framework UE-USA</strong> (art. 45 GDPR). Puoi chiederci copia delle garanzie adottate.</p>
-        <p style={{ margin: "10px 0 0" }}><strong>Non vendiamo i tuoi dati e non li cediamo a terzi per finalità di marketing loro.</strong> Google e Meta, se hai acconsentito, ricevono il fatto che una visita o un acquisto è avvenuto: mai il tuo nome, la tua email o le tue conversazioni con il coach.</p>
+        <p style={{ margin: "10px 0 0" }}><strong>Non vendiamo i tuoi dati.</strong> Google, Meta e LinkedIn, solo se hai acconsentito, possono ricevere dati tecnici della visita e il fatto che una registrazione o un acquisto è avvenuto. Non inviamo il tuo nome, la tua email, le conversazioni con il coach o i dati di apprendimento; per LinkedIn non abilitiamo la corrispondenza avanzata tramite email.</p>
       </section>
 
       <section className="card">
@@ -137,11 +137,12 @@ export default function PrivacyPage() {
               <tr><td>Registro delle email inviate</td><td>Con l&rsquo;account.</td></tr>
               <tr><td>Registro dei consensi ai cookie</td><td>180 giorni dalla scelta, o fino alla revoca.</td></tr>
               <tr><td>Documenti fiscali di acquisto</td><td><strong>10 anni</strong>, come impone la legge italiana.</td></tr>
-              <tr><td>Richiesta di non ricevere più email</td><td><strong>A tempo indeterminato, in forma di hash irreversibile.</strong> Vedi sotto.</td></tr>
+              <tr><td>Provvigioni e pagamenti partner</td><td>Per il tempo necessario a saldare quanto dovuto e, per i registri contabili e fiscali, fino a <strong>10 anni</strong>. Alla cancellazione dell&rsquo;account il profilo ordinario viene rimosso e i riferimenti tecnici vengono sostituiti dove possibile.</td></tr>
+              <tr><td>Richiesta di non ricevere più email</td><td><strong>A tempo indeterminato, come impronta pseudonimizzata SHA-256.</strong> Vedi sotto.</td></tr>
             </tbody>
           </table>
         </div>
-        <p style={{ margin: "12px 0 0" }}><strong>Perché la disiscrizione ci sopravvive.</strong> Se cancelli l&rsquo;account cancelliamo tutto, compresa la riga che diceva che non volevi più email. Ma se poi lo stesso indirizzo tornasse, ricominceremmo a scrivere come se non avessi mai detto niente. Per evitarlo conserviamo <strong>solo un&rsquo;impronta crittografica (SHA-256) dell&rsquo;indirizzo</strong>: basta a riconoscerlo se ritorna, e non basta a scrivergli né a risalire a chi fosse. È l&rsquo;unico modo per rispettare un&rsquo;opposizione che deve valere per sempre.</p>
+        <p style={{ margin: "12px 0 0" }}><strong>Perché la disiscrizione ci sopravvive.</strong> Se cancelli l&rsquo;account cancelliamo anche la preferenza collegata al profilo. Se poi lo stesso indirizzo tornasse, senza una memoria separata ricominceremmo a scrivere come se non avessi mai detto niente. Per evitarlo conserviamo <strong>un&rsquo;impronta SHA-256 normalizzata dell&rsquo;indirizzo</strong>: non contiene l&rsquo;email in chiaro e non può essere usata da sola per inviare messaggi, ma permette il confronto quando un indirizzo già noto viene ripresentato. Non la consideriamo anonima: è un dato pseudonimizzato, protetto e usato esclusivamente per rispettare l&rsquo;opposizione.</p>
       </section>
 
       <section className="card">
@@ -171,6 +172,6 @@ export default function PrivacyPage() {
       <p className="itHint" style={{ margin: "14px 4px 24px", textAlign: "center" }}>
         <Link href="/cookie">Cookie policy</Link> · <Link href="/termini">Termini di servizio</Link> · <Link href="/elimina-account">Elimina account</Link> · <Link href="/">Torna all&rsquo;inizio</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

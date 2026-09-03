@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 
@@ -76,6 +76,41 @@ export async function trackEvent(
       await insert();
     } catch {
       // DB hiccup — losing one event beats losing one signup.
+    }
+  }
+}
+
+/**
+ * Record an event exactly once across retries.
+ *
+ * The caller supplies a provider key (for example a store purchase token), but
+ * only its SHA-256 digest is stored. A successful duplicate INSERT is still a
+ * success: the durable event already exists. Unlike best-effort trackEvent,
+ * this returns false when storage is unavailable so a purchase bridge can keep
+ * its delivery queued and retry without either losing or duplicating the sale.
+ */
+export async function trackEventOnce(
+  name: FunnelEvent,
+  idempotencyKey: string,
+  opts: { visitorId?: string | null; userId?: string | null; meta?: Record<string, unknown> } = {},
+  client: Client = db()
+): Promise<boolean> {
+  const eventId = `once:${createHash("sha256").update(`${name}\0${idempotencyKey}`).digest("hex")}`;
+  const insert = () =>
+    client.execute({
+      sql: "INSERT OR IGNORE INTO analytics_events (id, name, visitor_id, user_id, meta) VALUES (?, ?, ?, ?, ?)",
+      args: [eventId, name, opts.visitorId ?? null, opts.userId ?? null, opts.meta ? JSON.stringify(opts.meta) : null],
+    });
+  try {
+    await insert();
+    return true;
+  } catch {
+    try {
+      await client.executeMultiple(SCHEMA);
+      await insert();
+      return true;
+    } catch {
+      return false;
     }
   }
 }

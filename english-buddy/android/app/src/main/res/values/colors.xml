@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand">#2F6B4F</color>
-    <color name="appBackground">#0B0D0A</color>
+    <color name="brand_blue">#2357FF</color>
+    <color name="window_background">#FAFAF7</color>
 </resources>

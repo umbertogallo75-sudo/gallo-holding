@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ExecLingo</string>
+    <string name="notification_channel_id" translatable="false">execlingo_coaching</string>
+    <string name="notification_channel_name">Allenamenti ExecLingo</string>
+    <string name="notification_channel_description">Promemoria e sessioni con Sam</string>
+    <string name="webview_update_required">Aggiorna Android System WebView o Chrome per usare tutte le funzioni di ExecLingo.</string>
+</resources>

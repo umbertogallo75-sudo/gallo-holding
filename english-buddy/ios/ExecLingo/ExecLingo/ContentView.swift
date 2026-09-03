@@ -45,12 +45,18 @@ final class PushBridge {
     }
 }
 
+private struct IAPProductInfo: Encodable {
+    let id: String
+    let name: String
+    let price: String
+}
+
 struct WebView: UIViewRepresentable {
     let url: URL
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        config.applicationNameForUserAgent = "ExecLingoApp/1.0"
+        config.applicationNameForUserAgent = "ExecLingoApp/1.3"
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.websiteDataStore = .default()
@@ -79,8 +85,18 @@ struct WebView: UIViewRepresentable {
 
         // ---- In-app purchases (StoreKit 2) ----
 
+        private func isExecLingoURL(_ url: URL?) -> Bool {
+            guard let url, url.scheme == "https", let host = url.host?.lowercased() else { return false }
+            return host == "execlingo.it" || host.hasSuffix(".execlingo.it")
+        }
+
         func userContentController(_ userContentController: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
+            // The handler exists for the lifetime of the WebView, including
+            // during external payment/login navigations. Only the production
+            // ExecLingo top frame may ever reach native purchases or push.
+            guard message.frameInfo.isMainFrame,
+                  isExecLingoURL(message.frameInfo.request.url) else { return }
             guard let body = message.body as? [String: Any],
                   let action = body["action"] as? String else { return }
             if message.name == "push" {
@@ -90,6 +106,8 @@ struct WebView: UIViewRepresentable {
             guard message.name == "iap" else { return }
             if action == "purchase", let productId = body["product"] as? String {
                 Task { await purchase(productId) }
+            } else if action == "products", let productIds = body["products"] as? [String] {
+                Task { await sendProducts(productIds) }
             } else if action == "restore" {
                 Task { await restore() }
             }
@@ -121,6 +139,26 @@ struct WebView: UIViewRepresentable {
             await callback("window.__iapFailed && window.__iapFailed(\"\(reason)\")")
         }
 
+        private func sendProducts(_ productIds: [String]) async {
+            do {
+                let products = try await Product.products(for: productIds)
+                let byId = Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0) })
+                let payload = productIds.compactMap { id -> IAPProductInfo? in
+                    guard let product = byId[id] else { return nil }
+                    return IAPProductInfo(id: product.id, name: product.displayName, price: product.displayPrice)
+                }
+                let data = try JSONEncoder().encode(payload)
+                guard let json = String(data: data, encoding: .utf8) else { return }
+                let escaped = json
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                    .replacingOccurrences(of: "\n", with: "\\n")
+                await callback("window.__iapProducts && window.__iapProducts(\"\(escaped)\")")
+            } catch {
+                // The web layer keeps its checked Italian fallback prices.
+            }
+        }
+
         private func purchase(_ productId: String) async {
             do {
                 guard let product = try await Product.products(for: [productId]).first else {
@@ -150,11 +188,26 @@ struct WebView: UIViewRepresentable {
 
         private func restore() async {
             try? await AppStore.sync()
+            var best: (jws: String, priority: Int, date: Date)?
             for await result in Transaction.currentEntitlements {
-                if case .verified = result {
-                    await sendPurchased(result.jwsRepresentation)
-                    return
+                if case .verified(let transaction) = result {
+                    let priority: Int
+                    switch transaction.productID {
+                    case "it.execlingo.app.annual": priority = 4
+                    case "it.execlingo.app.maintenance": priority = 3
+                    case "it.execlingo.app.monthly": priority = 2
+                    case "it.execlingo.app.program": priority = 1
+                    default: continue
+                    }
+                    let date = transaction.expirationDate ?? transaction.purchaseDate
+                    if best == nil || priority > best!.priority || (priority == best!.priority && date > best!.date) {
+                        best = (result.jwsRepresentation, priority, date)
+                    }
                 }
+            }
+            if let best {
+                await sendPurchased(best.jws)
+                return
             }
             await sendFailed("none")
         }
@@ -162,10 +215,11 @@ struct WebView: UIViewRepresentable {
         // ---- Navigation ----
 
         private func isInternal(_ host: String?) -> Bool {
-            guard let host else { return false }
+            guard let host = host?.lowercased() else { return false }
             return host == "execlingo.it" || host.hasSuffix(".execlingo.it")
-                || host.hasSuffix("stripe.com") || host.hasSuffix("checkout.stripe.com")
-                || host.hasSuffix("accounts.google.com") || host.hasSuffix("appleid.apple.com")
+                || host == "stripe.com" || host.hasSuffix(".stripe.com")
+                || host == "accounts.google.com" || host.hasSuffix(".accounts.google.com")
+                || host == "appleid.apple.com" || host.hasSuffix(".appleid.apple.com")
         }
 
         func webView(_ webView: WKWebView,
@@ -197,7 +251,16 @@ struct WebView: UIViewRepresentable {
                      initiatedByFrame frame: WKFrameInfo,
                      type: WKMediaCaptureType,
                      decisionHandler: @escaping (WKPermissionDecision) -> Void) {
-            decisionHandler(.grant)
+            let host = origin.host.lowercased()
+            let trustedOrigin = origin.protocol == "https"
+                && host == "www.execlingo.it"
+                && (origin.port == 0 || origin.port == 443)
+            let frameURL = frame.request.url
+            let trustedFrame = frame.isMainFrame
+                && frameURL?.scheme == "https"
+                && frameURL?.host?.lowercased() == "www.execlingo.it"
+                && (frameURL?.port == nil || frameURL?.port == 443)
+            decisionHandler(trustedOrigin && trustedFrame && type == .microphone ? .grant : .deny)
         }
     }
 }

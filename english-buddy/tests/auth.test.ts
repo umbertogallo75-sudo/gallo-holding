@@ -6,10 +6,11 @@ beforeAll(() => {
 
 describe("session tokens", () => {
   it("accepts a freshly created token and returns its user id", async () => {
-    const { createSessionToken, parseSessionToken } = await import("@/lib/auth");
+    const { createSessionToken, parseAuthSession, parseSessionToken } = await import("@/lib/auth");
     expect(parseSessionToken(createSessionToken("owner"))).toBe("owner");
     const uuid = "0b40e727-9d6c-4b8c-9d3a-1c2f4a5b6c7d";
     expect(parseSessionToken(createSessionToken(uuid))).toBe(uuid);
+    expect(parseAuthSession(createSessionToken(uuid, Date.now(), "google"))).toMatchObject({ userId: uuid, method: "google" });
   });
 
   it("rejects tampered tokens", async () => {

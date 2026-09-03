@@ -7,11 +7,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 process.env.SESSION_SECRET = "test-secret-that-is-definitely-32-characters-long";
 const testKey = generateKeyPairSync("ec", { namedCurve: "P-256" });
-process.env.APPSTORE_ISSUER_ID = "issuer-test";
-process.env.APPSTORE_KEY_ID = "KEYID12345";
-process.env.APPSTORE_PRIVATE_KEY = testKey.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+const testPrivateKey = testKey.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+process.env.APPSTORE_IAP_ISSUER_ID = "issuer-test";
+process.env.APPSTORE_IAP_KEY_ID = "KEYID12345";
+process.env.APPSTORE_IAP_PRIVATE_KEY = testPrivateKey;
 
-import { APPLE_PRODUCTS, appStoreServerToken, applyAppleTransaction, decodeJwsPayload, handleNotification, periodEndFor, verifyNotification } from "@/lib/appstore";
+import { APPLE_PRODUCTS, appStoreConfigured, appStoreServerToken, applyAppleTransaction, decodeJwsPayload, handleNotification, periodEndFor, verifyNotification } from "@/lib/appstore";
 import { getBilling, saveBilling } from "@/lib/stripe";
 
 let dir: string;
@@ -36,6 +37,7 @@ const b64url = (s: string) => Buffer.from(s).toString("base64").replace(/\+/g, "
 describe("App Store purchases", () => {
   it("maps every product to an existing plan", () => {
     expect(APPLE_PRODUCTS["it.execlingo.app.monthly"].plan).toBe("monthly");
+    expect(APPLE_PRODUCTS["it.execlingo.app.annual"].plan).toBe("annual");
     expect(APPLE_PRODUCTS["it.execlingo.app.program"].plan).toBe("program");
     expect(APPLE_PRODUCTS["it.execlingo.app.maintenance"].plan).toBe("maintenance");
   });
@@ -53,8 +55,67 @@ describe("App Store purchases", () => {
     expect(verifier.verify({ key: testKey.publicKey, dsaEncoding: "ieee-p1363" }, der)).toBe(true);
   });
 
+  it("keeps complete legacy APPSTORE credentials as an IAP-only fallback", () => {
+    delete process.env.APPSTORE_IAP_ISSUER_ID;
+    delete process.env.APPSTORE_IAP_KEY_ID;
+    delete process.env.APPSTORE_IAP_PRIVATE_KEY;
+    process.env.APPSTORE_ISSUER_ID = "legacy-iap-issuer";
+    process.env.APPSTORE_KEY_ID = "LEGACYIAP";
+    process.env.APPSTORE_PRIVATE_KEY = testPrivateKey;
+    try {
+      expect(appStoreConfigured()).toBe(true);
+      const [, payloadPart] = appStoreServerToken(1_700_000_000_000).split(".");
+      expect(JSON.parse(Buffer.from(payloadPart, "base64").toString())).toMatchObject({ iss: "legacy-iap-issuer" });
+    } finally {
+      delete process.env.APPSTORE_ISSUER_ID;
+      delete process.env.APPSTORE_KEY_ID;
+      delete process.env.APPSTORE_PRIVATE_KEY;
+      process.env.APPSTORE_IAP_ISSUER_ID = "issuer-test";
+      process.env.APPSTORE_IAP_KEY_ID = "KEYID12345";
+      process.env.APPSTORE_IAP_PRIVATE_KEY = testPrivateKey;
+    }
+  });
+
+  it("fails closed instead of mixing a partial new IAP key with legacy fields", () => {
+    delete process.env.APPSTORE_IAP_KEY_ID;
+    delete process.env.APPSTORE_IAP_PRIVATE_KEY;
+    process.env.APPSTORE_ISSUER_ID = "legacy-iap-issuer";
+    process.env.APPSTORE_KEY_ID = "LEGACYIAP";
+    process.env.APPSTORE_PRIVATE_KEY = testPrivateKey;
+    try {
+      expect(appStoreConfigured()).toBe(false);
+      expect(() => appStoreServerToken()).toThrow("IAP credentials are not configured");
+    } finally {
+      delete process.env.APPSTORE_ISSUER_ID;
+      delete process.env.APPSTORE_KEY_ID;
+      delete process.env.APPSTORE_PRIVATE_KEY;
+      process.env.APPSTORE_IAP_KEY_ID = "KEYID12345";
+      process.env.APPSTORE_IAP_PRIVATE_KEY = testPrivateKey;
+    }
+  });
+
+  it("does not accept reporting credentials as App Store Server API credentials", () => {
+    delete process.env.APPSTORE_IAP_ISSUER_ID;
+    delete process.env.APPSTORE_IAP_KEY_ID;
+    delete process.env.APPSTORE_IAP_PRIVATE_KEY;
+    process.env.APPSTORE_REPORTING_ISSUER_ID = "reporting-issuer";
+    process.env.APPSTORE_REPORTING_KEY_ID = "REPORTING1";
+    process.env.APPSTORE_REPORTING_PRIVATE_KEY = testPrivateKey;
+    try {
+      expect(appStoreConfigured()).toBe(false);
+    } finally {
+      delete process.env.APPSTORE_REPORTING_ISSUER_ID;
+      delete process.env.APPSTORE_REPORTING_KEY_ID;
+      delete process.env.APPSTORE_REPORTING_PRIVATE_KEY;
+      process.env.APPSTORE_IAP_ISSUER_ID = "issuer-test";
+      process.env.APPSTORE_IAP_KEY_ID = "KEYID12345";
+      process.env.APPSTORE_IAP_PRIVATE_KEY = testPrivateKey;
+    }
+  });
+
   it("computes period end from Apple expiry or program duration", () => {
     expect(periodEndFor({ productId: "it.execlingo.app.monthly", expiresDate: 1_700_000_000_000 })).toBe(new Date(1_700_000_000_000).toISOString());
+    expect(periodEndFor({ productId: "it.execlingo.app.annual", expiresDate: 1_730_000_000_000 })).toBe(new Date(1_730_000_000_000).toISOString());
     const program = periodEndFor({ productId: "it.execlingo.app.program", purchaseDate: 1_700_000_000_000 });
     expect(program).toBe(new Date(1_700_000_000_000 + 98 * 86_400_000).toISOString());
     expect(periodEndFor({ productId: "sconosciuto" })).toBeNull();
@@ -96,6 +157,29 @@ describe("App Store purchases", () => {
     expect(refund.handled).toBe(true);
     billing = await getBilling("user-apple-1", client);
     expect(billing?.status).toBe("canceled");
+  });
+
+  it("rejects replaying one Apple original transaction on a second account", async () => {
+    const tx = {
+      transactionId: "tx-replay-1",
+      originalTransactionId: "orig-owned-by-one-account",
+      productId: "it.execlingo.app.annual",
+      bundleId: "it.execlingo.app",
+      purchaseDate: Date.now(),
+      expiresDate: Date.now() + 365 * 86_400_000,
+    };
+
+    await expect(applyAppleTransaction(tx, "apple-owner", client))
+      .resolves.toEqual({ ok: true, plan: "annual", newlyRecorded: true });
+    await expect(applyAppleTransaction({ ...tx, transactionId: "tx-replay-2" }, "apple-attacker", client))
+      .resolves.toEqual({ ok: false, error: "owner" });
+
+    const owner = (await client.execute({
+      sql: "SELECT user_id FROM store_purchase_owners WHERE provider = 'apple' AND purchase_key = ?",
+      args: ["orig-owned-by-one-account"],
+    })).rows[0]?.user_id;
+    expect(owner).toBe("apple-owner");
+    expect(await getBilling("apple-attacker", client)).toBeNull();
   });
 
   it("rejects transactions for other bundles or unknown products", async () => {

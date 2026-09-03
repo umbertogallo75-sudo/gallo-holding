@@ -9,20 +9,24 @@ import { createPrivateKey, createSign } from "node:crypto";
 const b64url = (buf: Buffer) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 export function serviceAccountConfigured(): boolean {
-  return Boolean(process.env.PLAY_SERVICE_ACCOUNT_EMAIL && process.env.PLAY_SERVICE_ACCOUNT_KEY);
+  return Boolean(
+    (process.env.PLAY_SERVICE_ACCOUNT_EMAIL ?? "").trim() &&
+    (process.env.PLAY_SERVICE_ACCOUNT_KEY ?? "").trim()
+  );
 }
 
 function privateKeyPem(): string {
   return (process.env.PLAY_SERVICE_ACCOUNT_KEY ?? "").trim().replace(/\\n/g, "\n");
 }
 
-/** Tokens live 15 minutes; cache per scope and reuse for 45 of those. */
+/** Tokens live 15 minutes; cache per scope with a three-minute expiry margin. */
+const TOKEN_CACHE_MS = 12 * 60_000;
 const cache = new Map<string, { token: string; issuedAt: number }>();
 
 export async function googleAccessToken(scope: string, now: number = Date.now()): Promise<string | null> {
   if (!serviceAccountConfigured()) return null;
   const hit = cache.get(scope);
-  if (hit && now - hit.issuedAt < 45 * 60_000 * 0.6) return hit.token;
+  if (hit && now - hit.issuedAt < TOKEN_CACHE_MS) return hit.token;
 
   const header = { alg: "RS256", typ: "JWT" };
   const iat = Math.floor(now / 1000) - 30;
@@ -52,3 +56,4 @@ export async function googleAccessToken(scope: string, now: number = Date.now())
 
 export const SCOPE_ANDROID_PUBLISHER = "https://www.googleapis.com/auth/androidpublisher";
 export const SCOPE_FIREBASE_MESSAGING = "https://www.googleapis.com/auth/firebase.messaging";
+export const SCOPE_GOOGLE_ADS = "https://www.googleapis.com/auth/adwords";

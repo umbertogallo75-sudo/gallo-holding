@@ -5,6 +5,7 @@ import { isEmbeddedApp } from "@/lib/appclient";
 import { getUserId, OWNER_ID } from "@/lib/auth";
 import { getBilling, getEntitlement, isStripeCustomer, maintenanceUnlocked, stripeConfigured, stripeTestMode } from "@/lib/stripe";
 import { AndroidPlans } from "./AndroidPlans";
+import { playAccountHint } from "@/lib/playstore";
 import { ManageBilling } from "./ManageBilling";
 import { NativePlans } from "./NativePlans";
 import { PlanButton } from "./PlanButton";
@@ -18,6 +19,7 @@ export const metadata = { title: "Abbonamento · ExecLingo" };
 // tier prices in the app, so the active-plan label stays price-free.
 const PLAN_LABELS: Record<string, string> = {
   monthly: "Mensile",
+  annual: "Annuale",
   program: "Programma 3 mesi",
   maintenance: "Mantenimento",
 };
@@ -29,9 +31,19 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
 
   const [billing, entitlement, embedded] = await Promise.all([getBilling(userId), getEntitlement(userId), isEmbeddedApp()]);
   const hasPlan = entitlement.reason === "plan";
+  const effectivePlan = entitlement.plan ?? billing?.plan;
+  const effectiveEnd = entitlement.currentPeriodEnd !== undefined ? entitlement.currentPeriodEnd : billing?.currentPeriodEnd;
   // Maintenance is the plan after the programme: hidden until the programme
   // has been bought, so nobody starts on the cheaper price by mistake.
   const maintenance = maintenanceUnlocked(billing) || userId === OWNER_ID;
+  const openStripeSubscription = isStripeCustomer(billing)
+    && billing?.plan !== "program"
+    && !["canceled", "incomplete_expired"].includes(billing?.status ?? "");
+  const canStartWebCheckout = !hasPlan && !openStripeSubscription && userId !== OWNER_ID;
+  // Non contiene l'id dell'utente: il bridge Android lo trasforma nel valore
+  // opaco che Google restituisce al server insieme all'acquisto. In questo
+  // modo un token Play non può essere ripristinato su un altro account.
+  const androidAccountHint = playAccountHint(userId);
 
   // Store-app wrappers: native IAP when enabled, otherwise reader-app mode —
   // plan status and corporate-code redemption only (Apple guideline 3.1.1).
@@ -62,12 +74,12 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           ) : hasPlan ? (
             <>
               <p className="muted">
-                Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
-                {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
+                Piano attivo: <strong>{PLAN_LABELS[effectivePlan ?? ""] ?? effectivePlan}</strong>
+                {effectiveEnd ? ` · rinnovo/scadenza ${effectiveEnd.slice(0, 10)}` : ""}
               </p>
               {/* Store rules: only the store's own settings can cancel, so the
                   page says where instead of offering a button that cannot work. */}
-              {billing?.plan !== "program" ? (
+              {effectivePlan !== "program" ? (
                 <p className="itHint">
                   Per disdire: {iosShell
                     ? "Impostazioni → il tuo nome → Abbonamenti → ExecLingo"
@@ -89,7 +101,7 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
             email route, which works on every device. */}
         {!hasPlan && !entitlement.access && userId !== OWNER_ID && !iosShell ? (
           playOn ? (
-            <AndroidPlans maintenance={maintenance} />
+            <AndroidPlans maintenance={maintenance} accountHint={androidAccountHint} />
           ) : (
             <p className="itHint" style={{ margin: "0 4px 10px" }}>
               📧 Ti abbiamo inviato una email all&rsquo;indirizzo del tuo account con i passaggi per attivare l&rsquo;accesso completo — controlla la posta (anche lo spam).
@@ -128,20 +140,28 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           <p className="muted">Il tuo account ha l&rsquo;accesso completo gratuito. Buon allenamento con Sam!</p>
         ) : hasPlan ? (
           <p className="muted">
-            Piano attivo: <strong>{PLAN_LABELS[billing?.plan ?? ""] ?? billing?.plan}</strong>
-            {billing?.currentPeriodEnd ? ` · rinnovo/scadenza ${billing.currentPeriodEnd.slice(0, 10)}` : ""}
+            Piano attivo: <strong>{PLAN_LABELS[effectivePlan ?? ""] ?? effectivePlan}</strong>
+            {effectiveEnd ? ` · rinnovo/scadenza ${effectiveEnd.slice(0, 10)}` : ""}
           </p>
         ) : (
           <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — scegli il piano che fa per te.</p>
         )}
-        <p className="itHint">Pagamento sicuro con Stripe: carta, Apple Pay o Google Pay. Prezzi IVA inclusa. Disdici quando vuoi i piani mensili.</p>
+        <p className="itHint">Pagamento sicuro con Stripe: carta, Apple Pay o Google Pay. Prezzi IVA inclusa. Disdici quando vuoi i piani ricorrenti.</p>
       </section>
 
       {stripeConfigured() && stripeTestMode() ? (
         <p className="itHint" style={{ margin: "0 4px 10px" }}>🧪 Modalità di prova attiva: nessun addebito reale (carta di test: 4242 4242 4242 4242).</p>
       ) : null}
 
-      {hasPlan && isStripeCustomer(billing) ? <ManageBilling /> : null}
+      {openStripeSubscription ? <ManageBilling /> : null}
+
+      {canStartWebCheckout ? <>
+      <section className="card" style={{ borderColor: "color-mix(in srgb, var(--accent) 68%, var(--line))" }}>
+        <div className="kicker">Più conveniente</div>
+        <h2 style={{ margin: "6px 0" }}>Annuale — 199,00 €/anno</h2>
+        <p className="muted" style={{ marginTop: 0 }}>Dodici mesi completi con Sam a circa 16,58 € al mese. Risparmi 279,80 € rispetto a dodici rinnovi mensili.</p>
+        <PlanButtonWrap plan="annual" label="Attiva l’annuale — 199,00 €/anno" />
+      </section>
 
       <section className="card">
         <div className="kicker">La promessa</div>
@@ -167,6 +187,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
           </p>
         )}
       </section>
+      </> : hasPlan ? (
+        <p className="itHint" style={{ margin: "0 4px 10px" }}>Per evitare due rinnovi contemporanei, puoi scegliere un nuovo piano solo quando quello attuale è terminato. Se hai pagato sul sito, usa qui sopra “Gestisci il tuo abbonamento”.</p>
+      ) : null}
 
       {!hasPlan && userId !== OWNER_ID ? <RedeemBox /> : null}
 

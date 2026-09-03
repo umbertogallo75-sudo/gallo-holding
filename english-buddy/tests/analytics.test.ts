@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackEventOnce } from "@/lib/analytics";
 
 let dir: string;
 let client: Client;
@@ -41,5 +41,28 @@ describe("funnel analytics", () => {
     const rows = (await fresh.execute("SELECT name FROM analytics_events")).rows;
     expect(rows).toHaveLength(1);
     fresh.close();
+  });
+
+  it("records a deterministic event once and accepts safe retries", async () => {
+    await expect(trackEventOnce(
+      "purchase_google",
+      "google:purchase-token-sensitive",
+      { userId: "user-1", meta: { plan: "annual" } },
+      client,
+    )).resolves.toBe(true);
+    await expect(trackEventOnce(
+      "purchase_google",
+      "google:purchase-token-sensitive",
+      { userId: "user-1", meta: { plan: "annual" } },
+      client,
+    )).resolves.toBe(true);
+
+    const rows = (await client.execute({
+      sql: "SELECT id, name, user_id, meta FROM analytics_events WHERE name = ?",
+      args: ["purchase_google"],
+    })).rows;
+    expect(rows).toHaveLength(1);
+    expect(String(rows[0].id)).not.toContain("purchase-token-sensitive");
+    expect(rows[0]).toMatchObject({ name: "purchase_google", user_id: "user-1" });
   });
 });

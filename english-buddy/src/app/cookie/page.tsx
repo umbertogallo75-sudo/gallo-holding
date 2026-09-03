@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ConsentReset } from "@/components/ConsentReset";
+import { SitePage } from "@/components/SitePage";
 
 export const metadata = { title: "Cookie policy · ExecLingo" };
 
@@ -13,8 +14,7 @@ export const metadata = { title: "Cookie policy · ExecLingo" };
  */
 export default function CookiePage() {
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
+    <SitePage>
       <section className="hero">
         <div className="kicker">Cookie policy</div>
         <h1>Quali cookie usiamo, uno per uno.</h1>
@@ -24,7 +24,7 @@ export default function CookiePage() {
       <section className="card">
         <h2>In breve</h2>
         <p>I cookie necessari a farti entrare, a ricordare da dove sei arrivato e a riconoscere chi ti ha segnalato sono <strong>nostri</strong>: restano nel nostro database e non ti seguono su altri siti.</p>
-        <p>I cookie di <strong>terze parti</strong> — Google e Meta, usati solo quando è attiva una campagna pubblicitaria — <strong>non vengono caricati finché non dici di sì</strong>. Se rifiuti, o se non rispondi al banner, non partono affatto e il sito funziona esattamente allo stesso modo.</p>
+        <p>I cookie di <strong>terze parti</strong> — Google, Meta e LinkedIn, usati solo quando è attiva una campagna pubblicitaria — <strong>non vengono caricati finché non dici di sì</strong>. Se rifiuti, o se non rispondi al banner, non partono affatto e il sito funziona esattamente allo stesso modo.</p>
       </section>
 
       <section className="card">
@@ -74,11 +74,17 @@ export default function CookiePage() {
                 <td>Capire quante persone visitano il sito, da dove arrivano e quali pagine leggono, in forma aggregata.</td>
                 <td>fino a 24 mesi</td>
               </tr>
+              <tr>
+                <td><strong>LinkedIn</strong><br /><span className="muted">Insight Tag</span></td>
+                <td><code>li_fat_id</code>, <code>lms_analytics</code>, <code>AnalyticsSyncHistory</code>, <code>UserMatchHistory</code></td>
+                <td>Misurare visite e conversioni, attribuirle alle campagne e creare pubblici di remarketing.</td>
+                <td>fino a 30 giorni</td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <p>Cosa ricevono: il fatto che una visita o un acquisto è avvenuto. <strong>Cosa non ricevono mai:</strong> il tuo nome, la tua email, le tue conversazioni con il coach o i tuoi dati di apprendimento.</p>
-        <p className="muted">Le informative dei fornitori: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Meta</a> · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>. Entrambi possono trattare dati fuori dall&rsquo;Unione Europea con le garanzie previste dal GDPR.</p>
+        <p>Possono ricevere dati tecnici della visita, come URL, provenienza, indirizzo IP, caratteristiche del browser e data e ora. <strong>Non inviamo mai:</strong> il tuo nome, la tua email, le tue conversazioni con il coach o i tuoi dati di apprendimento. Per LinkedIn non è attiva la corrispondenza avanzata tramite email.</p>
+        <p className="muted">Le informative dei fornitori: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Meta</a> · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a> · <a href="https://www.linkedin.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">LinkedIn</a>. Questi fornitori possono trattare dati fuori dall&rsquo;Unione Europea con le garanzie previste dal GDPR.</p>
       </section>
 
       <section className="card">
@@ -101,6 +107,6 @@ export default function CookiePage() {
       <p className="itHint" style={{ margin: "14px 4px 24px", textAlign: "center" }}>
         <Link href="/privacy">Informativa privacy</Link> · <Link href="/termini">Termini di servizio</Link> · <Link href="/">Torna all&rsquo;inizio</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

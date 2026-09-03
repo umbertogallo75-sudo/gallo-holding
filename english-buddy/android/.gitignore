@@ -1,7 +1,11 @@
-build/
-.gradle/
-.kotlin/
-local.properties
+/.gradle/
+/.kotlin/
+/.idea/
+/build/
+/app/build/
+/local.properties
+/keystore.properties
+/app/google-services.json
 *.jks
 *.keystore
 *.aab

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { isEmbeddedApp } from "@/lib/appclient";
+import { SitePage } from "@/components/SitePage";
+import { StoreBadges } from "@/components/StoreBadges";
 import { CompanyForm } from "./CompanyForm";
 
 export const metadata = {
@@ -27,9 +29,7 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo · Aziende</div><Link className="chip" href="/">← Sito</Link></div>
-
+    <SitePage>
       {esito === "ok" ? (
         <section className="card" style={{ borderColor: "color-mix(in srgb, var(--accent) 55%, var(--line))" }}>
           <h2 style={{ marginTop: 0 }}>🎉 Ordine ricevuto!</h2>
@@ -64,6 +64,13 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
       <CompanyForm />
 
       <section className="card">
+        <div className="kicker">Per ogni collega</div>
+        <h2 style={{ margin: "6px 0" }}>L&rsquo;app è pronta su iPhone e Android</h2>
+        <p className="muted">Insieme al codice di attivazione puoi condividere questi collegamenti: ogni persona scarica ExecLingo dallo store ufficiale e accede con il proprio account.</p>
+        <StoreBadges where="aziende" compact />
+      </section>
+
+      <section className="card">
         <h2 style={{ marginTop: 0 }}>Come funziona</h2>
         <div className="profileRows">
           <div><span className="muted">1. Acquisti</span><strong>N licenze in un pagamento</strong></div>
@@ -77,6 +84,6 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
       <p className="itHint" style={{ margin: "14px 4px 24px", textAlign: "center" }}>
         ExecLingo · un servizio VASP ITALIA SRL · <Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

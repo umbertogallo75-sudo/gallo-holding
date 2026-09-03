@@ -6,7 +6,7 @@
 - **Turso / libSQL** for all persistence (no Supabase — deliberately removed)
 - **OpenAI Responses API** (`gpt-5-mini` by default) with strict structured outputs
 - **PWA**: manifest + service worker (app shell caching), iPhone-first
-- Deploy target: **Vercel** (repo root directory: `english-buddy`)
+- Deploy target: **Vercel**
 
 ## Layout
 

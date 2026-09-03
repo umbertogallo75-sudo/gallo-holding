@@ -94,14 +94,14 @@ export function trialEnded(userId: string, name: string | null): Message {
       preheader: "Il tuo assaggio è finito. Il percorso di 3 mesi è dove l'inglese diventa davvero tuo.",
       heading: `${hello(name)}il tuo assaggio finisce qui.`,
       bodyHtml: `<p style="${P}">Hai visto come lavora Sam. Adesso la domanda vera: tra tre mesi vuoi ancora rimandare quella call in inglese, o vuoi condurla tu?</p>
-        <p style="${P}">Il <strong>Programma 3 mesi (99,90 € una volta, IVA inclusa)</strong> è il percorso completo: da dove sei oggi a operativo, con i progressi misurati su capacità reali — riunioni, numeri, trattativa, trasferte. In alternativa c'è il mensile, senza vincoli.</p>
+        <p style="${P}">Il <strong>Programma 3 mesi (99,90 € una volta, IVA inclusa)</strong> è il percorso completo: da dove sei oggi a operativo, con i progressi misurati su capacità reali — riunioni, numeri, trattativa, trasferte. Per dodici mesi con Sam c&rsquo;è l&rsquo;<strong>Annuale a 199,00 €</strong>; resta disponibile anche il mensile senza vincoli.</p>
         <p style="${SMALL}">Si attiva dal sito in due minuti e l'app sul telefono si sblocca da sola, con lo stesso account.</p>`,
       ctaLabel: "Scegli il tuo piano",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché il tuo periodo gratuito di ExecLingo è terminato.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${hello(name)}il tuo assaggio finisce qui.\n\nProgramma 3 mesi: 99,90 € una volta, IVA inclusa — il percorso completo verso l'inglese operativo. In alternativa il mensile, senza vincoli.\n\n${url}\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${hello(name)}il tuo assaggio finisce qui.\n\nProgramma 3 mesi: 99,90 € una volta, IVA inclusa — il percorso completo verso l'inglese operativo. Per dodici mesi con Sam c'è l'Annuale a 199,00 €; resta disponibile anche il mensile senza vincoli.\n\n${url}\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 

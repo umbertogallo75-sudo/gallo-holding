@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { appStoreConfigured, applyAppleTransaction, decodeJwsPayload, fetchTransaction, type AppleTransaction } from "@/lib/appstore";
+import { APPLE_PRODUCTS, appStoreConfigured, applyAppleTransaction, decodeJwsPayload, fetchTransaction, type AppleTransaction } from "@/lib/appstore";
 import { getUserId } from "@/lib/auth";
-import { trackEvent } from "@/lib/analytics";
+import { trackEventOnce } from "@/lib/analytics";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { getBilling, maintenanceUnlocked } from "@/lib/stripe";
 
 const bodySchema = z.object({
   jws: z.string().min(20).max(10_000).optional(),
@@ -33,9 +34,29 @@ export async function POST(request: Request) {
   const tx = await fetchTransaction(String(transactionId));
   if (!tx) return NextResponse.json({ error: "Transazione non trovata da Apple" }, { status: 404 });
 
+  if (tx.productId && APPLE_PRODUCTS[tx.productId]?.plan === "maintenance") {
+    const billing = await getBilling(userId);
+    if (!maintenanceUnlocked(billing)) {
+      return NextResponse.json({ error: "Il mantenimento richiede prima il Programma 3 mesi" }, { status: 403 });
+    }
+  }
+
   const result = await applyAppleTransaction(tx, userId);
   if (!result.ok) return NextResponse.json({ error: `Acquisto non applicabile (${result.error})` }, { status: 400 });
 
-  await trackEvent("purchase_apple", { userId, meta: { plan: result.plan } });
+  const purchaseKey = tx.originalTransactionId ?? tx.transactionId ?? String(transactionId);
+  const tracked = await trackEventOnce(
+    "purchase_apple",
+    `apple:${purchaseKey}`,
+    { userId, meta: { plan: result.plan } },
+  );
+  if (!tracked) {
+    return NextResponse.json({
+      error: "Piano registrato, ma registrazione della conversione ancora in attesa. Tocca Ripristina acquisti per riprovare.",
+      recorded: true,
+      trackingPending: true,
+      plan: result.plan,
+    }, { status: 502 });
+  }
   return NextResponse.json({ ok: true, plan: result.plan });
 }

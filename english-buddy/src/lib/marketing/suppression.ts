@@ -12,8 +12,10 @@ import { db } from "@/lib/db";
  * objection, and the same address arriving a second time would be treated as
  * if nothing had ever been said.
  *
- * A hash is the whole point. It recognises an address without storing it, so
- * somebody who asked to be forgotten is not kept on a list in readable form.
+ * The SHA-256 digest avoids keeping the address in readable form and can only
+ * be used here by comparing it with an address supplied later. Because email
+ * addresses have a limited guessable space, this remains pseudonymous personal
+ * data rather than anonymous or guaranteed non-reconstructible data.
  */
 const SCHEMA = `CREATE TABLE IF NOT EXISTS email_suppression (
   email_hash TEXT PRIMARY KEY,

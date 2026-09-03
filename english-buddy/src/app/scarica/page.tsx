@@ -1,9 +1,19 @@
 import Link from "next/link";
+import { SitePage } from "@/components/SitePage";
+import { StoreBadges } from "@/components/StoreBadges";
+import { LandingTracker } from "@/app/LandingTracker";
+import { getUserId } from "@/lib/auth";
+import { configuredAppStoreUrl, playStoreCampaignUrl } from "@/lib/store-links";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Scarica ExecLingo — iPhone, Android e computer",
   description: "Installa ExecLingo sul tuo telefono: App Store, Google Play o direttamente dal browser in 10 secondi.",
+  alternates: { canonical: "/scarica" },
+};
+
+type ScaricaPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 /**
@@ -11,14 +21,16 @@ export const metadata = {
  * APP_STORE_URL / PLAY_STORE_URL are set in the environment; until then the
  * page teaches the 10-second browser install, which works today.
  */
-export default function ScaricaPage() {
-  const appStore = process.env.APP_STORE_URL;
-  const playStore = process.env.PLAY_STORE_URL;
+export default async function ScaricaPage({ searchParams }: ScaricaPageProps) {
+  const appStore = configuredAppStoreUrl();
+  const [params, userId] = await Promise.all([searchParams, getUserId()]);
+  const signedIn = Boolean(userId);
+  const playStore = playStoreCampaignUrl(process.env.PLAY_STORE_URL, params);
   const hasStores = Boolean(appStore || playStore);
 
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Home</Link></div>
+    <SitePage>
+      <LandingTracker page="scarica" />
 
       <section className="hero">
         <div className="kicker">Scarica l&rsquo;app</div>
@@ -29,27 +41,25 @@ export default function ScaricaPage() {
       {hasStores ? (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>Scarica dagli store</h2>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {appStore ? (
-              <a href={appStore} className="landCta" data-track="download_appstore" style={{ textDecoration: "none" }}> App Store — iPhone e iPad</a>
-            ) : null}
-            {playStore ? (
-              <a href={playStore} className="landCta" data-track="download_playstore" style={{ textDecoration: "none" }}>▶ Google Play — Android</a>
-            ) : null}
-          </div>
+          <p className="muted">Tocca il badge del tuo telefono: si apre direttamente la pagina ufficiale di ExecLingo.</p>
+          <StoreBadges
+            where="scarica"
+            appStoreUrl={appStore}
+            playStoreUrl={playStore}
+          />
           {!appStore || !playStore ? (
-            <p className="itHint" style={{ marginBottom: 0 }}>{!appStore ? "La versione iPhone arriva a breve sull'App Store." : "La versione Android arriva a breve su Google Play."}</p>
+            <p className="itHint" style={{ marginBottom: 0 }}>{!appStore ? "Il collegamento all’App Store non è momentaneamente disponibile." : "Il collegamento a Google Play non è momentaneamente disponibile."}</p>
           ) : null}
         </section>
       ) : (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>App Store e Google Play</h2>
-          <p className="muted" style={{ marginBottom: 0 }}>Le app per iPhone e Android sono in arrivo negli store. Nel frattempo puoi installare ExecLingo <strong>adesso, in 10 secondi</strong>, direttamente dal browser: è la stessa app, con icona e notifiche.</p>
+          <p className="muted" style={{ marginBottom: 0 }}>I collegamenti agli store non sono momentaneamente disponibili. Puoi comunque installare ExecLingo <strong>adesso, in 10 secondi</strong>, direttamente dal browser: è la stessa app, con icona e notifiche.</p>
         </section>
       )}
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>📱 iPhone e iPad</h2>
+        <h2 style={{ marginTop: 0 }}>📱 In alternativa, su iPhone e iPad</h2>
         <ol className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7 }}>
           <li>Apri <strong>www.execlingo.it</strong> in <strong>Safari</strong> e accedi</li>
           <li>Tocca il tasto <strong>Condividi</strong> (il quadrato con la freccia in su)</li>
@@ -59,7 +69,7 @@ export default function ScaricaPage() {
       </section>
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>🤖 Android</h2>
+        <h2 style={{ marginTop: 0 }}>🤖 In alternativa, su Android</h2>
         <ol className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7 }}>
           <li>Apri <strong>www.execlingo.it</strong> in <strong>Chrome</strong> e accedi</li>
           <li>Tocca i <strong>tre puntini</strong> in alto a destra</li>
@@ -74,8 +84,14 @@ export default function ScaricaPage() {
       </section>
 
       <div style={{ margin: "8px 0 24px" }}>
-        <Link href="/register" className="landCta" data-track="download_cta_register" style={{ textDecoration: "none" }}>Prova Sam gratis — test di 3 minuti</Link>
+        <Link
+          href={signedIn ? "/home" : "/register"}
+          className="landCta"
+          data-track={signedIn ? undefined : "landing_cta_register"}
+          data-where={signedIn ? undefined : "scarica"}
+          style={{ textDecoration: "none" }}
+        >{signedIn ? "Apri ExecLingo" : "Prova Sam gratis — test di 3 minuti"}</Link>
       </div>
-    </main>
+    </SitePage>
   );
 }

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SitePage } from "@/components/SitePage";
+import { isEmbeddedApp } from "@/lib/appclient";
 
 export const metadata = {
   title: "Diventa Partner ExecLingo — guadagna il 5% sulle vendite",
@@ -6,11 +8,10 @@ export const metadata = {
 };
 
 /** Public page: become an ExecLingo partner (self-service, no approval). */
-export default function PartnerLandingPage() {
+export default async function PartnerLandingPage() {
+  const embedded = await isEmbeddedApp();
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo · Partner</div><Link className="chip" href="/">← Sito</Link></div>
-
+    <SitePage showPricing={!embedded}>
       <section className="hero">
         <div className="kicker">Programma Partner</div>
         <h1>Promuovi ExecLingo. Guadagna il 5%.</h1>
@@ -43,12 +44,14 @@ export default function PartnerLandingPage() {
         <Link href="/partner/dashboard" className="primary full" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
           Diventa Partner — attivazione immediata
         </Link>
-        <p className="itHint" style={{ textAlign: "center", margin: 0 }}>Se hai già un account ExecLingo usi quello; altrimenti lo crei al volo. Esempio provvigione: cliente da 99,90 € → 81,89 € netto IVA → <strong>4,09 € a te</strong>.</p>
+        <p className="itHint" style={{ textAlign: "center", margin: 0 }}>{embedded
+          ? "Se hai già un account ExecLingo usi quello; altrimenti lo crei al volo. Le provvigioni sono calcolate sulle vendite attribuite, al netto dell’IVA."
+          : <>Se hai già un account ExecLingo usi quello; altrimenti lo crei al volo. Esempio provvigione: cliente da 99,90 € → 81,89 € netto IVA → <strong>4,09 € a te</strong>.</>}</p>
       </div>
 
       <p className="itHint" style={{ margin: "0 4px 24px", textAlign: "center" }}>
         ExecLingo · un servizio VASP ITALIA SRL · <Link href="/termini">Termini</Link> · <Link href="/privacy">Privacy</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

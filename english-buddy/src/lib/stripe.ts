@@ -3,6 +3,7 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { OWNER_ID } from "@/lib/auth";
 import { readTrial } from "@/lib/marketing/trial";
+import { BILLING_GRACE_MS, googleEntitlementState, type BillingExecutor } from "@/lib/google-entitlements";
 
 /**
  * Stripe integration via plain REST (no SDK dependency, same approach as
@@ -12,10 +13,11 @@ import { readTrial } from "@/lib/marketing/trial";
 
 const API = "https://api.stripe.com/v1";
 
-export type Plan = "monthly" | "program" | "maintenance";
+export type Plan = "monthly" | "annual" | "program" | "maintenance";
 
-export const PLANS: Record<Plan, { lookupKey: string; name: string; amount: number; interval?: "month" }> = {
+export const PLANS: Record<Plan, { lookupKey: string; name: string; amount: number; interval?: "month" | "year" }> = {
   monthly: { lookupKey: "execlingo_monthly", name: "ExecLingo — Mensile", amount: 3990, interval: "month" },
+  annual: { lookupKey: "execlingo_annual", name: "ExecLingo — Annuale", amount: 19900, interval: "year" },
   program: { lookupKey: "execlingo_program", name: "ExecLingo — Programma 3 mesi", amount: 9990 },
   maintenance: { lookupKey: "execlingo_maintenance", name: "ExecLingo — Mantenimento", amount: 2990, interval: "month" },
 };
@@ -63,8 +65,23 @@ export async function ensurePriceId(plan: Plan): Promise<string> {
   if (cached) return cached;
   const def = PLANS[plan];
   const found = await stripeFetch(`/prices?lookup_keys[]=${encodeURIComponent(def.lookupKey)}&active=true&limit=1`);
-  const rows = (found.data as Array<{ id: string }> | undefined) ?? [];
-  let id = rows[0]?.id;
+  const rows = (found.data as Array<{
+    id: string;
+    unit_amount?: number | null;
+    currency?: string;
+    recurring?: { interval?: string; interval_count?: number } | null;
+  }> | undefined) ?? [];
+  const existing = rows[0];
+  if (existing && (
+    existing.unit_amount !== def.amount ||
+    existing.currency?.toLowerCase() !== "eur" ||
+    (def.interval
+      ? existing.recurring?.interval !== def.interval || existing.recurring?.interval_count !== 1
+      : Boolean(existing.recurring))
+  )) {
+    throw new Error(`Stripe price ${def.lookupKey} does not match the published ExecLingo plan`);
+  }
+  let id = existing?.id;
   if (!id) {
     // Managed Payments requires a product tax code (electronically supplied services).
     const product = await stripeFetch("/products", { name: def.name, tax_code: "txcd_10000000" });
@@ -181,6 +198,21 @@ const BILLING_SCHEMA = `CREATE TABLE IF NOT EXISTS billing (
 );
 CREATE INDEX IF NOT EXISTS idx_billing_customer ON billing(stripe_customer_id);`;
 
+/** Prepare legacy billing columns before opening a purchase transaction. */
+export async function ensureBillingSchema(client: Client): Promise<void> {
+  await client.executeMultiple(BILLING_SCHEMA);
+  const hasProgramAt = async () => (await client.execute("PRAGMA table_info(billing)"))
+    .rows.some((column) => column.name === "program_at");
+  if (!await hasProgramAt()) {
+    try {
+      await client.execute("ALTER TABLE billing ADD COLUMN program_at TEXT");
+    } catch (error) {
+      // Another request may have added it; do not swallow genuine failures.
+      if (!await hasProgramAt()) throw error;
+    }
+  }
+}
+
 export type BillingRow = {
   userId: string;
   stripeCustomerId: string | null;
@@ -270,7 +302,7 @@ export async function getBilling(userId: string, client: Client = db()): Promise
   }
 }
 
-export async function userIdByCustomer(customerId: string, client: Client = db()): Promise<string | null> {
+export async function userIdByCustomer(customerId: string, client: BillingExecutor = db()): Promise<string | null> {
   try {
     const result = await client.execute({ sql: "SELECT user_id FROM billing WHERE stripe_customer_id = ? LIMIT 1", args: [customerId] });
     return result.rows[0] ? String(result.rows[0].user_id) : null;
@@ -281,7 +313,7 @@ export async function userIdByCustomer(customerId: string, client: Client = db()
 
 // ---------- entitlement ----------
 
-export type Entitlement = { access: boolean; reason: "owner" | "plan" | "free" | "trial" | "locked"; plan?: string | null };
+export type Entitlement = { access: boolean; reason: "owner" | "plan" | "free" | "trial" | "locked"; plan?: string | null; currentPeriodEnd?: string | null };
 
 /** Paywall is ON by default; BILLING_ENFORCED=0 switches it off for testing. */
 export function billingEnforced(): boolean {
@@ -298,11 +330,15 @@ export async function getEntitlement(userId: string, client: Client = db()): Pro
   if (userId === OWNER_ID) return { access: true, reason: "owner" };
 
   const billing = await getBilling(userId, client);
-  if (billing?.status === "active") {
-    if (billing.plan === "free") return { access: true, reason: "free", plan: "free" };
+  if (billing?.status === "active" && billing.plan === "free") return { access: true, reason: "free", plan: "free" };
+  const google = await googleEntitlementState(userId, billing?.stripeCustomerId ?? null, client);
+  // Once a token has an authoritative ledger row, the legacy summary cannot
+  // resurrect it after revocation. Non-Google billing remains independent.
+  if (billing?.status === "active" && !google.currentKnown) {
     const end = billing.currentPeriodEnd ? Date.parse(billing.currentPeriodEnd) : null;
-    if (!end || end + 3 * 86_400_000 > Date.now()) return { access: true, reason: "plan", plan: billing.plan };
+    if (!end || end + BILLING_GRACE_MS > Date.now()) return { access: true, reason: "plan", plan: billing.plan, currentPeriodEnd: billing.currentPeriodEnd };
   }
+  if (google.best) return { access: true, reason: "plan", plan: google.best.plan, currentPeriodEnd: google.best.currentPeriodEnd };
 
   // Only once every paid route has said no: the free trial is a way in for
   // people who have not bought, never a discount for people who have. Reading

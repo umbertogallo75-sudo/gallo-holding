@@ -1,7 +1,10 @@
+import { createHash, createHmac } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { googleAccessToken, SCOPE_ANDROID_PUBLISHER, serviceAccountConfigured } from "@/lib/google-auth";
-import { saveBilling, userIdByCustomer } from "@/lib/stripe";
+import { ensureBillingSchema, userIdByCustomer } from "@/lib/stripe";
+import { claimStorePurchaseWithStatus, ensureStorePurchaseSchema, storePurchaseOwner } from "@/lib/store-purchases";
+import { GOOGLE_ENTITLEMENT_SCHEMA, googleEntitlementState } from "@/lib/google-entitlements";
 
 /**
  * Google Play Billing: server-side verification of purchases made through
@@ -18,8 +21,9 @@ import { saveBilling, userIdByCustomer } from "@/lib/stripe";
 export const PLAY_PACKAGE_NAME = process.env.PLAY_PACKAGE_NAME || "it.execlingo.app";
 
 /** productId (Play Console) → plan of the existing billing model. */
-export const GOOGLE_PRODUCTS: Record<string, { plan: "monthly" | "program" | "maintenance"; kind: "subscription" | "one-time" }> = {
+export const GOOGLE_PRODUCTS: Record<string, { plan: "monthly" | "annual" | "program" | "maintenance"; kind: "subscription" | "one-time" }> = {
   monthly: { plan: "monthly", kind: "subscription" },
+  annual: { plan: "annual", kind: "subscription" },
   maintenance: { plan: "maintenance", kind: "subscription" },
   program: { plan: "program", kind: "one-time" },
 };
@@ -29,6 +33,23 @@ export const PROGRAM_DAYS = 98;
 
 export function playStoreConfigured(): boolean {
   return serviceAccountConfigured();
+}
+
+/**
+ * Opaque, stable account hint sent only to the trusted Android shell. It uses
+ * its own long-lived key: rotating login sessions must never detach somebody
+ * from a purchase already registered by Google Play.
+ */
+export function playAccountHint(userId: string, secret: string | undefined = process.env.PLAY_ACCOUNT_BINDING_SECRET): string | null {
+  const stableSecret = secret?.trim();
+  if (!stableSecret || stableSecret.length < 32) return null;
+  return createHmac("sha256", stableSecret).update(`play-account:${userId}`).digest("hex");
+}
+
+/** Exact value written to Google Play by the native Android bridge. */
+export function playObfuscatedAccountId(userId: string, secret?: string): string | null {
+  const hint = playAccountHint(userId, secret);
+  return hint ? createHash("sha256").update(`${PLAY_PACKAGE_NAME}:${hint}`).digest("hex") : null;
 }
 
 /** OAuth2 access token for the Play Developer API. */
@@ -50,15 +71,20 @@ export type GooglePurchase = {
   needsAck: boolean;
   /** Subscription id needed by the v1 acknowledge endpoint. */
   subscriptionId?: string;
+  /** Non-PII account binding supplied by the native billing client. */
+  obfuscatedAccountId?: string;
+  /** Captured BEFORE the Google request, to reject late stale responses. */
+  verificationStartedAt?: number;
 };
 
 /** Fetches and normalizes a one-time product purchase. */
 async function fetchProductPurchase(token: string, productId: string, accessToken: string): Promise<GooglePurchase | null> {
+  const verificationStartedAt = Date.now();
   const url = `${API_BASE}/${PLAY_PACKAGE_NAME}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
   const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) return null;
   const data = (await response.json().catch(() => null)) as {
-    purchaseState?: number; purchaseTimeMillis?: string; acknowledgementState?: number;
+    purchaseState?: number; purchaseTimeMillis?: string; acknowledgementState?: number; obfuscatedExternalAccountId?: string;
   } | null;
   if (!data) return null;
   return {
@@ -66,11 +92,14 @@ async function fetchProductPurchase(token: string, productId: string, accessToke
     purchaseTimeMillis: data.purchaseTimeMillis ? Number(data.purchaseTimeMillis) : undefined,
     active: data.purchaseState === 0,
     needsAck: data.acknowledgementState === 0,
+    obfuscatedAccountId: data.obfuscatedExternalAccountId,
+    verificationStartedAt,
   };
 }
 
 /** Fetches and normalizes a subscription purchase (v2 endpoint). */
 async function fetchSubscriptionPurchase(token: string, accessToken: string): Promise<GooglePurchase | null> {
+  const verificationStartedAt = Date.now();
   const url = `${API_BASE}/${PLAY_PACKAGE_NAME}/purchases/subscriptionsv2/tokens/${encodeURIComponent(token)}`;
   const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) return null;
@@ -78,6 +107,7 @@ async function fetchSubscriptionPurchase(token: string, accessToken: string): Pr
     subscriptionState?: string;
     acknowledgementState?: string;
     lineItems?: { productId?: string; expiryTime?: string }[];
+    externalAccountIdentifiers?: { obfuscatedExternalAccountId?: string };
   } | null;
   const line = data?.lineItems?.[0];
   if (!data || !line?.productId) return null;
@@ -90,6 +120,8 @@ async function fetchSubscriptionPurchase(token: string, accessToken: string): Pr
     active: Boolean(data.subscriptionState && ACTIVE_STATES.has(data.subscriptionState) && stillRunning),
     needsAck: data.acknowledgementState === "ACKNOWLEDGEMENT_STATE_PENDING",
     subscriptionId: line.productId,
+    obfuscatedAccountId: data.externalAccountIdentifiers?.obfuscatedExternalAccountId,
+    verificationStartedAt,
   };
 }
 
@@ -123,13 +155,13 @@ export async function acknowledgePurchase(token: string, purchase: GooglePurchas
 
 /** Period end: Google's expiry for subscriptions, purchase+98d for the program. */
 export function periodEndFor(purchase: GooglePurchase): string | null {
-  if (purchase.expiryTimeMillis) return new Date(purchase.expiryTimeMillis).toISOString();
   const product = GOOGLE_PRODUCTS[purchase.productId];
-  if (product?.kind === "one-time") {
-    const start = purchase.purchaseTimeMillis ?? Date.now();
-    return new Date(start + PROGRAM_DAYS * 86_400_000).toISOString();
-  }
-  return null;
+  const end = product?.kind === "one-time"
+    ? (purchase.purchaseTimeMillis === undefined ? NaN : purchase.purchaseTimeMillis + PROGRAM_DAYS * 86_400_000)
+    : purchase.expiryTimeMillis;
+  if (end === undefined || !Number.isFinite(end) || end <= 0) return null;
+  const date = new Date(end);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 }
 
 /** Applies a verified Google purchase to the billing table. */
@@ -138,24 +170,94 @@ export async function applyGooglePurchase(
   token: string,
   knownUserId: string | null,
   client: Client = db()
-): Promise<{ ok: boolean; plan?: string; error?: string }> {
+): Promise<{ ok: boolean; plan?: string; error?: string; newlyRecorded?: boolean; stale?: boolean }> {
   const product = GOOGLE_PRODUCTS[purchase.productId];
   if (!product) return { ok: false, error: "product" };
+  const periodEnd = periodEndFor(purchase);
+  if (purchase.active && !periodEnd) return { ok: false, error: "expiry" };
+  const verifiedAt = purchase.verificationStartedAt ?? Date.now();
+  if (!Number.isSafeInteger(verifiedAt) || verifiedAt < 0) return { ok: false, error: "verification" };
+  // DDL is prepared outside the write transaction. No network requests to
+  // Google are made while holding the database lock.
+  await ensureBillingSchema(client);
+  await ensureStorePurchaseSchema(client);
+  await client.executeMultiple(GOOGLE_ENTITLEMENT_SCHEMA);
   const customerKey = `google:${token}`;
-  const userId = knownUserId ?? (await userIdByCustomer(customerKey, client));
-  if (!userId) return { ok: false, error: "user" };
+  const tx = await client.transaction("write");
+  try {
+    const existingOwner = await storePurchaseOwner("google", token, tx)
+      ?? await userIdByCustomer(customerKey, tx);
+    if (knownUserId && existingOwner && knownUserId !== existingOwner) return { ok: false, error: "owner" };
+    const userId = knownUserId ?? existingOwner;
+    if (!userId) return { ok: false, error: "user" };
+    const claim = await claimStorePurchaseWithStatus("google", token, userId, purchase.productId, tx);
+    if (!claim.ok) return { ok: false, error: "owner" };
 
-  await saveBilling(
-    {
-      userId,
-      stripeCustomerId: customerKey,
-      plan: product.plan,
-      status: purchase.active ? "active" : "canceled",
-      currentPeriodEnd: purchase.active ? periodEndFor(purchase) : new Date().toISOString(),
-    },
-    client
-  );
-  return { ok: true, plan: product.plan };
+    const current = (await tx.execute({ sql: "SELECT * FROM billing WHERE user_id = ?", args: [userId] })).rows[0];
+    // Preserve the one known legacy Google state before projecting another
+    // token. INSERT OR IGNORE can never resurrect a tracked revoked purchase.
+    const previousKey = String(current?.stripe_customer_id ?? "");
+    const previousPlan = String(current?.plan ?? "");
+    if (previousKey.startsWith("google:") && GOOGLE_PRODUCTS[previousPlan]
+      && Number.isFinite(Date.parse(String(current?.current_period_end ?? "")))) {
+      const previousToken = previousKey.slice("google:".length);
+      const previousClaim = await claimStorePurchaseWithStatus("google", previousToken, userId, previousPlan, tx);
+      if (!previousClaim.ok) return { ok: false, error: "owner" };
+      await tx.execute({
+        sql: `INSERT OR IGNORE INTO google_purchase_entitlements
+              (purchase_key, user_id, product_id, plan, status, current_period_end, verified_at)
+              VALUES (?, ?, ?, ?, ?, ?, 0)`,
+        args: [previousToken, userId, previousPlan, previousPlan,
+          current.status === "active" ? "active" : "canceled", String(current.current_period_end)],
+      });
+    }
+
+    const stored = await tx.execute({
+      sql: `INSERT INTO google_purchase_entitlements
+              (purchase_key, user_id, product_id, plan, status, current_period_end, verified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(purchase_key) DO UPDATE SET
+              product_id = excluded.product_id, plan = excluded.plan,
+              status = excluded.status, current_period_end = excluded.current_period_end,
+              verified_at = excluded.verified_at, updated_at = CURRENT_TIMESTAMP
+            WHERE google_purchase_entitlements.user_id = excluded.user_id
+              AND (excluded.verified_at > google_purchase_entitlements.verified_at
+                OR (excluded.verified_at = google_purchase_entitlements.verified_at
+                  AND (google_purchase_entitlements.status <> 'canceled' OR excluded.status = 'canceled')))`,
+      args: [token, userId, purchase.productId, product.plan, purchase.active ? "active" : "canceled", periodEnd, verifiedAt],
+    });
+    if (!stored.rowsAffected) {
+      await tx.rollback();
+      return { ok: true, plan: product.plan, newlyRecorded: false, stale: true };
+    }
+    const { best } = await googleEntitlementState(userId, previousKey, tx);
+    // Never destroy Stripe/Apple customer routing or an administrator's free
+    // grant. getEntitlement unions that independent state with this ledger.
+    if (!current || (previousKey.startsWith("google:") && current.plan !== "free")) {
+      await tx.execute({
+        sql: `INSERT INTO billing (user_id, stripe_customer_id, plan, status, current_period_end)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id,
+                plan = excluded.plan, status = excluded.status,
+                current_period_end = excluded.current_period_end, updated_at = CURRENT_TIMESTAMP`,
+        args: [userId, best ? `google:${best.purchaseKey}` : customerKey,
+          best?.plan ?? product.plan, best ? "active" : "canceled",
+          best?.currentPeriodEnd ?? periodEnd ?? new Date().toISOString()],
+      });
+    }
+    if (product.plan === "program" && purchase.active) {
+      await tx.execute({
+        sql: "UPDATE billing SET program_at = COALESCE(program_at, CURRENT_TIMESTAMP) WHERE user_id = ?",
+        args: [userId],
+      });
+    }
+    await tx.commit();
+    // This is the purchased product, NOT necessarily the selected entitlement;
+    // acknowledgement and conversion metadata must refer to the same purchase.
+    return { ok: true, plan: product.plan, newlyRecorded: claim.newlyRecorded };
+  } finally {
+    tx.close();
+  }
 }
 
 /**
@@ -165,20 +267,49 @@ export async function applyGooglePurchase(
  */
 export async function refreshGoogleSubscriptions(client: Client = db(), now: Date = new Date()): Promise<{ refreshed: number; lapsed: number }> {
   if (!playStoreConfigured()) return { refreshed: 0, lapsed: 0 };
+  await client.executeMultiple(GOOGLE_ENTITLEMENT_SCHEMA);
   const soon = new Date(now.getTime() + 12 * 3600_000).toISOString();
+  const recentlyExpired = new Date(now.getTime() - 60 * 86_400_000).toISOString();
   const rows = await client.execute({
-    sql: "SELECT user_id, stripe_customer_id FROM billing WHERE stripe_customer_id LIKE 'google:%' AND status = 'active' AND plan IN ('monthly','maintenance') AND current_period_end IS NOT NULL AND current_period_end <= ? LIMIT 25",
-    args: [soon],
+    sql: `SELECT candidates.user_id, candidates.purchase_key FROM (
+            SELECT user_id, purchase_key, verified_at
+            FROM google_purchase_entitlements
+            WHERE plan IN ('monthly','annual','maintenance') AND current_period_end <= ?
+              AND (status = 'active' OR current_period_end >= ?)
+            UNION ALL
+            SELECT b.user_id, substr(b.stripe_customer_id, 8), 0 AS verified_at FROM billing b
+            WHERE b.stripe_customer_id LIKE 'google:%' AND b.status = 'active'
+              AND b.plan IN ('monthly','annual','maintenance') AND b.current_period_end <= ?
+              AND NOT EXISTS (SELECT 1 FROM google_purchase_entitlements g
+                              WHERE g.purchase_key = substr(b.stripe_customer_id, 8))
+          ) candidates LEFT JOIN google_purchase_refresh_attempts attempts
+            ON attempts.purchase_key = candidates.purchase_key
+          ORDER BY COALESCE(attempts.checked_at, 0) ASC, candidates.verified_at ASC,
+            candidates.purchase_key ASC LIMIT 25`,
+    args: [soon, recentlyExpired, soon],
   });
   let refreshed = 0, lapsed = 0;
+  const accessToken = await playAccessToken();
+  if (!accessToken) return { refreshed, lapsed };
   for (const row of rows.rows) {
-    const token = String(row.stripe_customer_id).slice("google:".length);
-    const accessToken = await playAccessToken();
-    if (!accessToken) break;
-    const purchase = await fetchSubscriptionPurchase(token, accessToken);
+    const token = String(row.purchase_key);
+    let purchase: GooglePurchase | null = null;
+    try {
+      purchase = await fetchSubscriptionPurchase(token, accessToken);
+    } catch {
+      // A network failure is neither revocation nor a reason to starve the
+      // remaining queue. Keep the last verified state and try another token.
+    } finally {
+      await client.execute({
+        sql: `INSERT INTO google_purchase_refresh_attempts (purchase_key, user_id, checked_at)
+              VALUES (?, ?, ?) ON CONFLICT(purchase_key) DO UPDATE
+              SET checked_at = excluded.checked_at`,
+        args: [token, String(row.user_id), Date.now()],
+      });
+    }
     if (!purchase) continue;
     const result = await applyGooglePurchase(purchase, token, String(row.user_id), client);
-    if (!result.ok) continue;
+    if (!result.ok || result.stale) continue;
     if (purchase.active) refreshed++; else lapsed++;
   }
   return { refreshed, lapsed };

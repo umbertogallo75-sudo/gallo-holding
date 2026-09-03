@@ -14,11 +14,11 @@ function send(name: string, extra: Record<string, string> = {}) {
 }
 
 /**
- * Records the landing view and clicks on any element carrying a data-track
- * attribute. Every event carries the acquisition source, so the funnel can be
- * read one channel at a time instead of as a single undifferentiated total —
- * and `page` keeps campaign landings apart from the home page, which matters
- * as soon as there is more than one. Renders nothing.
+ * Records the landing view. Clicks are delegated once for every public page by
+ * PageView, otherwise shared calls to action (notably the store badges in the
+ * site footer) would become invisible on pages without a LandingTracker.
+ * Every event carries the acquisition source, and `page` keeps campaign
+ * landings apart from the home page. Renders nothing.
  */
 export function LandingTracker({ page }: { page?: string } = {}) {
   useEffect(() => {
@@ -34,18 +34,6 @@ export function LandingTracker({ page }: { page?: string } = {}) {
 
     send("landing_view", { ...context, ...(document.referrer ? { ref: document.referrer.slice(0, 200) } : {}) });
 
-    const onClick = (event: MouseEvent) => {
-      const el = (event.target as HTMLElement | null)?.closest?.("[data-track]");
-      const name = el?.getAttribute("data-track");
-      if (!name) return;
-      // A page can carry the same call to action more than once; data-where
-      // says which copy was tapped, so a duplicated button can be judged
-      // instead of guessed at.
-      const where = el?.getAttribute("data-where");
-      send(name, where ? { ...context, where } : context);
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
   }, [page]);
   return null;
 }

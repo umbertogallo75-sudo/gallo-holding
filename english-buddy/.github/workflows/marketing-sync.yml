@@ -1,0 +1,32 @@
+name: ExecLingo marketing sync
+
+# GitHub Actions wakes the production endpoint at the two possible UTC hours
+# for 08:00 and 17:00 Europe/Rome (CET/CEST). The endpoint owns the final
+# Europe/Rome check, so only the correct daylight-saving slot is accepted. The
+# second wake-up at :30 also recovers a serverless run abandoned by a timeout.
+on:
+  schedule:
+    - cron: "0,30 6,7,15,16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: execlingo-marketing-sync
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call production marketing sync
+        run: |
+          endpoint="https://www.execlingo.it/api/cron/marketing-sync"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            endpoint="${endpoint}?force=1"
+          fi
+          curl --fail-with-body --silent --show-error --max-time 120 --retry 2 \
+            --request POST "${endpoint}" \
+            --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

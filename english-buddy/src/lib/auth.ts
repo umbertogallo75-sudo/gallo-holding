@@ -14,6 +14,9 @@ export const OWNER_ID = "owner";
 export const SESSION_COOKIE = "english_buddy_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 
+export type AuthMethod = "legacy" | "password" | "google" | "apple";
+export type AuthSession = { userId: string; method: AuthMethod };
+
 function secret() {
   const value = process.env.SESSION_SECRET;
   if (!value || value.length < 32) throw new Error("SESSION_SECRET must be at least 32 characters");
@@ -44,25 +47,53 @@ export function resetTokenHash(token: string) {
   return createHmac("sha256", secret()).update(`reset-token:${token}`).digest("hex");
 }
 
-/** Creates a signed session token embedding the user id and its expiry. */
-export function createSessionToken(userId: string, now = Date.now()) {
-  const payload = `${userId}.${now + SESSION_MAX_AGE_SECONDS * 1000}`;
+/** Creates a signed session token embedding user id, authentication method and expiry. */
+export function createSessionToken(
+  userId: string,
+  now = Date.now(),
+  method: Exclude<AuthMethod, "legacy"> = "password"
+) {
+  const encodedUserId = Buffer.from(userId, "utf8").toString("base64url");
+  const payload = `v2.${encodedUserId}.${method}.${now + SESSION_MAX_AGE_SECONDS * 1000}`;
   return `${payload}.${sign(payload)}`;
 }
 
-/** Returns the user id for a valid, unexpired token; null otherwise. */
-export function parseSessionToken(token?: string | null, now = Date.now()): string | null {
+/** Returns the authenticated session for current and pre-v2 signed tokens. */
+export function parseAuthSession(token?: string | null, now = Date.now()): AuthSession | null {
   if (!token) return null;
   const lastDot = token.lastIndexOf(".");
   if (lastDot <= 0) return null;
   const payload = token.slice(0, lastDot);
   const signature = token.slice(lastDot + 1);
   if (!safeEqual(signature, sign(payload))) return null;
+  if (payload.startsWith("v2.")) {
+    const parts = payload.split(".");
+    if (parts.length !== 4) return null;
+    const method = parts[2] as AuthMethod;
+    if (!(["password", "google", "apple"] as AuthMethod[]).includes(method)) return null;
+    const expiresAt = Number(parts[3]);
+    let userId = "";
+    try {
+      userId = Buffer.from(parts[1], "base64url").toString("utf8");
+    } catch {
+      return null;
+    }
+    return userId && expiresAt > now ? { userId, method } : null;
+  }
+
+  // Sessions issued before authentication provenance was added remain valid.
+  // Admin access treats these separately and only accepts provider-created
+  // records; ordinary password sessions never gain privileges by email alone.
   const expiryDot = payload.lastIndexOf(".");
   if (expiryDot <= 0) return null;
   const userId = payload.slice(0, expiryDot);
   const expiresAt = Number(payload.slice(expiryDot + 1));
-  return userId && expiresAt > now ? userId : null;
+  return userId && expiresAt > now ? { userId, method: "legacy" } : null;
+}
+
+/** Returns the user id for a valid, unexpired token; null otherwise. */
+export function parseSessionToken(token?: string | null, now = Date.now()): string | null {
+  return parseAuthSession(token, now)?.userId ?? null;
 }
 
 export function isValidSessionToken(token?: string | null, now = Date.now()) {
@@ -70,8 +101,12 @@ export function isValidSessionToken(token?: string | null, now = Date.now()) {
 }
 
 export async function getUserId() {
+  return (await getAuthSession())?.userId ?? null;
+}
+
+export async function getAuthSession(): Promise<AuthSession | null> {
   const store = await cookies();
-  return parseSessionToken(store.get(SESSION_COOKIE)?.value);
+  return parseAuthSession(store.get(SESSION_COOKIE)?.value);
 }
 
 export async function requireUserId() {

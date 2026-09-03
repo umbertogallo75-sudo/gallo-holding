@@ -67,7 +67,7 @@ export async function getRelevantLearningContext(
       client.execute({ sql: "SELECT incorrect, correct, category FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY last_seen_at DESC LIMIT 8", args: [userId] }),
       client.execute({ sql: "SELECT incorrect, correct FROM mistakes WHERE user_id = ? AND mastered = 0 AND next_review_at IS NOT NULL AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 4", args: [userId, timestamp] }),
       client.execute({ sql: "SELECT expression, meaning FROM expressions WHERE user_id = ? AND mastered = 0 AND next_review_at <= ? ORDER BY next_review_at ASC LIMIT 6", args: [userId, timestamp] }),
-      client.execute({ sql: "SELECT role, content FROM messages WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC LIMIT 12", args: [userId, sessionId] }),
+      client.execute({ sql: "SELECT role, content FROM messages WHERE user_id = ? AND session_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 12", args: [userId, sessionId] }),
       client.execute({ sql: "SELECT minutes_practiced, interactions FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args: [userId, today()] }),
       client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
       client.execute({

@@ -56,14 +56,14 @@ function day3Email(userId: string, name: string): { subject: string; html: strin
       preheader: "Il 3-Month Executive Path: un pagamento, tre mesi, capacità reali.",
       heading: `${name ? name + "," : "Ciao,"} facciamo sul serio?`,
       bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Riunioni, call, trasferte: l&rsquo;inglese operativo non arriva da solo — arriva con <strong>pochi minuti al giorno, tutti i giorni</strong>, guidati da un coach che ti conosce.</p>
-        <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Il <strong>3-Month Executive Path (99,90 € una volta, IVA inclusa)</strong> è il percorso completo: da dove sei oggi a operativo, con progressi misurati su capacità reali. In alternativa c&rsquo;è il mensile senza vincoli.</p>
+        <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Il <strong>3-Month Executive Path (99,90 € una volta, IVA inclusa)</strong> è il percorso completo: da dove sei oggi a operativo, con progressi misurati su capacità reali. Se vuoi restare con Sam tutto l&rsquo;anno, il piano <strong>Annuale costa 199,00 €</strong>; resta disponibile anche il mensile senza vincoli.</p>
         <p style="margin:0;font-size:14px;line-height:1.6;color:#6b736a;">Accedi dal sito con la tua email: attivi in due minuti e l&rsquo;app si sblocca subito, sul telefono e sul computer.</p>`,
       ctaLabel: "Inizia il Programma 3 mesi",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché hai un account ExecLingo senza piano attivo. È l'ultima di questa serie.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${name ? name + "," : "Ciao,"} facciamo sul serio?\n\nIl 3-Month Executive Path (99,90 € una volta, IVA inclusa) è il percorso completo verso l'inglese operativo. In alternativa c'è il mensile senza vincoli.\n\nAccedi dal sito con la tua email e attiva in due minuti: ${url}\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${name ? name + "," : "Ciao,"} facciamo sul serio?\n\nIl 3-Month Executive Path (99,90 € una volta, IVA inclusa) è il percorso completo verso l'inglese operativo. Per dodici mesi con Sam c'è l'Annuale a 199,00 €; resta disponibile anche il mensile senza vincoli.\n\nAccedi dal sito con la tua email e attiva in due minuti: ${url}\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { LandingTracker } from "@/app/LandingTracker";
+import { StoreBadges } from "@/components/StoreBadges";
+import { isEmbeddedApp } from "@/lib/appclient";
+import { getUserId } from "@/lib/auth";
+import { playStoreCampaignUrl } from "@/lib/store-links";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Inglese per il lavoro — il coach AI che parte anche da zero | ExecLingo",
   description:
     "L'inglese l'hai fatto a scuola tanti anni fa e oggi ti serve per lavoro? ExecLingo è un coach con intelligenza artificiale che parte dal punto in cui sei — anche da zero — e ti porta a riunioni, call e trasferte in tre mesi. Scarica l'app o fai il test gratis.",
+  alternates: { canonical: "/inglese-lavoro" },
 };
 
 /**
@@ -33,47 +38,16 @@ export const metadata = {
  * believe the product is not another course they will abandon.
  */
 
-/** Store buttons. Android becomes a Play link by itself once PLAY_STORE_URL exists. */
-function StoreButtons({ where }: { where: "top" | "bottom" }) {
-  const appStore = process.env.APP_STORE_URL || "/app";
-  const playStore = process.env.PLAY_STORE_URL;
-  return (
-    <div className="lpStores">
-      <a
-        href={appStore}
-        className="lpStore"
-        data-track="landing_store_ios"
-        data-where={where}
-        aria-label="Scarica ExecLingo su App Store per iPhone e iPad"
-      >
-        {/* Not the Apple glyph: U+F8FF is a private-use character that renders
-            as an empty box on every non-Apple device, and half this page's
-            traffic is Android. */}
-        <span className="lpStoreIcon" aria-hidden="true">📱</span>
-        <span>
-          <b>Scarica su App Store</b>
-          <span>iPhone e iPad · gratis</span>
-        </span>
-      </a>
-      <a
-        href={playStore || "/scarica"}
-        className="lpStore"
-        data-track="landing_store_android"
-        data-where={where}
-        aria-label={playStore ? "Scarica ExecLingo su Google Play per Android" : "Installa ExecLingo su Android"}
-      >
-        <span className="lpStoreIcon" aria-hidden="true">🤖</span>
-        <span>
-          <b>{playStore ? "Scarica su Google Play" : "Android — installa ora"}</b>
-          <span>{playStore ? "Android · gratis" : "In 10 secondi dal browser · su Play a breve"}</span>
-        </span>
-      </a>
-    </div>
-  );
-}
+type InglesePerLavoroPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default function InglesePerLavoroPage() {
-  const cta = "/register";
+export default async function InglesePerLavoroPage({ searchParams }: InglesePerLavoroPageProps) {
+  const [params, embedded, userId] = await Promise.all([searchParams, isEmbeddedApp(), getUserId()]);
+  const signedIn = Boolean(userId);
+  const cta = signedIn ? "/home" : "/register";
+  const ctaLabel = signedIn ? "Apri ExecLingo" : "Oppure fai il test del livello — 3 minuti, gratis";
+  const playStore = playStoreCampaignUrl(process.env.PLAY_STORE_URL, params);
   return (
     <main className="lp">
       <LandingTracker page="inglese-lavoro" />
@@ -93,14 +67,18 @@ export default function InglesePerLavoroPage() {
           Pochi minuti al giorno, quando puoi tu.
         </p>
 
-        <StoreButtons where="top" />
-        <p className="lpUnder" style={{ textAlign: "left", marginTop: 10 }}>
-          Scarichi e cominci subito, senza test e senza carta di credito. Funziona anche da browser, su qualsiasi computer.
-        </p>
+        {embedded ? null : (
+          <>
+            <StoreBadges where="top" playStoreUrl={playStore} className="storeBadgesCampaign" />
+            <p className="lpUnder" style={{ textAlign: "left", marginTop: 10 }}>
+              Scarichi e cominci subito, senza test e senza carta di credito. Funziona anche da browser, su qualsiasi computer.
+            </p>
+          </>
+        )}
 
         <div className="lpCtaWrap">
-          <Link href={cta} className="lpCta" data-track="landing_cta_register">
-            Oppure fai il test del livello — 3 minuti, gratis
+          <Link href={cta} className="lpCta" data-track={signedIn ? undefined : "landing_cta_register"}>
+            {ctaLabel}
           </Link>
           <p className="lpUnder">Nessun voto e nessun esame: è una chiacchierata, serve solo a capire da dove partire.</p>
         </div>
@@ -312,9 +290,13 @@ export default function InglesePerLavoroPage() {
         </div>
       </section>
 
-      <section className="lpSection" id="prezzi">
+      {embedded ? null : <section className="lpSection" id="prezzi">
         <h2 className="lpH2">Quanto costa</h2>
         <div className="lpPlans">
+          <div className="lpPlan">
+            <div><b>Annuale</b><br /><span>Dodici mesi completi, circa €16,58 al mese</span></div>
+            <div className="lpAmt">€199,00</div>
+          </div>
           <div className="lpPlan">
             <div><b>Programma 3 mesi</b><br /><span>Il percorso completo, circa €33 al mese</span></div>
             <div className="lpAmt">€99,90</div>
@@ -332,7 +314,7 @@ export default function InglesePerLavoroPage() {
           Prezzi IVA inclusa. Scaricare l&rsquo;app e fare il test del livello è gratuito e non richiede pagamento.
           Per le <Link href="/aziende">licenze aziendali</Link> il prezzo è a volume.
         </p>
-      </section>
+      </section>}
 
       <section className="lpSection lpQ" id="domande">
         <h2 className="lpH2">Le domande che ci fanno sempre</h2>
@@ -372,20 +354,22 @@ export default function InglesePerLavoroPage() {
       <section className="lpSection">
         <h2 className="lpH2">È un prodotto vero, già in funzione</h2>
         <p style={{ color: "var(--muted)", fontSize: 15.5, lineHeight: 1.6 }}>
-          ExecLingo è pubblicato sull&rsquo;App Store e funziona da browser su qualsiasi telefono e computer.
+          ExecLingo è pubblicato su App Store e Google Play e funziona anche da browser su qualsiasi telefono e computer.
           È sviluppato in Italia da <strong>VASP ITALIA SRL</strong>.
         </p>
-        <StoreButtons where="bottom" />
+        {embedded ? null : <StoreBadges where="bottom" playStoreUrl={playStore} className="storeBadgesCampaign" />}
       </section>
 
       <div className="lpCtaWrap" style={{ marginTop: 34 }}>
-        <Link href={cta} className="lpCta" data-track="landing_cta_register">Comincia dal test — 3 minuti, gratis</Link>
+        <Link href={cta} className="lpCta" data-track={signedIn ? undefined : "landing_cta_register"}>
+          {signedIn ? "Apri ExecLingo" : "Comincia dal test — 3 minuti, gratis"}
+        </Link>
         <p className="lpUnder">Senza carta di credito. Puoi smettere quando vuoi.</p>
       </div>
 
       <p className="lpFoot">
         ExecLingo · un servizio VASP ITALIA SRL · Via M. Schipa 22/25, 80122 Napoli · P.IVA 03463400634<br />
-        <Link href="/privacy">Privacy</Link> · <Link href="/cookie">Cookie</Link> · <Link href="/termini">Termini</Link> · <Link href="/login">Ho già un account</Link>
+        <Link href="/privacy">Privacy</Link> · <Link href="/cookie">Cookie</Link> · <Link href="/termini">Termini</Link> · {signedIn ? <Link href="/home">Apri ExecLingo</Link> : <Link href="/login">Ho già un account</Link>}
       </p>
     </main>
   );

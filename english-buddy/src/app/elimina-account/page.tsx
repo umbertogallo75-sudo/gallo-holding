@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SitePage } from "@/components/SitePage";
 
 export const metadata = { title: "Elimina account · ExecLingo" };
 
@@ -9,8 +10,7 @@ export const metadata = { title: "Elimina account · ExecLingo" };
  */
 export default function EliminaAccountPage() {
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
+    <SitePage>
       <section className="hero">
         <div className="kicker">Elimina account</div>
         <h1>Vuoi cancellare il tuo account ExecLingo?</h1>
@@ -26,7 +26,7 @@ export default function EliminaAccountPage() {
       <section className="card">
         <h2>Cosa viene eliminato</h2>
         <p>Tutto ciò che è legato al tuo account: profilo (nome ed email), credenziali di accesso, conversazioni con il coach, progressi, espressioni salvate, iscrizioni alle notifiche. L&rsquo;eliminazione è definitiva e non reversibile.</p>
-        <p><strong>Cosa può restare:</strong> i documenti fiscali relativi a eventuali acquisti (fatture e ricevute), che la legge ci obbliga a conservare per 10 anni, e nient&rsquo;altro.</p>
+        <p><strong>Cosa può restare:</strong> la documentazione fiscale e i registri contabili relativi a eventuali acquisti, conservati per i tempi previsti dalla legge (di norma 10 anni). Se eri un partner, possono restare anche i dati strettamente necessari a documentare o saldare provvigioni e pagamenti; il profilo viene scollegato dall&rsquo;account e anonimizzato dove possibile. Se hai chiesto di non ricevere più email, conserviamo inoltre a tempo indeterminato un&rsquo;<strong>impronta pseudonimizzata SHA-256 dell&rsquo;indirizzo email</strong>, necessaria per rispettare la tua opposizione anche dopo la cancellazione. Non contiene l&rsquo;email in chiaro e non può essere usata da sola per contattarti, ma può essere confrontata con un indirizzo già noto: per questo la proteggiamo come dato personale pseudonimizzato. Tutti gli altri dati legati all&rsquo;account vengono eliminati.</p>
       </section>
 
       <section className="card">
@@ -36,12 +36,12 @@ export default function EliminaAccountPage() {
 
       <section className="card">
         <h2>Abbonamenti</h2>
-        <p>L&rsquo;eliminazione dell&rsquo;account non annulla da sola un abbonamento attivo: se hai un piano mensile, disdicilo prima (dal sito nella pagina Abbonamento, oppure — se hai acquistato tramite App Store — da Impostazioni → Abbonamenti sul tuo dispositivo).</p>
+        <p>L&rsquo;eliminazione dell&rsquo;account non annulla da sola un piano ricorrente (Mensile, Annuale o Mantenimento). Se hai pagato sul sito, disdicilo prima dalla pagina Abbonamento. Su iPhone usa Impostazioni → il tuo nome → Abbonamenti; su Android usa Play Store → Pagamenti e abbonamenti → Abbonamenti.</p>
       </section>
 
       <p className="itHint" style={{ margin: "14px 4px 24px" }}>
         Titolare del trattamento: VASP ITALIA SRL · <Link href="/privacy">Privacy</Link> · <Link href="/termini">Termini</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

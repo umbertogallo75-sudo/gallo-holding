@@ -14,7 +14,14 @@ import { useEffect, useState, useSyncExternalStore } from "react";
  */
 
 /** Native bridge exposed by the Kotlin app (window.ExecLingoNative). */
-type NativeBridge = { purchase: (productId: string) => void; restore: () => void };
+type NativeBridge = {
+  purchase: (productId: string, accountHint?: string) => void;
+  restore: () => void;
+  getProducts?: (productIds: string[]) => void;
+  /** Confirms whether the server accepted the token so native retry storage
+   * can remove it only after a durable entitlement exists. */
+  purchaseResult?: (purchaseToken: string, accepted: boolean) => void;
+};
 
 function nativeBridge(): NativeBridge | null {
   const w = window as unknown as { ExecLingoNative?: NativeBridge };
@@ -36,17 +43,18 @@ function digitalGoods(): Promise<DigitalGoodsService> | null {
 
 const PLANS = [
   { product: "program", title: "Programma 3 mesi", fallbackPrice: "99,99 €", note: "Una volta sola · il percorso completo", star: true },
+  { product: "annual", title: "Annuale", fallbackPrice: "199,00 €/anno", note: "12 mesi completi · circa 16,58 € al mese", star: true },
   { product: "monthly", title: "Mensile", fallbackPrice: "39,99 €/mese", note: "Accesso completo, disdici quando vuoi", star: false },
   { product: "maintenance", title: "Mantenimento", fallbackPrice: "29,99 €/mese", note: "Dopo il programma: non perdere quello che hai costruito", star: false },
 ];
 
-function formatPrice(currency: string, value: string, perMonth: boolean): string {
+function formatPrice(currency: string, value: string, suffix: "" | "/mese" | "/anno"): string {
   const amount = Number(value).toFixed(2).replace(".", ",");
   const symbol = currency === "EUR" ? "€" : currency;
-  return `${amount} ${symbol}${perMonth ? "/mese" : ""}`;
+  return `${amount} ${symbol}${suffix}`;
 }
 
-export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
+export function AndroidPlans({ maintenance, accountHint }: { maintenance: boolean; accountHint: string | null }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "purchasing" | "confirming">("idle");
@@ -66,11 +74,23 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
     const w = window as unknown as {
       __playPurchased?: (productId: string, token: string) => void;
       __playFailed?: (reason?: string) => void;
+      __playProducts?: (rows: Array<{ productId?: string; formattedPrice?: string }>) => void;
+    };
+    w.__playProducts = (rows) => {
+      setPrices(Object.fromEntries(
+        rows.filter((row) => row.productId && row.formattedPrice)
+          .map((row) => [row.productId as string, row.formattedPrice as string])
+      ));
     };
     w.__playPurchased = async (productId: string, token: string) => {
       setState("confirming");
-      const ok = await confirm(productId, token);
-      if (ok) { window.location.reload(); return; }
+      try {
+        const ok = await confirm(productId, token);
+        nativeBridge()?.purchaseResult?.(token, ok);
+        if (ok) { window.location.reload(); return; }
+      } catch {
+        nativeBridge()?.purchaseResult?.(token, false);
+      }
       setState("idle");
       setError("Acquisto riuscito ma attivazione non riuscita: tocca “Ripristina acquisti”.");
     };
@@ -78,12 +98,22 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
       setState("idle");
       if (reason && reason !== "cancelled") setError(`Acquisto non completato (${reason}). Riprova.`);
     };
-    return () => { delete w.__playPurchased; delete w.__playFailed; };
+    return () => {
+      delete w.__playPurchased;
+      delete w.__playFailed;
+      delete w.__playProducts;
+    };
   }, []);
 
   useEffect(() => {
     (async () => {
-      if (nativeBridge()) { setAvailable(true); log("ponte nativo Android: ok"); return; }
+      const native = nativeBridge();
+      if (native) {
+        setAvailable(true);
+        log("ponte nativo Android: ok");
+        native.getProducts?.(PLANS.map((plan) => plan.product));
+        return;
+      }
       // Legacy TWA path: Play Billing only works when Chrome backs the shell.
       // Samsung Internet exposes the same API and fails with clientAppUnavailable.
       const ua = navigator.userAgent;
@@ -103,8 +133,9 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
         log(`bridge: errore ${err instanceof Error ? err.name : "?"}`);
         return;
       }
-      // The bridge exists: show the cards even if price lookup fails (the
-      // fallback prices display and a purchase attempt surfaces the error).
+      // The bridge exists, but a product is buyable only after Google returns
+      // it in the live catalogue. This keeps a missing or inactive base plan
+      // from reaching a real-money sheet with a misleading fallback price.
       setAvailable(true);
       try {
         const service = await promise;
@@ -112,7 +143,10 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
         log(`prodotti visti da Google: ${details.length}${details.length ? " (" + details.map((d) => d.itemId).join(", ") + ")" : ""}`);
         const found: Record<string, string> = {};
         for (const item of details) {
-          found[item.itemId] = formatPrice(item.price.currency, item.price.value, item.itemId !== "program");
+          const suffix = item.itemId === "monthly" || item.itemId === "maintenance"
+            ? "/mese"
+            : item.itemId === "annual" ? "/anno" : "";
+          found[item.itemId] = formatPrice(item.price.currency, item.price.value, suffix);
         }
         setPrices(found);
       } catch (err) {
@@ -131,10 +165,22 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
   }
 
   async function buy(productId: string) {
+    if (!prices[productId]) {
+      setError("Questo piano non è ancora disponibile nel catalogo Google Play. Riprova più tardi.");
+      return;
+    }
     setError("");
     setState("purchasing");
     const native = nativeBridge();
-    if (native) { native.purchase(productId); return; }   // answer arrives via __playPurchased
+    if (native) {
+      if (!accountHint) {
+        setState("idle");
+        setError("Il collegamento sicuro dell’account non è disponibile. Riprova più tardi.");
+        return;
+      }
+      native.purchase(productId, accountHint);
+      return; // answer arrives via __playPurchased
+    }
     try {
       const request = new PaymentRequest(
         [{ supportedMethods: PLAY_BILLING_METHOD, data: { sku: productId } }],
@@ -211,8 +257,14 @@ export function AndroidPlans({ maintenance }: { maintenance: boolean }) {
               🔒 Si attiva dopo il <strong>Programma 3 mesi</strong>: è il piano che lo prosegue. Se ti serve solo un mese, scegli il <strong>Mensile</strong>.
             </p>
           ) : (
-            <button type="button" className="primary full" disabled={state !== "idle"} onClick={() => buy(p.product)}>
-              {state === "purchasing" ? "Attendi…" : state === "confirming" ? "Attivo il piano…" : `Attiva — ${prices[p.product] ?? p.fallbackPrice}`}
+            <button type="button" className="primary full" disabled={state !== "idle" || !prices[p.product]} onClick={() => buy(p.product)}>
+              {state === "purchasing"
+                ? "Attendi…"
+                : state === "confirming"
+                  ? "Attivo il piano…"
+                  : prices[p.product]
+                    ? `Attiva — ${prices[p.product]}`
+                    : "Catalogo Play in verifica"}
             </button>
           )}
         </section>

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
+import { PASSWORD_SIGNUP_SUCCESS_PATH } from "@/lib/auth-destinations";
 import { reportSignupConversion } from "@/lib/conversions";
 
 export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
@@ -35,7 +36,7 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
     // Report before navigating: the account exists from here on, and the tag
     // has to fire while this page is still the one on screen.
     reportSignupConversion();
-    router.push("/");
+    router.push(PASSWORD_SIGNUP_SUCCESS_PATH);
     router.refresh();
   }
 

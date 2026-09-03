@@ -1,12 +1,12 @@
 import Link from "next/link";
+import { SitePage } from "@/components/SitePage";
 
 export const metadata = { title: "Termini di servizio · ExecLingo" };
 
 /** Termini di servizio — public page, linked from landing and register. */
 export default function TerminiPage() {
   return (
-    <main className="shell">
-      <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
+    <SitePage>
       <section className="hero">
         <div className="kicker">Termini di servizio</div>
         <h1>Le regole, semplici.</h1>
@@ -31,7 +31,7 @@ export default function TerminiPage() {
 
       <section className="card">
         <h2>Prezzi e pagamenti</h2>
-        <p>I prezzi indicati sull&rsquo;app possono cambiare; eventuali modifiche non toccano i periodi già pagati. Quando acquisti online hai diritto di recesso entro 14 giorni, salvo che il servizio sia già stato interamente fruito su tua richiesta. Le modalità di pagamento e fatturazione sono indicate al momento dell&rsquo;acquisto.</p>
+        <p>I piani Mensile, Annuale e Mantenimento si rinnovano automaticamente per il periodo scelto fino alla disdetta; il Programma 3 mesi è invece un acquisto una tantum. Prezzo, durata, imposte e gestore del pagamento sono sempre mostrati prima della conferma. Gli acquisti effettuati nell&rsquo;app sono gestiti da Apple o Google e seguono anche le condizioni del relativo store. Eventuali modifiche di prezzo non toccano i periodi già pagati. Quando acquisti online hai diritto di recesso entro 14 giorni, salvo le eccezioni previste per i servizi digitali già iniziati su tua richiesta.</p>
       </section>
 
       <section className="card">
@@ -47,6 +47,6 @@ export default function TerminiPage() {
       <p className="itHint" style={{ margin: "14px 4px 24px", textAlign: "center" }}>
         <Link href="/privacy">Informativa privacy</Link> · <Link href="/">Torna all&rsquo;inizio</Link>
       </p>
-    </main>
+    </SitePage>
   );
 }

@@ -13,11 +13,23 @@
 
 export const CONSENT_COOKIE = "eb_consent";
 
+/** Fired once the consent-gated browser queues are ready to accept events. */
+export const MARKETING_TAGS_READY_EVENT = "execlingo:marketing-tags-ready";
+
+/** Public GA4 Measurement ID assigned to the ExecLingo web stream. */
+export const GA4_MEASUREMENT_ID = "G-Y5BX21MQYQ";
+
+/** Public LinkedIn identifier assigned to ExecLingo; it is not a secret. */
+export const LINKEDIN_PARTNER_ID = "9624362";
+
+/** Public event-specific ID for ExecLingo's completed-registration conversion. */
+export const LINKEDIN_SIGNUP_CONVERSION_ID = "29840122";
+
 /**
  * Bump when the set of tags changes: an old choice was made about a different
  * list of recipients, so it stops counting as consent and the banner returns.
  */
-export const CONSENT_VERSION = "1";
+export const CONSENT_VERSION = "2";
 
 /** Six months, then ask again — the interval the Garante considers reasonable. */
 export const CONSENT_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
@@ -67,40 +79,62 @@ export function consentCookieValue(choice: ConsentChoice, receipt: string): stri
  * answer: consent to an unnamed list is not consent to anything.
  */
 export function activeTagNames(): string {
-  const { metaPixelId, googleAdsId, analyticsId } = marketingTags();
-  return [metaPixelId ? "meta" : "", googleAdsId ? "google" : "", analyticsId ? "ga4" : ""].filter(Boolean).join(",");
+  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId } = marketingTags();
+  return [
+    metaPixelId ? "meta" : "",
+    googleAdsId ? "google" : "",
+    analyticsId ? "ga4" : "",
+    linkedinPartnerId ? "linkedin" : "",
+  ].filter(Boolean).join(",");
+}
+
+/**
+ * The checked-in Measurement ID is a production convenience, not a preview
+ * default. In the browser the hostname is the reliable distinction because a
+ * Vercel preview is also compiled with NODE_ENV=production. On the server use
+ * VERCEL_ENV when available and preserve the production build fallback for
+ * non-Vercel deployments.
+ */
+function productionGa4FallbackEnabled(): boolean {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname.toLowerCase();
+    return hostname === "execlingo.it" || hostname === "www.execlingo.it";
+  }
+  const vercelEnv = (process.env.VERCEL_ENV ?? "").trim().toLowerCase();
+  if (vercelEnv) return vercelEnv === "production";
+  return process.env.NODE_ENV === "production";
+}
+
+function analyticsMeasurementId(): string {
+  const configured = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  if (configured !== undefined) return configured.trim();
+  return productionGa4FallbackEnabled() ? GA4_MEASUREMENT_ID : "";
 }
 
 /**
  * The tags this build would load. Read statically so Next can inline them.
- * Both empty is the normal state until advertising actually starts — and then
- * there is nothing to consent to, so no banner is shown at all.
+ * Advertising identifiers are public by design: they are visible in every
+ * browser that loads the corresponding tag.
  */
-export function marketingTags(): { metaPixelId: string; googleAdsId: string; analyticsId: string } {
+export function marketingTags(): {
+  metaPixelId: string;
+  googleAdsId: string;
+  analyticsId: string;
+  linkedinPartnerId: string;
+} {
   return {
     metaPixelId: (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "").trim(),
     googleAdsId: (process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "").trim(),
-    // Google Analytics 4, and a warning: as of 25 August 2026 this must stay
-    // EMPTY.
-    //
-    // The Ads tag AW-18392308446 already carries G-Y5BX21MQYQ as a configured
-    // destination — verified by reading the loader Google itself serves for
-    // that id, which declares both. Analytics is therefore already collecting
-    // whenever the tag fires, and setting this variable would add a second
-    // config for the same property: every page view counted twice, in the
-    // property's first weeks, invisibly.
-    //
-    // Fill it only if that destination is ever removed on Google's side, so
-    // the site configures GA4 explicitly instead. Either mechanism is fine;
-    // both at once is not. Check first at
-    // https://www.googletagmanager.com/gtag/js?id=AW-18392308446 — if the G-
-    // id appears in there, leave this alone.
-    //
-    // It rides the same loader as the Ads tag, which is the reason it lives
-    // here rather than in the layout: one consent gate. An analytics tag that
-    // loads before the visitor has answered the banner is the exact thing the
-    // banner exists to prevent.
-    analyticsId: (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "").trim(),
+    // Google Analytics 4. It rides the same gtag loader as the Ads tag: one
+    // script, two configs, and — the reason it belongs here rather than in the
+    // layout — one consent gate. An analytics tag that loads before the
+    // visitor has answered the banner is the exact thing the banner exists to
+    // prevent.
+    analyticsId: analyticsMeasurementId(),
+    // The production tag requested in LinkedIn Campaign Manager. Keeping the
+    // public id as a fallback makes preview and production behave identically;
+    // an explicit empty environment value can still disable it.
+    linkedinPartnerId: (process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID ?? LINKEDIN_PARTNER_ID).trim(),
   };
 }
 
@@ -118,10 +152,23 @@ export function googleAdsSignupTarget(): string {
   return googleAdsId && label ? `${googleAdsId}/${label}` : "";
 }
 
+/**
+ * Numeric ID generated by LinkedIn for the event-specific signup conversion.
+ * Invalid or missing values disable only this conversion, never registration.
+ */
+export function linkedinSignupConversionId(): number | null {
+  const raw = (
+    process.env.NEXT_PUBLIC_LINKEDIN_SIGNUP_CONVERSION_ID ?? LINKEDIN_SIGNUP_CONVERSION_ID
+  ).trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 export function hasMarketingTags(): boolean {
   // Analytics counts. Leaving it out would be a silent failure of the worst
   // kind: with only GA4 configured there would be no banner, so no consent,
   // so no analytics — and nothing anywhere saying why.
-  const { metaPixelId, googleAdsId, analyticsId } = marketingTags();
-  return Boolean(metaPixelId || googleAdsId || analyticsId);
+  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId } = marketingTags();
+  return Boolean(metaPixelId || googleAdsId || analyticsId || linkedinPartnerId);
 }

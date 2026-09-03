@@ -83,6 +83,9 @@ export default async function ProfilePage() {
           👑 Dashboard di monitoraggio
         </Link>
       ) : null}
+      <Link href="/elimina-account" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
+        Elimina il mio account e i miei dati
+      </Link>
       <LogoutButton />
 
       <BottomNav active="profile" />

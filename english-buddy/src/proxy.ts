@@ -1,5 +1,36 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+const INDEXABLE_PAGES = new Set([
+  "/",
+  "/inglese-lavoro",
+  "/scarica",
+  "/offerte",
+  "/aziende",
+  "/partner",
+  "/privacy",
+  "/cookie",
+  "/termini",
+  "/elimina-account",
+]);
+
+const PROTECTED_PAGE_PREFIXES = [
+  "/home",
+  "/onboarding",
+  "/phrasebook",
+  "/riunione",
+  "/prepara",
+  "/buddy",
+  "/profile",
+  "/voice",
+  "/abbonamento",
+  "/piano",
+  "/admin",
+  "/allenamenti",
+  "/progress",
+  "/rescue",
+  "/partner/dashboard",
+];
+
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic =
@@ -8,6 +39,8 @@ export function proxy(request: NextRequest) {
     path.startsWith("/register") ||
     path.startsWith("/forgot") ||
     path.startsWith("/reset") ||
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
     path === "/privacy" ||
     path === "/cookie" ||
     path === "/termini" ||
@@ -15,6 +48,7 @@ export function proxy(request: NextRequest) {
     path === "/aziende" ||
     path === "/partner" ||
     path === "/scarica" ||
+    path === "/offerte" ||
     path === "/inglese-lavoro" ||
     path === "/app" ||
     path.startsWith("/r/") ||
@@ -38,7 +72,8 @@ export function proxy(request: NextRequest) {
     path === "/sw.js" ||
     path === "/apple-touch-icon.png" ||
     path.startsWith("/banners/") ||
-    path.startsWith("/marketing/");
+    path.startsWith("/marketing/") ||
+    path.startsWith("/store-badges/");
 
   // Presence check only — cryptographic validation happens server-side in lib/auth.
   let response: NextResponse;
@@ -46,11 +81,31 @@ export function proxy(request: NextRequest) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    response = NextResponse.redirect(url);
+    if (PROTECTED_PAGE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      response = NextResponse.redirect(url);
+    } else {
+      // Unknown URLs are not authentication entry points. Returning a real
+      // 404 prevents arbitrary paths from masquerading as credential pages.
+      return new NextResponse("Pagina non trovata", {
+        status: 404,
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+      });
+    }
   } else {
     response = NextResponse.next();
+  }
+
+  if (INDEXABLE_PAGES.has(path)) {
+    const canonical = new URL(path, "https://www.execlingo.it").toString();
+    response.headers.set("Link", `<${canonical}>; rel=\"canonical\"`);
+  } else if (!path.startsWith("/_next/")) {
+    response.headers.set("X-Robots-Tag", "noindex, follow");
   }
 
   // The Android TWA launches on /home?app=twa: pin the reader-mode cookie so
@@ -61,4 +116,4 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"] };

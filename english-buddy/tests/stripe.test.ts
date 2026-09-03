@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getBilling, getEntitlement, maintenanceUnlocked, saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
+import { getBilling, getEntitlement, maintenanceUnlocked, PLANS, saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
 
 let dir: string;
 let client: Client;
@@ -43,6 +43,17 @@ describe("stripe webhook signature", () => {
     expect(verifyStripeSignature(payload + "x", sign(payload, secret, now), secret, now)).toBe(false);
     expect(verifyStripeSignature(payload, sign(payload, secret, now - 4000), secret, now)).toBe(false);
     expect(verifyStripeSignature(payload, null, secret, now)).toBe(false);
+  });
+});
+
+describe("catalogo prezzi web", () => {
+  it("configura l'annuale a 199 euro con rinnovo ogni anno", () => {
+    expect(PLANS.annual).toEqual({
+      lookupKey: "execlingo_annual",
+      name: "ExecLingo — Annuale",
+      amount: 19_900,
+      interval: "year",
+    });
   });
 });
 

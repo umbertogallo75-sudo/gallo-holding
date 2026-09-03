@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
+import { LOGIN_SUCCESS_PATH } from "@/lib/auth-destinations";
 
 export function LoginForm({ oauth, oauthError, embedded = false, trialClaimed = false }: { oauth: React.ReactNode; oauthError?: string | null; embedded?: boolean; trialClaimed?: boolean }) {
   const [email, setEmail] = useState("");
@@ -18,7 +19,7 @@ export function LoginForm({ oauth, oauthError, embedded = false, trialClaimed = 
     const data = await response.json();
     setLoading(false);
     if (!response.ok) return setError(data.error || "Login failed");
-    router.push("/"); router.refresh();
+    router.push(LOGIN_SUCCESS_PATH); router.refresh();
   }
 
   return <main className="shell authWrap"><WelcomeIntro /><section className="authCard">

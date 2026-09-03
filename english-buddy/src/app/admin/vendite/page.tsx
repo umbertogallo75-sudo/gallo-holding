@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getUserId, OWNER_ID } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
+import { isAdminUser } from "@/lib/admin-access";
 import { db } from "@/lib/db";
 import { MIN_PAYOUT_CENTS, promoteHeldCommissions } from "@/lib/partners";
 import { PartnerAdminActions, MarkPaidButton } from "./PartnerAdminActions";
@@ -11,9 +12,9 @@ const euro = (cents: number) => (cents / 100).toLocaleString("it-IT", { minimumF
 
 /** Owner-only Sales Control Center: the whole commercial network at a glance. */
 export default async function SalesControlCenterPage() {
-  const userId = await getUserId();
-  if (!userId) redirect("/login");
-  if (userId !== OWNER_ID) redirect("/home");
+  const session = await getAuthSession();
+  if (!session) redirect("/login");
+  if (!(await isAdminUser(session.userId, session.method))) redirect("/home");
 
   const database = db();
   await promoteHeldCommissions().catch(() => {});

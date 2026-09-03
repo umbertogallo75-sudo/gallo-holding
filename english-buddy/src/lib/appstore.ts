@@ -2,6 +2,7 @@ import { createPrivateKey, createSign, X509Certificate, createPublicKey, verify 
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { saveBilling, userIdByCustomer } from "@/lib/stripe";
+import { claimStorePurchaseWithStatus, storePurchaseOwner } from "@/lib/store-purchases";
 
 /**
  * Apple In-App Purchases: server-side confirmation and App Store Server
@@ -12,14 +13,19 @@ import { saveBilling, userIdByCustomer } from "@/lib/stripe";
  * back to the user through the existing lookup.
  *
  * Env (from App Store Connect → Users and Access → Integrations → In-App
- * Purchase keys): APPSTORE_ISSUER_ID, APPSTORE_KEY_ID, APPSTORE_PRIVATE_KEY.
+ * Purchase keys): APPSTORE_IAP_ISSUER_ID, APPSTORE_IAP_KEY_ID,
+ * APPSTORE_IAP_PRIVATE_KEY. The legacy APPSTORE_* credential trio is accepted
+ * atomically for existing IAP deployments, but is never used by reporting.
  */
 
-export const APP_BUNDLE_ID = process.env.APPSTORE_BUNDLE_ID || "it.execlingo.app";
+export const APP_BUNDLE_ID = process.env.APPSTORE_IAP_BUNDLE_ID?.trim()
+  || process.env.APPSTORE_BUNDLE_ID?.trim()
+  || "it.execlingo.app";
 
 /** productId → plan of the existing billing model. */
-export const APPLE_PRODUCTS: Record<string, { plan: "monthly" | "program" | "maintenance"; kind: "auto-renewable" | "non-renewing" }> = {
+export const APPLE_PRODUCTS: Record<string, { plan: "monthly" | "annual" | "program" | "maintenance"; kind: "auto-renewable" | "non-renewing" }> = {
   "it.execlingo.app.monthly": { plan: "monthly", kind: "auto-renewable" },
+  "it.execlingo.app.annual": { plan: "annual", kind: "auto-renewable" },
   "it.execlingo.app.maintenance": { plan: "maintenance", kind: "auto-renewable" },
   "it.execlingo.app.program": { plan: "program", kind: "non-renewing" },
 };
@@ -27,14 +33,37 @@ export const APPLE_PRODUCTS: Record<string, { plan: "monthly" | "program" | "mai
 /** The program grants 3 months + a week of courtesy, like license redemption. */
 export const PROGRAM_DAYS = 98;
 
+type AppStoreIapCredentials = {
+  issuerId: string;
+  keyId: string;
+  privateKey: string;
+};
+
+function appStoreIapCredentials(): AppStoreIapCredentials | null {
+  const explicit = {
+    issuerId: (process.env.APPSTORE_IAP_ISSUER_ID ?? "").trim(),
+    keyId: (process.env.APPSTORE_IAP_KEY_ID ?? "").trim(),
+    privateKey: (process.env.APPSTORE_IAP_PRIVATE_KEY ?? "").trim(),
+  };
+  // Never mix old and new fields: a partial migration must fail closed instead
+  // of accidentally combining two unrelated Apple keys.
+  const hasExplicitCredential = Object.values(explicit).some(Boolean);
+  const selected = hasExplicitCredential ? explicit : {
+    issuerId: (process.env.APPSTORE_ISSUER_ID ?? "").trim(),
+    keyId: (process.env.APPSTORE_KEY_ID ?? "").trim(),
+    privateKey: (process.env.APPSTORE_PRIVATE_KEY ?? "").trim(),
+  };
+  return selected.issuerId && selected.keyId && selected.privateKey ? selected : null;
+}
+
 export function appStoreConfigured(): boolean {
-  return Boolean(process.env.APPSTORE_ISSUER_ID && process.env.APPSTORE_KEY_ID && process.env.APPSTORE_PRIVATE_KEY);
+  return appStoreIapCredentials() !== null;
 }
 
 const b64url = (buf: Buffer) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-function privateKeyPem(): string {
-  const raw = (process.env.APPSTORE_PRIVATE_KEY ?? "").trim();
+function privateKeyPem(rawValue: string): string {
+  const raw = rawValue.trim();
   if (raw.includes("BEGIN")) return raw.replace(/\\n/g, "\n");
   const body = raw.replace(/\s+/g, "");
   const lines = body.match(/.{1,64}/g)?.join("\n") ?? body;
@@ -43,9 +72,11 @@ function privateKeyPem(): string {
 
 /** Short-lived ES256 JWT for the App Store Server API. */
 export function appStoreServerToken(now: number = Date.now()): string {
-  const header = { alg: "ES256", kid: process.env.APPSTORE_KEY_ID, typ: "JWT" };
+  const credentials = appStoreIapCredentials();
+  if (!credentials) throw new Error("App Store IAP credentials are not configured");
+  const header = { alg: "ES256", kid: credentials.keyId, typ: "JWT" };
   const payload = {
-    iss: process.env.APPSTORE_ISSUER_ID,
+    iss: credentials.issuerId,
     iat: Math.floor(now / 1000) - 30,
     exp: Math.floor(now / 1000) + 15 * 60,
     aud: "appstoreconnect-v1",
@@ -54,7 +85,7 @@ export function appStoreServerToken(now: number = Date.now()): string {
   const signingInput = `${b64url(Buffer.from(JSON.stringify(header)))}.${b64url(Buffer.from(JSON.stringify(payload)))}`;
   const signer = createSign("SHA256");
   signer.update(signingInput);
-  const signature = signer.sign({ key: createPrivateKey(privateKeyPem()), dsaEncoding: "ieee-p1363" });
+  const signature = signer.sign({ key: createPrivateKey(privateKeyPem(credentials.privateKey)), dsaEncoding: "ieee-p1363" });
   return `${signingInput}.${b64url(signature)}`;
 }
 
@@ -117,13 +148,22 @@ export async function applyAppleTransaction(
   tx: AppleTransaction,
   knownUserId: string | null,
   client: Client = db()
-): Promise<{ ok: boolean; plan?: string; error?: string }> {
+): Promise<{ ok: boolean; plan?: string; error?: string; newlyRecorded?: boolean }> {
   if (tx.bundleId && tx.bundleId !== APP_BUNDLE_ID) return { ok: false, error: "bundle" };
   const product = tx.productId ? APPLE_PRODUCTS[tx.productId] : undefined;
   if (!product) return { ok: false, error: "product" };
-  const customerKey = `apple:${tx.originalTransactionId ?? tx.transactionId}`;
-  const userId = knownUserId ?? (await userIdByCustomer(customerKey, client));
+  const purchaseKey = tx.originalTransactionId ?? tx.transactionId;
+  if (!purchaseKey) return { ok: false, error: "transaction" };
+  const customerKey = `apple:${purchaseKey}`;
+  const existingOwner = await storePurchaseOwner("apple", purchaseKey, client)
+    ?? await userIdByCustomer(customerKey, client);
+  if (knownUserId && existingOwner && knownUserId !== existingOwner) return { ok: false, error: "owner" };
+  const userId = knownUserId ?? existingOwner;
   if (!userId) return { ok: false, error: "user" };
+  const claim = await claimStorePurchaseWithStatus("apple", purchaseKey, userId, tx.productId as string, client);
+  if (!claim.ok) {
+    return { ok: false, error: "owner" };
+  }
 
   const revoked = Boolean(tx.revocationDate);
   await saveBilling(
@@ -136,7 +176,7 @@ export async function applyAppleTransaction(
     },
     client
   );
-  return { ok: true, plan: product.plan };
+  return { ok: true, plan: product.plan, newlyRecorded: claim.newlyRecorded };
 }
 
 // ---------- App Store Server Notifications V2 ----------
@@ -220,8 +260,11 @@ export async function handleNotification(payload: AppleNotification, client: Cli
   if (!tx) return { handled: false, type };
   if (payload.data?.bundleId && payload.data.bundleId !== APP_BUNDLE_ID) return { handled: false, type };
 
-  const customerKey = `apple:${tx.originalTransactionId ?? tx.transactionId}`;
-  const userId = await userIdByCustomer(customerKey, client);
+  const purchaseKey = tx.originalTransactionId ?? tx.transactionId;
+  if (!purchaseKey) return { handled: false, type };
+  const customerKey = `apple:${purchaseKey}`;
+  const userId = await storePurchaseOwner("apple", purchaseKey, client)
+    ?? await userIdByCustomer(customerKey, client);
   if (!userId) return { handled: false, type };
 
   if (REVOKING_TYPES.has(type)) {

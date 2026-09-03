@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { createCheckout, stripeConfigured } from "@/lib/stripe";
 import { trackEvent } from "@/lib/analytics";
+import { db } from "@/lib/db";
+import {
+  createCheckout,
+  getBilling,
+  getEntitlement,
+  isStripeCustomer,
+  maintenanceUnlocked,
+  stripeConfigured,
+} from "@/lib/stripe";
 
-const bodySchema = z.object({ plan: z.enum(["monthly", "program", "maintenance"]) });
+const bodySchema = z.object({ plan: z.enum(["monthly", "annual", "program", "maintenance"]) });
 
 /** Starts a Stripe Checkout session for the chosen plan. */
 export async function POST(request: Request) {
@@ -19,6 +26,17 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
   try {
+    const [billing, entitlement] = await Promise.all([getBilling(userId), getEntitlement(userId)]);
+    const openStripeSubscription = isStripeCustomer(billing)
+      && billing?.plan !== "program"
+      && !["canceled", "incomplete_expired"].includes(billing?.status ?? "");
+    if (entitlement.reason === "plan" || openStripeSubscription) {
+      return NextResponse.json({ error: "Hai già un piano attivo o da gestire. Usa Gestisci abbonamento prima di aprirne un altro." }, { status: 409 });
+    }
+    if (parsed.data.plan === "maintenance" && !maintenanceUnlocked(billing)) {
+      return NextResponse.json({ error: "Il mantenimento richiede prima il Programma 3 mesi" }, { status: 403 });
+    }
+
     const emailResult = await db().execute({ sql: "SELECT email FROM auth_users WHERE id = ? LIMIT 1", args: [userId] });
     const email = emailResult.rows[0]?.email ? String(emailResult.rows[0].email) : null;
     const base = (process.env.APP_BASE_URL || "https://execlingo.it").replace(/\/$/, "");
