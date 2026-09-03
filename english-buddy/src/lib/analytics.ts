@@ -10,6 +10,10 @@ export type FunnelEvent =
   | "landing_cta_register"
   | "landing_cta_login"
   | "landing_cta_aziende"
+  // Its twin. The home page offers two paths — individual and company — and
+  // only the company one was ever counted, so the split between them was
+  // unknowable and the individual path looked like it had no takers.
+  | "landing_cta_professionisti"
   | "landing_download"
   | "landing_store_cta"
   | "landing_store_ios"

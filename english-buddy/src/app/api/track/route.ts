@@ -11,6 +11,7 @@ const bodySchema = z.object({
     "landing_cta_register",
     "landing_cta_login",
     "landing_cta_aziende",
+    "landing_cta_professionisti",
     "landing_download",
     // A tap on a store button is the last thing we can see: the install and any
     // purchase happen inside Apple's or Google's app, where no campaign
