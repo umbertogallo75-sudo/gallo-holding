@@ -1033,3 +1033,15 @@ p { line-height:1.55; font-size:16px; }
    ma dice con il cursore e con l'opacità che non è il momento di ritoccarlo. */
 button:disabled .navSpin { opacity: 1; }
 .pill:disabled, .secondary:disabled, .primary:disabled { cursor: progress; }
+
+/* L'indirizzo del calendario. È lungo e illeggibile per costruzione, quindi
+   sta a tutta larghezza e in carattere a spaziatura fissa: si incolla, non si
+   scrive, e se ne deve poter vedere la fine per capire di averlo preso tutto. */
+.linkInput { width:100%; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:15px;
+  border:1px solid var(--line); border-radius:14px; padding:13px; background:var(--surface); color:var(--ink);
+  outline:none; }
+.linkInput:focus-visible { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* Le note su un impegno, e i documenti attaccati. */
+.eventNotes { width:100%; min-height:96px; font-size:16px; resize:vertical; border:1px solid var(--line);
+  border-radius:14px; padding:12px; background:var(--surface); color:var(--ink); outline:none; font-family:inherit; }

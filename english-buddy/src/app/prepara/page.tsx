@@ -3,6 +3,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { requireUserId } from "@/lib/auth";
 import { upcomingEvents } from "@/lib/events";
 import { NewEvent } from "./NewEvent";
+import { CalendarLink } from "./CalendarLink";
+import { readLink } from "@/lib/calendar/sync";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Preparati · ExecLingo" };
@@ -24,7 +26,7 @@ function italianDate(date: string): string {
 export default async function PreparaPage() {
   const userId = await requireUserId();
   const today = todayIn();
-  const events = await upcomingEvents(userId, today);
+  const [events, link] = await Promise.all([upcomingEvents(userId, today), readLink(userId)]);
 
   return (
     <main className="shell">
@@ -34,6 +36,8 @@ export default async function PreparaPage() {
         <h1>Cosa hai in agenda?</h1>
         <p className="muted">Scrivi in una riga la riunione, la call o il viaggio. Sam ti prepara le frasi che ti serviranno davvero, le domande che ti faranno e come giocartela — e il giorno prima te lo ricorda.</p>
       </section>
+
+      <CalendarLink connected={Boolean(link)} lastSync={link?.lastSyncAt ?? null} lastError={link?.lastError ?? null} />
 
       <section className="card">
         <NewEvent today={today} />

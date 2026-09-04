@@ -6,6 +6,11 @@ import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { getEvent } from "@/lib/events";
 import { DebriefForm } from "./DebriefForm";
+import { EventNotes } from "./EventNotes";
+import { PrepareButton } from "./PrepareButton";
+import { EventDocs } from "./EventDocs";
+import { readNotes } from "@/lib/calendar/sync";
+import { documentsForEvent } from "@/lib/documents/store";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "La tua scheda · ExecLingo" };
@@ -20,6 +25,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const event = await getEvent(userId, id);
   if (!event) notFound();
+  const [notes, docs] = await Promise.all([readNotes(userId, id), documentsForEvent(id, userId)]);
 
   return (
     <main className="shell">
@@ -28,8 +34,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <section className="hero">
         <div className="kicker">{event.date}{event.time ? ` · ${event.time}` : ""}</div>
         <h1 style={{ lineHeight: 1.25 }}>{event.title}</h1>
-        {event.prep ? <p className="muted">{event.prep.strategy}</p> : <p className="muted">La scheda non è disponibile.</p>}
+        {event.prep ? <p className="muted">{event.prep.strategy}</p> : null}
       </section>
+
+      <PrepareButton id={event.id} again={Boolean(event.prep)} />
+      <EventNotes id={event.id} initial={notes} />
+      <EventDocs id={event.id} docs={docs.map((d) => ({ id: d.id, title: d.analysis.titleIt || d.filename, kind: d.analysis.kind }))} />
 
       {event.prep ? (
         <>

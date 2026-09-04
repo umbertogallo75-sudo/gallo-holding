@@ -72,10 +72,22 @@ They describe it in a line, in Italian. Give them what they will actually need i
 
 Write for someone who is competent in their job and uncertain in the language: never explain their business to them, only the English. If the description is vague, choose the most probable work situation and prepare for that.`;
 
-export async function prepareForEvent(title: string, context: string | null, level: string | null): Promise<EventPrep> {
+export async function prepareForEvent(
+  title: string,
+  context: string | null,
+  level: string | null,
+  /** What the person going into the room knows that the calendar does not. */
+  notes?: string | null,
+  /** What was made of the documents attached to this appointment. */
+  documents?: string | null
+): Promise<EventPrep> {
   const lines = [`Appuntamento: ${title}`];
   if (context) lines.push(`Contesto professionale: ${context}`);
   if (level) lines.push(`Livello di inglese: ${level}`);
+  // Last, and marked as the most important: a title is a label, these are the
+  // facts, and a sheet prepared from the label alone is a generic sheet.
+  if (notes?.trim()) lines.push(`\nQUELLO CHE L'UTENTE SA DI QUESTO INCONTRO, e che conta più del titolo:\n${notes.trim()}`);
+  if (documents?.trim()) lines.push(`\nDOCUMENTI DI QUESTO INCONTRO:\n${documents.trim()}`);
   const raw = await runStructured(INSTRUCTIONS, lines.join("\n"), "event_prep", jsonSchema, 2200);
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   return prepSchema.parse(JSON.parse(cleaned));

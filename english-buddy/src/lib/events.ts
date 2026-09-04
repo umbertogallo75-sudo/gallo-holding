@@ -167,3 +167,11 @@ export async function markDebriefAsked(id: string, when: string, client: Client 
       await client.execute("ALTER TABLE events ADD COLUMN debrief_asked_at TEXT").catch(() => undefined);
     });
 }
+
+/** Replaces the prepared sheet, once there is more to prepare it from. */
+export async function savePrep(userId: string, id: string, prep: EventPrep, client: Client = db()): Promise<void> {
+  await client.execute({
+    sql: "UPDATE events SET prep_json = ? WHERE id = ? AND user_id = ?",
+    args: [JSON.stringify(prep), id, userId],
+  });
+}
