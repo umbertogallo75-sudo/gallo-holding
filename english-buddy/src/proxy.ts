@@ -15,6 +15,7 @@ const INDEXABLE_PAGES = new Set([
 
 const PROTECTED_PAGE_PREFIXES = [
   "/home",
+  "/mail",
   "/onboarding",
   "/phrasebook",
   "/riunione",
@@ -66,6 +67,9 @@ export function proxy(request: NextRequest) {
     // question comes first.
     path === "/api/consent" ||
     path === "/api/stripe/webhook" ||
+    // Inbound mail arrives from a relay with no session, only the shared
+    // secret the route itself checks. Everything under /mail stays private.
+    path === "/api/mail/inbound" ||
     path === "/api/appstore/notifications" ||
     path.startsWith("/icons/") ||
     path === "/manifest.webmanifest" ||
