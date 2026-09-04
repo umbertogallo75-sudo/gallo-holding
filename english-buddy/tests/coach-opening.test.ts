@@ -14,7 +14,7 @@ const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
  */
 describe("la prima frase di una sessione", () => {
   it("asks for a great deal less than a coaching turn does", () => {
-    const full = (coachResultJsonSchema as { required: string[] }).required;
+    const full = coachResultJsonSchema.required;
     expect(full.length).toBeGreaterThan(5);
     const opening = openai.slice(openai.indexOf("const openingSchema"));
     expect(opening).toContain('required: ["reply"]');
