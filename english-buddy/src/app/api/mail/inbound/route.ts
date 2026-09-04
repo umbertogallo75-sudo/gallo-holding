@@ -62,7 +62,12 @@ function authorised(request: Request, rawBody: string): boolean {
 type Fetched = { mail: Inbound } | { problem: string };
 
 async function fetchReceived(emailId: string, alias: string): Promise<Fetched> {
-  const apiKey = process.env.RESEND_API_KEY;
+  // Its own key, deliberately. Reading received mail needs full access at the
+  // provider, while sending needs only sending access — and the sending key is
+  // the one every password reset and welcome email in the product depends on.
+  // Keeping them apart means the powerful key is used by exactly one function,
+  // and the key everything else relies on is never touched to make this work.
+  const apiKey = process.env.RESEND_RECEIVING_API_KEY?.trim() || process.env.RESEND_API_KEY;
   if (!apiKey) return { problem: "no api key" };
   const response = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
