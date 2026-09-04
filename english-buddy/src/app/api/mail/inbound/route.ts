@@ -59,15 +59,21 @@ function authorised(request: Request, rawBody: string): boolean {
  * Called only once the alias is known to belong to somebody, so a stranger
  * cannot make the server fetch anything.
  */
-async function fetchReceived(emailId: string, alias: string): Promise<Inbound | null> {
+type Fetched = { mail: Inbound } | { problem: string };
+
+async function fetchReceived(emailId: string, alias: string): Promise<Fetched> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { problem: "no api key" };
   const response = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (!response.ok) {
-    console.error("inbound fetch failed:", response.status, (await response.text()).slice(0, 200));
-    return null;
+    // Most likely cause, and the one worth naming: an API key with sending
+    // permission only cannot read received mail, and the failure otherwise
+    // looks identical to an empty message.
+    const detail = (await response.text()).slice(0, 200);
+    console.error("inbound fetch failed:", response.status, detail);
+    return { problem: `fetch ${response.status}` };
   }
   const email = (await response.json()) as { from?: string; subject?: string; text?: string; html?: string };
   const parsed = parseInbound({
@@ -76,12 +82,13 @@ async function fetchReceived(emailId: string, alias: string): Promise<Inbound | 
     subject: email.subject ?? "",
     text: email.text ?? "",
   });
-  if (!parsed) return null;
+  if (!parsed) return { problem: "unreadable" };
   // A message with no plain-text part arrives here with text as an empty
   // string rather than a missing key, which is not the case parseInbound
   // falls back on.
   if (!parsed.text && email.html) parsed.text = htmlToText(email.html).slice(0, MAX_BODY_CHARS);
-  return parsed;
+  if (!parsed.text) return { problem: "no body" };
+  return { mail: parsed };
 }
 
 export async function POST(request: Request) {
@@ -107,8 +114,18 @@ export async function POST(request: Request) {
   const userId = await userForAlias(alias, client);
   if (!userId) return NextResponse.json({ ok: true, ignored: "unknown" });
 
-  const mail = emailId ? await fetchReceived(emailId, alias) : parseInbound(payload);
-  if (!mail || !mail.text) return NextResponse.json({ ok: true, ignored: "empty" });
+  // The reason a message was dropped goes back in the response, because the
+  // delivery log at the mail service is the only place anyone can see it: an
+  // API key without permission to read received mail and a genuinely empty
+  // email look exactly alike from the outside, and cost an evening each.
+  const fetched: Fetched = emailId
+    ? await fetchReceived(emailId, alias)
+    : (() => {
+        const parsed = parseInbound(payload);
+        return parsed && parsed.text ? { mail: parsed } : { problem: "no body" };
+      })();
+  if (!("mail" in fetched)) return NextResponse.json({ ok: true, ignored: fetched.problem });
+  const mail = fetched.mail;
 
   // The address they registered with, and the level the coach has settled on:
   // one tells us whether this sender is already theirs, the other decides how
