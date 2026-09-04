@@ -159,17 +159,20 @@ export default async function HomePage() {
       <div className="todayCta"><span>INIZIA →</span><span className="todayHow">✍️ scritta · 🎙️ o a voce</span></div>
     </a>
 
-    {/* Three shortcuts, and only three: the situations urgent enough that
-        somebody would open the app for them specifically. Everything else
-        lives one tap away rather than on the first screen. */}
+    {/* Three shortcuts, and only three: the two situations urgent enough that
+        somebody would open the app for them specifically, and the longer
+        session for the day there is time for it. The calendar used to sit
+        here and does not belong: nobody opens a language app to look at
+        their own diary, and when a meeting is actually close the card above
+        already says so by name. Everything else lives one tap away. */}
     <div className="shortcuts">
       <Link href="/riunione" className="shortcut" data-track="home_shortcut" data-where="riunione">
         <span aria-hidden>🎧</span>
         <span><strong>Sono in riunione</strong>Salvagenti e «come si dice»</span>
       </Link>
-      <Link href="/prepara" className="shortcut" data-track="home_shortcut" data-where="prepara">
-        <span aria-hidden>📅</span>
-        <span><strong>La tua agenda</strong>Riunioni, note e documenti</span>
+      <Link href="/buddy?mode=guided" className="shortcut" data-track="home_shortcut" data-where="guided">
+        <span aria-hidden>↗</span>
+        <span><strong>Sessione guidata</strong>Venti minuti, quando hai tempo</span>
       </Link>
       <Link href="/rescue" className="shortcut" data-track="home_shortcut" data-where="rescue">
         <span aria-hidden>🆘</span>
@@ -194,6 +197,18 @@ export default async function HomePage() {
         </Link>
       ))}
     </div>
+
+    {/* The calendar, at the foot of the page: a tool for the day you want it,
+        not an errand to greet somebody with. It matters upstream — a meeting
+        tomorrow decides the session card above — and that is where it should
+        be felt rather than clicked. */}
+    <Link href="/prepara" className="mode wide" style={{ display: "flex", marginTop: 12 }} data-track="home_shortcut" data-where="prepara">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 18%, var(--surface))" }}>📅</span>
+      <div>
+        <div className="modeTitle">La tua agenda</div>
+        <div className="modeMeta">Le riunioni in arrivo, con le tue note e i tuoi documenti</div>
+      </div>
+    </Link>
 
     {/* Three zeros are the worst possible welcome: the first thing the app
         would tell somebody who has just arrived is that they have done

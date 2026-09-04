@@ -30,6 +30,24 @@ describe("the way into the activity catalogue", () => {
     expect(nav).toContain('label="Allenamenti"');
   });
 
+  /**
+   * The home screen is asked one question — what should I do now? — and the
+   * calendar is not an answer to it. It stays reachable, at the foot of the
+   * page and at the end of the catalogue, but the three shortcuts at the top
+   * are for practising.
+   */
+  it("does not offer the diary as one of the three shortcuts", () => {
+    const shortcuts = home.slice(home.indexOf('className="shortcuts"'), home.indexOf("sectionHead"));
+    expect(shortcuts).not.toContain('href="/prepara"');
+    expect(shortcuts).toContain('href="/buddy?mode=guided"');
+  });
+
+  it("keeps the diary at the foot of the home and of the catalogue", () => {
+    expect(home).toContain('href="/prepara"');
+    expect(home.indexOf('href="/prepara"')).toBeGreaterThan(home.indexOf("trainRail"));
+    expect(grid.indexOf('href="/prepara"')).toBeGreaterThan(grid.indexOf('href="/documenti"'));
+  });
+
   it("no longer hides it behind the dashed line that nobody saw", () => {
     expect(home).not.toContain("allTrainings");
     expect(readFileSync("src/app/globals.css", "utf8")).not.toContain(".allTrainings");

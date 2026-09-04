@@ -44,9 +44,9 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
     {modes.map(m =>
       <Link href={m.href ?? `/buddy?mode=${m.mode}`} className="mode" key={m.mode} style={cardTint(m.color)}><span className="modeIcon" style={tint(m.color)}>{m.icon}</span><div><div className="modeTitle">{m.title}</div><div className="modeMeta">{m.meta}</div></div></Link>)}
     {/* Il lavoro vero della settimana, non un esercizio: sta in alto perché è
-        la ragione per cui uno apre l'app di lunedì mattina. */}
+        la ragione per cui uno apre l'app di lunedì mattina. L'agenda no: è uno
+        strumento, non un allenamento, e sta in fondo. */}
     <div className="kicker" style={{ gridColumn: "1 / -1", margin: "14px 2px 2px" }}>Il tuo lavoro di questa settimana</div>
-    <Wide href="/prepara" icon="📅" title="La tua agenda" meta="Le riunioni in arrivo: note, documenti e la scheda pronta per ognuna" color="#d98e2b" />
     <Wide href="/documenti" icon="📄" title="Allenati su un documento" meta="Un contratto, un'offerta, delle slide: Sam le legge e ti prepara la riunione" color="#1d6b4c" />
     <Wide href="/mail" icon="📧" title="Le tue mail" meta="Inoltra una mail in inglese: Sam te la spiega e ti prepara la risposta" color="#3b6ea5" />
     <div className="kicker" style={{ gridColumn: "1 / -1", margin: "14px 2px 2px" }}>Allenamenti</div>
@@ -65,5 +65,9 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
     <Wide href="/buddy?mode=briefing" icon="📰" title="La lettura del giorno" meta="Sessanta secondi di lettura al tuo livello, con due domande" color="#7a5aa0" />
     <Wide href="/voice?mode=diary" icon="📔" title="Diario parlato" meta="Un minuto a voce sulla tua giornata, e Sam ti aiuta a dirla meglio" color="#b0567a" />
     <Wide href="/phrasebook" icon="📖" title="Il tuo frasario" meta="Tutte le frasi che hai imparato, con l'audio" color="#8a6d3b" />
+    {/* In coda, dove stanno gli strumenti. Quello che l'agenda serve davvero
+        a fare — accorgersi che dopodomani c'è una call — succede da solo sulla
+        home, senza che nessuno debba venire a guardarla. */}
+    <Wide href="/prepara" icon="📅" title="La tua agenda" meta="Le riunioni in arrivo: note, documenti e la scheda pronta per ognuna" color="#d98e2b" />
   </div>;
 }
