@@ -30,25 +30,35 @@ export type GoogleEntitlement = {
 };
 
 /** Read-only resolver; older databases may not have the additive ledger yet. */
-export async function googleEntitlementState(
-  userId: string,
-  currentCustomerKey: string | null,
-  client: BillingExecutor,
-  now: number = Date.now(),
-): Promise<{ best: GoogleEntitlement | null; currentKnown: boolean }> {
-  let rows;
+/**
+ * The rows, on their own.
+ *
+ * Split out from the reading of them because the customer key is only used to
+ * compare against what comes back — so this query never had to wait for the
+ * billing row it was being handed a field from. Two waits at a sixth of a
+ * second each, on every page that asks whether somebody has access.
+ */
+export async function googleEntitlementRows(userId: string, client: BillingExecutor) {
   try {
-    rows = (await client.execute({
+    return (await client.execute({
       sql: `SELECT purchase_key, plan, status, current_period_end
             FROM google_purchase_entitlements WHERE user_id = ?`,
       args: [userId],
     })).rows;
   } catch (error) {
-    if (/no such table: (?:main\.)?google_purchase_entitlements/i.test(String(error))) {
-      return { best: null, currentKnown: false };
-    }
+    // Nobody has bought through the store yet on this database.
+    if (/no such table: (?:main\.)?google_purchase_entitlements/i.test(String(error))) return null;
     throw error;
   }
+}
+
+/** The verdict, from rows already in hand. */
+export function pickGoogleEntitlement(
+  rows: Awaited<ReturnType<typeof googleEntitlementRows>>,
+  currentCustomerKey: string | null,
+  now: number = Date.now(),
+): { best: GoogleEntitlement | null; currentKnown: boolean } {
+  if (!rows) return { best: null, currentKnown: false };
   const currentKnown = rows.some((row) => `google:${String(row.purchase_key)}` === currentCustomerKey);
   const candidates = rows.flatMap((row) => {
     const end = row.current_period_end ? String(row.current_period_end) : "";
@@ -60,4 +70,13 @@ export async function googleEntitlementState(
   candidates.sort((a, b) => Date.parse(b.currentPeriodEnd) - Date.parse(a.currentPeriodEnd)
     || a.purchaseKey.localeCompare(b.purchaseKey));
   return { best: candidates[0] ?? null, currentKnown };
+}
+
+export async function googleEntitlementState(
+  userId: string,
+  currentCustomerKey: string | null,
+  client: BillingExecutor,
+  now: number = Date.now(),
+): Promise<{ best: GoogleEntitlement | null; currentKnown: boolean }> {
+  return pickGoogleEntitlement(await googleEntitlementRows(userId, client), currentCustomerKey, now);
 }

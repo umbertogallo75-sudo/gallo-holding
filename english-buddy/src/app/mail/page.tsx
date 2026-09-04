@@ -21,14 +21,16 @@ function shortDate(iso: string): string {
 export default async function MailPage() {
   const userId = await requireUserId();
   const client = db();
-  const profile = await client.execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
+  // One wait, not three. The housekeeping rides along rather than holding the
+  // page: the text it clears is a month old, and nothing on screen depends on
+  // it having happened this second.
+  const [profile, alias, items] = await Promise.all([
+    client.execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+    aliasFor(userId, client),
+    listMail(userId, client),
+    forgetOldBodies(userId, new Date(), client).catch(() => 0),
+  ]);
   if (!profile.rows.length) redirect("/onboarding");
-
-  // Housekeeping on the way in: the original text of anything older than a
-  // month goes, and what Sam made from it stays.
-  await forgetOldBodies(userId, new Date(), client).catch(() => 0);
-
-  const [alias, items] = await Promise.all([aliasFor(userId, client), listMail(userId, client)]);
 
   return (
     <main className="shell">

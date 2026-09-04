@@ -3,7 +3,7 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { OWNER_ID } from "@/lib/auth";
 import { readTrial } from "@/lib/marketing/trial";
-import { BILLING_GRACE_MS, googleEntitlementState, type BillingExecutor } from "@/lib/google-entitlements";
+import { BILLING_GRACE_MS, googleEntitlementRows, pickGoogleEntitlement, type BillingExecutor } from "@/lib/google-entitlements";
 
 /**
  * Stripe integration via plain REST (no SDK dependency, same approach as
@@ -329,9 +329,15 @@ export function billingEnforced(): boolean {
 export async function getEntitlement(userId: string, client: Client = db()): Promise<Entitlement> {
   if (userId === OWNER_ID) return { access: true, reason: "owner" };
 
-  const billing = await getBilling(userId, client);
+  // Asked for together: the store's rows never needed the billing row, only a
+  // field of it to compare against afterwards. One wait instead of two, on
+  // every screen that asks whether this person has access — which is most.
+  const [billing, googleRows] = await Promise.all([
+    getBilling(userId, client),
+    googleEntitlementRows(userId, client).catch(() => null),
+  ]);
   if (billing?.status === "active" && billing.plan === "free") return { access: true, reason: "free", plan: "free" };
-  const google = await googleEntitlementState(userId, billing?.stripeCustomerId ?? null, client);
+  const google = pickGoogleEntitlement(googleRows, billing?.stripeCustomerId ?? null);
   // Once a token has an authoritative ledger row, the legacy summary cannot
   // resurrect it after revocation. Non-Google billing remains independent.
   if (billing?.status === "active" && !google.currentKnown) {

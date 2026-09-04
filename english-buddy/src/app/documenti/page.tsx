@@ -13,10 +13,11 @@ export const metadata = { title: "Allenati su un documento — ExecLingo" };
 export default async function DocumentsPage() {
   const userId = await requireUserId();
   const client = db();
-  const profile = await client.execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
+  const [profile, docs] = await Promise.all([
+    client.execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+    listDocuments(userId, client),
+  ]);
   if (!profile.rows.length) redirect("/onboarding");
-
-  const docs = await listDocuments(userId, client);
 
   return (
     <main className="shell">

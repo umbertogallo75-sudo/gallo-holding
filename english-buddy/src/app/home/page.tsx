@@ -23,24 +23,39 @@ export default async function HomePage() {
   const userId = await requireUserId();
   const database = db();
   const today = new Date().toISOString().slice(0,10);
-  const [profileResult, metricResult, sessionsResult] = await Promise.all([
+  // Everything this page needs, asked for at once.
+  //
+  // These used to be five waits one after another — profile, entitlement,
+  // trial, first steps, appointments — and none of them needs an answer from
+  // the one before. The database is not next door: a round trip costs about a
+  // sixth of a second, so five in a row was the better part of a second of
+  // doing nothing, on the screen people open most. In one batch it is one
+  // wait, and the page appears when the slowest single query does.
+  //
+  // The trial is fetched for everybody, including paying customers who will
+  // not be shown it. Asked in parallel it costs nothing in time, where asking
+  // only when needed cost a whole extra round trip for exactly the people who
+  // are not paying yet.
+  const [profileResult, metricResult, sessionsResult, entitlement, trial, steps, events, embedded] = await Promise.all([
     readProfile("SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", userId, database),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
+    billingEnforced() ? getEntitlement(userId) : Promise.resolve({ access: true }),
+    readTrial(userId, database).catch(() => null),
+    firstSteps(userId, database),
+    upcomingEvents(userId, today, database),
+    isEmbeddedApp(),
   ]);
   const sessionCount = Number(sessionsResult.rows[0]?.c ?? 0);
   const isFirstTime = sessionCount === 0;
-  const entitlement = billingEnforced() ? await getEntitlement(userId) : { access: true };
-  // Only for someone actually inside it: a countdown shown to a paying
+  // Only shown to someone actually inside it: a countdown shown to a paying
   // customer would be a threat rather than a gift.
+  const inTrial = !entitlement.access || ("reason" in entitlement && entitlement.reason === "trial");
+  const shownTrial = inTrial ? trial : null;
   // Locked accounts are asked a different question from paying ones: has this
   // person ever been offered the free 24 hours? Most never open the email
   // that carries the link, so the offer has to exist here too.
-  const trial = !entitlement.access || ("reason" in entitlement && entitlement.reason === "trial")
-    ? await readTrial(userId, database)
-    : null;
   const canClaimTrial = !entitlement.access && trial === null;
-  const embedded = await isEmbeddedApp();
   const profile = profileResult.rows[0];
   // The installed PWA starts here directly (manifest start_url), so this page
   // must route brand-new users through onboarding itself.
@@ -70,8 +85,6 @@ export default async function HomePage() {
   // any rule about levels and goals, and it is the moment the coach earns its
   // place. Otherwise the same table that chose the first session chooses this
   // one.
-  const steps = await firstSteps(userId, database);
-  const events = await upcomingEvents(userId, today);
   const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   const imminent = events.find((e) => e.date === today || e.date === tomorrow);
   const session = imminent
@@ -94,7 +107,7 @@ export default async function HomePage() {
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <AppTracker />
     <NotificationReminder />
-    {trial?.active ? <TrialBanner trial={trial} onboarded={Boolean(profile.onboarding_done_at)} minutes={Number(metric?.minutes_practiced || 0)} /> : null}
+    {shownTrial?.active ? <TrialBanner trial={shownTrial} onboarded={Boolean(profile.onboarding_done_at)} minutes={Number(metric?.minutes_practiced || 0)} /> : null}
     {canClaimTrial ? <TrialOffer /> : null}
     {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
     <section className="pathHeader">
