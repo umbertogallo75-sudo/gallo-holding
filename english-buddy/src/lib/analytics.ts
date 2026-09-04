@@ -32,6 +32,7 @@ export type FunnelEvent =
   | "chat_starter"
   | "first_step"
   | "tour_end"
+  | "doc_train"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"

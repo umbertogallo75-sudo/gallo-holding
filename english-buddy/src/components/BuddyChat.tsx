@@ -43,6 +43,7 @@ const openers: Record<string,string> = {
   shadow: "Start a shadowing drill. Give me the first sentence to listen to and repeat aloud.",
   briefing: "Give me today's short business read and then ask me about it.",
   levelcheck: "Let's find my starting level with a short friendly chat. Start easy.",
+  doc: "Let's work on the document I uploaded. Start with what it is and the words I will need.",
 };
 
 /**
@@ -109,7 +110,7 @@ function AssistantBubble({ content }: { content: string }) {
   );
 }
 
-export function BuddyChat({ mode, initialQuestion, first = false }: { mode:string; initialQuestion?:string; first?:boolean }) {
+export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:string; initialQuestion?:string; first?:boolean; doc?:string }) {
   const [messages, setMessages] = useState<Msg[]>(
     initialQuestion ? [{ role:"assistant", content:initialQuestion }] : []
   );
@@ -149,7 +150,7 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
   }, []);
 
   async function coachCall(message: string) {
-    const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, opener: sessionId ? undefined : opener.current }) });
+    const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, doc, opener: sessionId ? undefined : opener.current }) });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new HttpError(r.status, data.error || "Coach unavailable");
     return data;

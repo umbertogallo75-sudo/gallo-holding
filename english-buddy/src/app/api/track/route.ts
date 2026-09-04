@@ -38,6 +38,7 @@ const bodySchema = z.object({
     "chat_starter",
     "first_step",
     "tour_end",
+    "doc_train",
     "personalize_shown",
     "personalize_dismissed",
     // Middle of the funnel. The server records the rest itself, where it can

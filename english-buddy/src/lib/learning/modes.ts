@@ -24,6 +24,7 @@ export const COACH_MODES = [
   "shadow",
   "briefing",
   "levelcheck",
+  "doc",
 ] as const;
 
 export type CoachMode = (typeof COACH_MODES)[number];
@@ -45,4 +46,5 @@ export const MODE_MINUTES: Record<CoachMode, number> = {
   shadow: 4,
   briefing: 3,
   levelcheck: 3,
+  doc: 10,
 };

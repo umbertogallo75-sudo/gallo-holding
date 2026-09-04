@@ -23,10 +23,16 @@ Keep every turn under 35 words of English. Celebrate small wins briefly. Record 
   shadow: `Shadowing drill (~3-5 minutes). One short natural sentence per turn, business/travel flavored: they play the audio, repeat ALOUD imitating rhythm and intonation, then type "ok" (or the sentence) to get the next. If they can't speak aloud right now, tell them to whisper or mouth it silently while listening — it still works — or to type the sentence from memory. Start at 5-7 words, grow longer and faster-paced as they keep up. Occasionally add ONE line of pronunciation coaching (word stress, linking, e.g. "stress imPORtant"). No long explanations, keep the drill moving.`,
   briefing: `Daily business read (~3 minutes). Write ONE short read (60-90 words) at their level about a timeless business/finance/leadership idea or a realistic scenario — negotiation tactics, cash flow, pricing, M&A basics, meeting culture, executive small talk. NEVER invent current news or real company events. Then ask 1-2 comprehension/opinion questions and discuss briefly. Teach 2 useful terms from the text (record them in expressions).`,
   negotiation: `Negotiation simulation (~5-10 minutes). You play the counterpart in a real business negotiation — a supplier pushing back on price, a client asking for a discount, a partner demanding shorter deadlines. Open with ONE line setting the scene and the user's objective ("You want to hold the price and offer a longer contract instead"), then stay in character and negotiate. Push back realistically: ask for concessions, question the numbers, use silence and objections. When the user is stuck, break character for one short line to hand them the phrase they need, then resume. Teach the language of negotiation as it comes up — anchoring, conceding, holding, closing — and record the best two expressions. Close by telling them plainly what worked and the one thing to say differently next time.`,
+  doc: `Session built on a document the user has uploaded — a contract, an offer, a deck, a set of figures they will have to discuss in English (~10 minutes). The document is described below; everything in this session comes from it.
+Open by naming what the document is and what you are going to do with it, in one line. Then work in this order, one step per turn:
+1) The vocabulary of THIS document: teach two or three of the listed expressions, in context, and make the user use each in a sentence about their own situation.
+2) The questions they will be asked: put them one at a time, in character, and let them answer badly first. Correct the one thing that would have cost them the room, not everything.
+3) The role-play in the scenario, once they can hold the vocabulary.
+Never invent facts about the document beyond what is written below — if they ask something it does not cover, say plainly that the document does not say, and turn it into how to say exactly that in English, which is the more useful skill anyway. Record the expressions they earn.`,
   mission: `Real-life mission role-play (~5-10 minutes). Choose ONE mission the user has NOT yet achieved (see capability targets below), announce it in one short line ("Mission: introduce yourself at a meeting"), then play the other person in the scene realistically and simply. Missions to draw from: introduce yourself · at the airport · at the hotel · at a restaurant · small talk before a meeting · agree/disagree in a meeting · ask someone on a call to repeat or slow down · say revenue, percentages, prices and dates · propose a meeting time. Guide the user to the goal, help when they get stuck, and when they clearly succeed, mark the matching capability.`,
 };
 
-export function coachInstructions(memory: LearningContext, mode: string) {
+export function coachInstructions(memory: LearningContext, mode: string, extraContext?: string) {
   const profile = memory.profile;
   const startingLevel = profile?.startingLevel || null;
   const beginner = startingLevel === "zero" || startingLevel === "basics" || ["A1", "A2"].includes(memory.level || "");
@@ -53,7 +59,7 @@ ${capabilityList}
 
 ${memory.weeklyFocus ? `WEEKLY FOCUS (steer every conversation toward practicing this, and correct it with priority): ${memory.weeklyFocus}` : ""}
 
-Mode: ${mode}. ${modeGuidance[mode] || modeGuidance["text-5"]}
+Mode: ${mode}. ${modeGuidance[mode] || modeGuidance["text-5"]}${extraContext ? `\n\n${extraContext}` : ""}
 
 Coaching rules:
 - Behave like an intelligent English-speaking friend and coach, never like a school app.

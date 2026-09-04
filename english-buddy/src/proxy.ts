@@ -16,6 +16,7 @@ const INDEXABLE_PAGES = new Set([
 const PROTECTED_PAGE_PREFIXES = [
   "/home",
   "/mail",
+  "/documenti",
   "/onboarding",
   "/phrasebook",
   "/riunione",

@@ -57,6 +57,7 @@ export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
     <Wide href="/buddy?mode=shadow" icon="🗣️" title="Ripeti dietro a Sam" meta="Ascolta e ripeti a voce: ritmo e pronuncia, la tecnica degli interpreti" color="#3b6ea5" />
     <Wide href="/buddy?mode=briefing" icon="📰" title="La lettura del giorno" meta="Sessanta secondi di lettura al tuo livello, con due domande" color="#7a5aa0" />
     <Wide href="/voice?mode=diary" icon="📔" title="Diario parlato" meta="Un minuto a voce sulla tua giornata, e Sam ti aiuta a dirla meglio" color="#b0567a" />
+    <Wide href="/documenti" icon="📄" title="Allenati su un documento" meta="Un contratto, un'offerta, delle slide: Sam le legge e ti prepara la riunione" color="#1d6b4c" />
     <Wide href="/mail" icon="📧" title="Le tue mail" meta="Inoltra una mail in inglese: Sam te la spiega e ti prepara la risposta" color="#3b6ea5" />
     <Wide href="/phrasebook" icon="📖" title="Il tuo frasario" meta="Tutte le frasi che hai imparato, con l'audio" color="#8a6d3b" />
   </div>;

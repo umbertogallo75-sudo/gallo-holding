@@ -6,6 +6,8 @@ import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } fr
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
 import { runCoach } from "@/lib/ai/openai";
+import { readDocument } from "@/lib/documents/store";
+import { trainingContext } from "@/lib/documents/analyse";
 import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { isFirstSession } from "@/lib/learning/first-use";
@@ -37,6 +39,8 @@ const bodySchema = z.object({
   // A Buddy question delivered via push, shown client-side before the first
   // reply; recorded as the session's opening assistant turn.
   opener: z.string().trim().max(500).optional(),
+  /** A document this session is built on, if the user chose one. */
+  doc: z.string().trim().max(64).optional(),
 });
 
 
@@ -90,7 +94,15 @@ export async function POST(request: Request) {
     await ensureWeeklyFocus(userId);
     const context = await getRelevantLearningContext(userId, sessionId);
     const firstEver = !parsed.data.sessionId && (await isFirstSession(userId));
-    const result = await runCoach(coachInstructions(context, mode), message);
+    // A session about a document carries the document with it. Read here
+    // rather than trusted from the client: the summary is ours, and it is only
+    // ever the one belonging to the person asking.
+    let docContext: string | undefined;
+    if (parsed.data.doc) {
+      const doc = await readDocument(parsed.data.doc, userId).catch(() => null);
+      if (doc) docContext = trainingContext(doc.analysis);
+    }
+    const result = await runCoach(coachInstructions(context, mode, docContext), message);
     // The aha moment, and the only one that counts: an answer that came back.
     // "Session started" was already recorded and told us nothing, because a
     // session that fails on the first turn starts exactly the same way.

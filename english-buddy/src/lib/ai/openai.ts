@@ -25,12 +25,23 @@ function extractText(json: ResponsesOutput): string {
  * One structured call to the Responses API. Returns the raw JSON text so each
  * caller can validate it with its own schema.
  */
+/**
+ * A document handed to the model whole.
+ *
+ * Sent as bytes rather than as text pulled out first, because the model reads
+ * both the text and a picture of each page: a slide, a table of figures, a
+ * scanned contract still work, where a text extractor would have returned an
+ * empty string and a confident summary of nothing.
+ */
+export type InputFile = { filename: string; base64: string };
+
 export async function runStructured(
   instructions: string,
   input: string,
   schemaName: string,
   schema: Record<string, unknown>,
-  maxOutputTokens = 1200
+  maxOutputTokens = 1200,
+  file?: InputFile
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is missing");
@@ -41,7 +52,17 @@ export async function runStructured(
     body: JSON.stringify({
       model: modelFor("text"),
       instructions,
-      input,
+      input: file
+        ? [
+            {
+              role: "user",
+              content: [
+                { type: "input_file", filename: file.filename, file_data: `data:application/pdf;base64,${file.base64}` },
+                { type: "input_text", text: input },
+              ],
+            },
+          ]
+        : input,
       reasoning: { effort: "low" },
       max_output_tokens: maxOutputTokens,
       text: { format: { type: "json_schema", name: schemaName, strict: true, schema } },
