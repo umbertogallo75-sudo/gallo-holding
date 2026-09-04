@@ -122,7 +122,11 @@ p { line-height:1.55; font-size:16px; }
 .sheetOpt { display:flex; gap:12px; align-items:center; width:100%; padding:15px 14px; margin-top:10px; border-radius:16px; border:1px solid var(--line); background:color-mix(in srgb, var(--ink) 5%, var(--surface)); color:var(--ink); font:inherit; font-size:16px; text-align:left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .sheetOpt:active { transform:scale(.98); }
 .navIcon { display:inline-block; min-width:18px; font-size:17px; line-height:1; }
-.navSpin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }
+/* Il segno che il sistema sta lavorando. Prende il colore del testo su cui
+   si trova: nato bianco per la barra scura in basso, era invisibile su un
+   pulsante chiaro — cioè proprio dove serviva, perché è lì che si tocca
+   quattro volte pensando che si sia bloccato. */
+.navSpin { display:inline-block; width:13px; height:13px; border:2px solid color-mix(in srgb, currentColor 28%, transparent); border-top-color:currentColor; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }
 .pageSpin { width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spinround .8s linear infinite; }
 @keyframes spinround { to { transform:rotate(360deg); } }
 
@@ -1024,3 +1028,8 @@ p { line-height:1.55; font-size:16px; }
 .mailOriginal { white-space:pre-wrap; word-break:break-word; font-size:13.5px; line-height:1.5; color:var(--muted);
   background:var(--soft); border-radius:12px; padding:12px; margin:10px 0 0; max-height:340px; overflow:auto;
   font-family:inherit; }
+
+/* Un pulsante che sta aspettando non deve sembrare rotto: resta leggibile,
+   ma dice con il cursore e con l'opacità che non è il momento di ritoccarlo. */
+button:disabled .navSpin { opacity: 1; }
+.pill:disabled, .secondary:disabled, .primary:disabled { cursor: progress; }

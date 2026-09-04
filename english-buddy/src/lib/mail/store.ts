@@ -51,9 +51,25 @@ CREATE TABLE IF NOT EXISTS mail_senders (
 
 let ensured = false;
 
-/** Creates the tables on first use, the way the rest of the app does. */
+/**
+ * Creates the tables on first use, and gets out of the way after that.
+ *
+ * The flag only lives as long as one server process, so on a cold start this
+ * used to run eight statements against a database on the other side of the
+ * network before the page could say anything — which is felt as the app being
+ * slow to open. One cheap read answers the only question that matters: if the
+ * newest column is already there, everything before it is too.
+ */
 export async function ensureMailSchema(client: Client = db()): Promise<void> {
   if (ensured) return;
+  try {
+    await client.execute("SELECT source_id FROM mail_items LIMIT 0");
+    ensured = true;
+    return;
+  } catch {
+    // Either the table is missing or it predates that column. Both are fixed
+    // below, and both happen approximately once.
+  }
   for (const statement of SCHEMA.split(";")) {
     const sql = statement.trim();
     if (sql) await client.execute(sql);

@@ -30,9 +30,10 @@ export function MailDetail({ item }: { item: MailItem }) {
   const [copied, setCopied] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [trusted, setTrusted] = useState(item.senderKnown);
+  const [sentTo, setSentTo] = useState("");
   const [original, setOriginal] = useState(false);
 
-  async function act(action: "retry" | "tone" | "instruct", extra: Record<string, string> = {}, label = "") {
+  async function act(action: "retry" | "tone" | "instruct" | "email", extra: Record<string, string> = {}, label = "") {
     setBusy(label || action); setError("");
     try {
       const response = await fetch(`/api/mail/${item.id}`, {
@@ -45,6 +46,7 @@ export function MailDetail({ item }: { item: MailItem }) {
       if (data.reply) setReply(data.reply);
       if (data.summaryIt) setSummary(data.summaryIt);
       if (Array.isArray(data.asks)) setAsks(data.asks);
+      if (data.sentTo) setSentTo(String(data.sentTo));
       setInstruction("");
     } catch {
       setError("Connessione persa. Riprova.");
@@ -83,7 +85,7 @@ export function MailDetail({ item }: { item: MailItem }) {
         </p>
         {error ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
         <button className="primary full" disabled={busy === "retry"} onClick={() => act("retry")}>
-          {busy === "retry" ? "Un attimo…" : "Riprova"}
+          {busy === "retry" ? <><span className="navSpin" aria-hidden /> Un attimo…</> : "Riprova"}
         </button>
       </section>
     );
@@ -125,6 +127,17 @@ export function MailDetail({ item }: { item: MailItem }) {
           <button type="button" className="primary" onClick={copy}>{copied ? "✓ Copiata" : "📋 Copia la risposta"}</button>
           <Speak text={reply} compact />
         </div>
+        {/* Copying works when you are already here; the email is for when you
+            are in your own inbox with the original open in front of you. */}
+        <button
+          type="button"
+          className="secondary full"
+          style={{ marginTop: 8 }}
+          disabled={Boolean(busy)}
+          onClick={() => act("email", {}, "email")}
+        >
+          {busy === "email" ? <><span className="navSpin" aria-hidden /> Invio…</> : sentTo ? `✓ Mandata a ${sentTo}` : "✉️ Mandamela via email"}
+        </button>
 
         <div className="kicker" style={{ marginTop: 18 }}>Cambia tono</div>
         <div className="mailTones">
@@ -136,7 +149,7 @@ export function MailDetail({ item }: { item: MailItem }) {
               disabled={Boolean(busy)}
               onClick={() => act("tone", { tone: tone.key }, tone.key)}
             >
-              {busy === tone.key ? "…" : tone.label}
+              {busy === tone.key ? <span className="navSpin" aria-hidden /> : tone.label}
             </button>
           ))}
         </div>
@@ -154,7 +167,7 @@ export function MailDetail({ item }: { item: MailItem }) {
             maxLength={400}
           />
           <button className="primary" disabled={!instruction.trim() || Boolean(busy)}>
-            {busy === "instruct" ? "…" : "Riscrivi"}
+            {busy === "instruct" ? <span className="navSpin" aria-hidden /> : "Riscrivi"}
           </button>
         </form>
         {error ? <div className="notice" style={{ marginTop: 10 }}>{error}</div> : null}
