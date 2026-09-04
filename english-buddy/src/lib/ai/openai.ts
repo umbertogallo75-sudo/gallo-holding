@@ -133,3 +133,42 @@ export async function runCoach(instructions: string, input: string): Promise<Coa
     });
   }
 }
+
+/**
+ * The first line of a session, and nothing else.
+ *
+ * A coaching turn asks the model for seven things: the reply, a correction,
+ * the mistakes, the expressions worth keeping, the reviews they just passed,
+ * what their level says now, and which capabilities they demonstrated. On the
+ * opening line six of those are empty by definition — the person has not said
+ * anything yet — and we were waiting for all seven anyway, on the one screen
+ * where the wait is the whole first impression.
+ *
+ * So the greeting asks for a greeting. Same instructions, same voice, same
+ * memory of who they are: a fraction of the words to produce, and a fraction
+ * of the wait.
+ */
+const openingSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["reply"],
+  properties: { reply: { type: "string", description: "The opening line of the session, in the coach's voice." } },
+} as const;
+
+export async function runOpening(instructions: string, input: string): Promise<string> {
+  const raw = await runStructured(
+    `${instructions}\n\nThis is the first line of the session and the user has not spoken yet: open, and stop. No corrections, nothing to record — those come once they answer.`,
+    input,
+    "coach_opening",
+    openingSchema as unknown as Record<string, unknown>,
+    500
+  );
+  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+  try {
+    const parsed = JSON.parse(cleaned) as { reply?: unknown };
+    if (typeof parsed.reply === "string" && parsed.reply.trim()) return parsed.reply.trim();
+  } catch {
+    // Same rule as a normal turn: recover the sentence, never show the JSON.
+  }
+  return salvageReply(cleaned) ?? "Hi! Ready when you are.\n(Pronto quando vuoi.)";
+}

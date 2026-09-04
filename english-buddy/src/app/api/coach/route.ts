@@ -5,7 +5,7 @@ import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { coachInstructions } from "@/lib/ai/prompt";
-import { runCoach } from "@/lib/ai/openai";
+import { runCoach, runOpening } from "@/lib/ai/openai";
 import { readDocument } from "@/lib/documents/store";
 import { trainingContext } from "@/lib/documents/analyse";
 import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
@@ -39,6 +39,8 @@ const bodySchema = z.object({
   // A Buddy question delivered via push, shown client-side before the first
   // reply; recorded as the session's opening assistant turn.
   opener: z.string().trim().max(500).optional(),
+  /** The automatic first line, which has nothing to correct yet. */
+  opening: z.boolean().optional(),
   /** A document this session is built on, if the user chose one. */
   doc: z.string().trim().max(64).optional(),
 });
@@ -102,7 +104,12 @@ export async function POST(request: Request) {
       const doc = await readDocument(parsed.data.doc, userId).catch(() => null);
       if (doc) docContext = trainingContext(doc.analysis);
     }
-    const result = await runCoach(coachInstructions(context, mode, docContext), message);
+    // The greeting is asked for as a greeting: seven fields of coaching output
+    // on a turn where the user has not spoken yet is a wait paid for nothing.
+    const instructions = coachInstructions(context, mode, docContext);
+    const result = parsed.data.opening && !parsed.data.sessionId
+      ? { reply: await runOpening(instructions, message), correction: null, mistakes: [], expressions: [], reviewed_items: [], skill_updates: {}, capabilities: [] }
+      : await runCoach(instructions, message);
     // The aha moment, and the only one that counts: an answer that came back.
     // "Session started" was already recorded and told us nothing, because a
     // session that fails on the first turn starts exactly the same way.

@@ -124,6 +124,8 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   const started = useRef(Boolean(initialQuestion));
   const opener = useRef(initialQuestion);
   const failedRef = useRef<string>(undefined);
+  /** Typed while the coach was still answering; sent as soon as he lands. */
+  const queued = useRef<string>(undefined);
   failedRef.current = failedMessage;
 
   // Weak-network safety net: live offline flag + automatic re-send of the
@@ -149,15 +151,26 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     // eslint-disable-next-line react-hooks/exhaustive-deps -- listener binds once; pending message travels via ref
   }, []);
 
-  async function coachCall(message: string) {
-    const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, doc, opener: sessionId ? undefined : opener.current }) });
+  async function coachCall(message: string, opening = false) {
+    const r = await fetch("/api/coach", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ message, mode, sessionId, doc, opening, opener: sessionId ? undefined : opener.current }) });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new HttpError(r.status, data.error || "Coach unavailable");
     return data;
   }
 
-  async function send(raw: string, visible = true) {
-    const message = raw.trim(); if (!message || loading) return;
+  async function send(raw: string, visible = true, opening = false) {
+    const message = raw.trim();
+    if (!message) return;
+    // Sam is still composing his opening line. Refusing the message here is
+    // what makes the button feel broken — people type while they wait, which
+    // is exactly what we want them doing. Hold it and send it the moment he
+    // is done.
+    if (loading) {
+      queued.current = message;
+      setMessages(v => [...v, { role: "user", content: message }]);
+      setText("");
+      return;
+    }
     if (visible) setMessages(v => [...v, { role:"user", content:message }]);
     setText(""); setSuggestions([]); setFailedMessage(undefined);
     // No network right now: park the message — the online listener re-sends it.
@@ -166,13 +179,13 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     try {
       let data;
       try {
-        data = await coachCall(message);
+        data = await coachCall(message, opening);
       } catch (error) {
         // A server verdict (paywall, expired session) won't change on retry;
         // only network drops deserve the quiet second attempt.
         if (error instanceof HttpError) throw error;
         await new Promise(resolve => setTimeout(resolve, 1200));
-        data = await coachCall(message);
+        data = await coachCall(message, opening);
       }
       setSessionId(data.sessionId);
       setMessages(v => [...v, { role:"assistant", content:data.reply, correction:data.correction, mistake:data.mistake, expression:data.expression }]);
@@ -185,7 +198,11 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
         setFailedMessage(message);
       }
     }
-    finally { setLoading(false); }
+    finally {
+      setLoading(false);
+      const waiting = queued.current;
+      if (waiting) { queued.current = undefined; void send(waiting, false); }
+    }
   }
 
   function retry() {
@@ -208,7 +225,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   }
 
   useEffect(() => {
-    if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false); }
+    if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false, true); }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- opener fires exactly once per mount
   }, [mode]);
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
@@ -336,7 +353,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
       ) : null}
       <textarea aria-label="La tua risposta" placeholder="Rispondi in inglese…" value={text} onChange={e=>setText(e.target.value)} />
       <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️<span className="composerMicLabel">Voce</span></a>
-      <button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
+      <button className="primary" disabled={!text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
     </form>
   </>;
 }
