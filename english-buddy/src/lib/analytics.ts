@@ -33,6 +33,7 @@ export type FunnelEvent =
   | "first_step"
   | "tour_end"
   | "doc_train"
+  | "agenda_open"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"

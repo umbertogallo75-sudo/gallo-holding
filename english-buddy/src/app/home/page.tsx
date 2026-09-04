@@ -156,7 +156,7 @@ export default async function HomePage() {
       </Link>
       <Link href="/prepara" className="shortcut" data-track="home_shortcut" data-where="prepara">
         <span aria-hidden>📅</span>
-        <span><strong>Preparami a un impegno</strong>Una riga e Sam ti prepara</span>
+        <span><strong>La tua agenda</strong>Riunioni, note e documenti</span>
       </Link>
       <Link href="/rescue" className="shortcut" data-track="home_shortcut" data-where="rescue">
         <span aria-hidden>🆘</span>

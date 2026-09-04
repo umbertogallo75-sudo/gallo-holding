@@ -1045,3 +1045,14 @@ button:disabled .navSpin { opacity: 1; }
 /* Le note su un impegno, e i documenti attaccati. */
 .eventNotes { width:100%; min-height:96px; font-size:16px; resize:vertical; border:1px solid var(--line);
   border-radius:14px; padding:12px; background:var(--surface); color:var(--ink); outline:none; font-family:inherit; }
+
+/* L'agenda. L'ora a sinistra in colonna, perché è la cosa che si cerca per
+   prima scorrendo una giornata, e il giorno come intestazione: senza, quattro
+   riunioni di martedì e due di mercoledì sono sei righe indistinguibili. */
+.agendaDay { font-size:13px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--brandText);
+  margin:14px 2px 2px; }
+/* Il primo impegno di un giorno non ha bisogno di una riga che lo separi
+   dall'intestazione di quel giorno: la separa già l'intestazione. */
+.agendaDay + .mailRow { border-top:0; }
+.agendaTime { flex-shrink:0; width:46px; font-weight:750; font-size:15px; font-variant-numeric:tabular-nums;
+  color:var(--ink); }

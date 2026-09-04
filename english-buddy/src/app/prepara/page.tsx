@@ -5,6 +5,7 @@ import { upcomingEvents } from "@/lib/events";
 import { NewEvent } from "./NewEvent";
 import { CalendarLink } from "./CalendarLink";
 import { readLink } from "@/lib/calendar/sync";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Preparati · ExecLingo" };
@@ -26,15 +27,33 @@ function italianDate(date: string): string {
 export default async function PreparaPage() {
   const userId = await requireUserId();
   const today = todayIn();
-  const [events, link] = await Promise.all([upcomingEvents(userId, today), readLink(userId)]);
+  const client = db();
+  const [events, link] = await Promise.all([upcomingEvents(userId, today, client), readLink(userId, client)]);
+
+  // Which appointments already carry something of the user's own. Two small
+  // queries rather than one per row: the badge is the whole point of the list —
+  // it says at a glance where there is still something to do before that room.
+  const [noted, withDocs] = await Promise.all([
+    client
+      .execute({ sql: "SELECT id FROM events WHERE user_id = ? AND notes IS NOT NULL AND notes != ''", args: [userId] })
+      .catch(() => ({ rows: [] as Record<string, unknown>[] })),
+    client
+      .execute({ sql: "SELECT DISTINCT event_id FROM documents WHERE user_id = ? AND event_id IS NOT NULL", args: [userId] })
+      .catch(() => ({ rows: [] as Record<string, unknown>[] })),
+  ]);
+  const hasNotes = new Set(noted.rows.map((row) => String(row.id)));
+  const hasDocs = new Set(withDocs.rows.map((row) => String(row.event_id)));
 
   return (
     <main className="shell">
       <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/home">← Home</Link></div>
       <section className="hero">
-        <div className="kicker">Preparati</div>
-        <h1>Cosa hai in agenda?</h1>
-        <p className="muted">Scrivi in una riga la riunione, la call o il viaggio. Sam ti prepara le frasi che ti serviranno davvero, le domande che ti faranno e come giocartela — e il giorno prima te lo ricorda.</p>
+        <div className="kicker">Agenda</div>
+        <h1>Le tue riunioni.</h1>
+        <p className="muted">
+          Ogni impegno può avere le tue note e i tuoi documenti: Sam ci prepara sopra le frasi che ti serviranno,
+          le domande che ti faranno e come giocartela — e il giorno prima te lo ricorda.
+        </p>
       </section>
 
       <CalendarLink connected={Boolean(link)} lastSync={link?.lastSyncAt ?? null} lastError={link?.lastError ?? null} />
@@ -44,24 +63,39 @@ export default async function PreparaPage() {
       </section>
 
       {events.length ? (
-        <section className="card">
-          <div className="kicker">In arrivo</div>
-          {events.map((event) => (
-            <Link
-              key={event.id}
-              href={`/prepara/${event.id}`}
-              style={{ display: "block", padding: "12px 0", borderBottom: "1px solid var(--line)", textDecoration: "none", color: "inherit" }}
-            >
-              <strong style={{ fontSize: 16 }}>{event.title}</strong>
-              <div className="composerNote">
-                {event.date === today ? "oggi" : italianDate(event.date)}
-                {event.time ? ` · ${event.time}` : ""}
-                {event.prep ? ` · ${event.prep.phrases.length} frasi pronte` : ""}
+        <section className="card" style={{ padding: "6px 16px" }}>
+          <div className="kicker" style={{ margin: "10px 2px 2px" }}>In arrivo</div>
+          {events.map((event, index) => {
+            const day = event.date === today ? "Oggi" : italianDate(event.date);
+            const newDay = index === 0 || events[index - 1].date !== event.date;
+            const ready = Boolean(event.prep);
+            return (
+              <div key={event.id}>
+                {newDay ? <div className="agendaDay">{day}</div> : null}
+                <Link href={`/prepara/${event.id}`} className="mailRow" data-track="agenda_open">
+                  <span className="agendaTime">{event.time ?? "—"}</span>
+                  <span className="mailRowText">
+                    <span className="mailSubject">{event.title}</span>
+                    <span className="mailMeta">
+                      {ready ? `${event.prep?.phrases.length} frasi pronte` : "Scheda da preparare"}
+                      {hasNotes.has(event.id) ? " · 📝 note" : ""}
+                      {hasDocs.has(event.id) ? " · 📄 documenti" : ""}
+                    </span>
+                  </span>
+                  <span className="stepGo" aria-hidden>→</span>
+                </Link>
               </div>
-            </Link>
-          ))}
+            );
+          })}
         </section>
-      ) : null}
+      ) : (
+        <section className="card">
+          <p className="muted" style={{ margin: 0 }}>
+            Qui compaiono le riunioni dei prossimi giorni, dal tuo calendario o scritte da te. Per ognuna potrai
+            aggiungere note e documenti, e Sam ti preparerà.
+          </p>
+        </section>
+      )}
 
       <BottomNav active="home" />
     </main>
