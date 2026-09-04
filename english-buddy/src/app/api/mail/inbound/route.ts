@@ -1,21 +1,25 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { parseInbound } from "@/lib/mail/inbound";
+import { htmlToText, MAX_BODY_CHARS, parseInbound, receivedEmailId, recipientAlias, type Inbound } from "@/lib/mail/inbound";
 import { answerMail } from "@/lib/mail/process";
 import { attachAnswer, markFailed, saveIncoming, senderIsKnown, userForAlias } from "@/lib/mail/store";
 import { renderEmail, sendEmail } from "@/lib/email";
+import { readSignatureHeaders, verifySvixSignature } from "@/lib/mail/signature";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Where a forwarded email lands.
  *
- * Called by whichever service receives mail for the inbound subdomain. Two
+ * Called by the service that receives mail for the inbound subdomain. Three
  * rules shape everything here:
  *
- * The endpoint is shared-secret only. It is a public URL that writes to a
- * user's account, so without the secret it must do nothing at all.
+ * It proves who is calling before it believes anything. This is a public URL
+ * that writes into a user's account, so an unsigned request does nothing.
+ *
+ * It reads the raw bytes before parsing them, because that is what the
+ * signature covers.
  *
  * And it almost never returns an error. A mail relay treats a failure as
  * "try again", so a message for an address that does not exist would be
@@ -24,7 +28,18 @@ export const dynamic = "force-dynamic";
  * accepted and dropped.
  */
 
-function authorised(request: Request): boolean {
+/**
+ * Two ways in, on purpose.
+ *
+ * The signature is how the mail service is recognised — an HMAC over the id,
+ * the timestamp and the exact body, which also makes a captured delivery
+ * unusable a few minutes later. The shared secret is for everything else: a
+ * different provider, a relay of our own, a test from a terminal.
+ */
+function authorised(request: Request, rawBody: string): boolean {
+  const signing = process.env.MAIL_INBOUND_SIGNING_SECRET?.trim();
+  if (signing && verifySvixSignature(rawBody, readSignatureHeaders(request), signing)) return true;
+
   const expected = process.env.MAIL_INBOUND_SECRET?.trim();
   if (!expected) return false;
   const url = new URL(request.url);
@@ -33,22 +48,67 @@ function authorised(request: Request): boolean {
   return timingSafeEqual(Buffer.from(given), Buffer.from(expected));
 }
 
+/**
+ * Fetches the message the mail service has already accepted for us.
+ *
+ * Resend's webhook carries only the envelope; the body is asked for
+ * afterwards. That is not a limitation to work around — knowing the recipient
+ * before downloading anything means a message for an address nobody owns
+ * costs one lookup instead of a download.
+ *
+ * Called only once the alias is known to belong to somebody, so a stranger
+ * cannot make the server fetch anything.
+ */
+async function fetchReceived(emailId: string, alias: string): Promise<Inbound | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  const response = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!response.ok) {
+    console.error("inbound fetch failed:", response.status, (await response.text()).slice(0, 200));
+    return null;
+  }
+  const email = (await response.json()) as { from?: string; subject?: string; text?: string; html?: string };
+  const parsed = parseInbound({
+    to: `${alias}@inbound`,
+    from: email.from ?? "",
+    subject: email.subject ?? "",
+    text: email.text ?? "",
+  });
+  if (!parsed) return null;
+  // A message with no plain-text part arrives here with text as an empty
+  // string rather than a missing key, which is not the case parseInbound
+  // falls back on.
+  if (!parsed.text && email.html) parsed.text = htmlToText(email.html).slice(0, MAX_BODY_CHARS);
+  return parsed;
+}
+
 export async function POST(request: Request) {
-  if (!authorised(request)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Raw first: the signature covers these exact bytes, and re-serialising a
+  // parsed object would produce different ones.
+  const rawBody = await request.text();
+  if (!authorised(request, rawBody)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ ok: true, ignored: "unparseable" });
   }
 
-  const mail = parseInbound(payload);
-  if (!mail || !mail.text) return NextResponse.json({ ok: true, ignored: "empty" });
-
   const client = db();
-  const userId = await userForAlias(mail.toAlias, client);
+  const emailId = receivedEmailId(payload);
+  // Two shapes: a service that posts the whole message, and one that posts the
+  // envelope and holds the body until asked. Either way the alias comes first.
+  const alias = emailId ? recipientAlias(payload) : (parseInbound(payload)?.toAlias ?? "");
+  if (!alias) return NextResponse.json({ ok: true, ignored: "no recipient" });
+
+  const userId = await userForAlias(alias, client);
   if (!userId) return NextResponse.json({ ok: true, ignored: "unknown" });
+
+  const mail = emailId ? await fetchReceived(emailId, alias) : parseInbound(payload);
+  if (!mail || !mail.text) return NextResponse.json({ ok: true, ignored: "empty" });
 
   // The address they registered with, and the level the coach has settled on:
   // one tells us whether this sender is already theirs, the other decides how

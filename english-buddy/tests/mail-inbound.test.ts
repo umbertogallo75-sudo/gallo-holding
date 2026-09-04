@@ -73,3 +73,29 @@ describe("reading what an inbound provider sends", () => {
     expect(htmlToText("<p>a</p><p>b</p>")).toBe("a\nb");
   });
 });
+
+/**
+ * Resend posts the envelope and keeps the body until it is asked for, so the
+ * recipient has to be readable from a payload that has no message in it at
+ * all — that is what makes it possible to drop an unknown address without
+ * downloading anything.
+ */
+describe("una consegna che porta solo la busta", () => {
+  const delivery = {
+    type: "email.received",
+    created_at: "2026-09-04T10:00:00.000Z",
+    data: { email_id: "b7d1e0d6", to: ["m-abc123@in.execlingo.it"], from: "jane@acme.co.uk", subject: "Pricing" },
+  };
+
+  it("finds the message to fetch and who it is for", async () => {
+    const { receivedEmailId, recipientAlias } = await import("@/lib/mail/inbound");
+    expect(receivedEmailId(delivery)).toBe("b7d1e0d6");
+    expect(recipientAlias(delivery)).toBe("m-abc123");
+  });
+
+  it("does not mistake a full message for an envelope", async () => {
+    const { receivedEmailId } = await import("@/lib/mail/inbound");
+    expect(receivedEmailId({ to: "m-a@in.execlingo.it", from: "a@b.com", text: "hi" })).toBeNull();
+    expect(receivedEmailId({ type: "email.delivered", data: { email_id: "x" } })).toBeNull();
+  });
+});

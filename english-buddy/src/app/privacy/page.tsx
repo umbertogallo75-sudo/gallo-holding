@@ -88,6 +88,11 @@ export default function PrivacyPage() {
                 <td>Rifiuti dal banner, o revochi dalla <Link href="/cookie">cookie policy</Link></td>
               </tr>
               <tr>
+                <td><strong>Mail che ci inoltri tu</strong>: leggerle, riassumerle e prepararti una risposta in inglese</td>
+                <td>Esecuzione del contratto — <strong>art. 6.1.b</strong>, su tua richiesta espressa: il trattamento inizia solo quando inoltri un messaggio</td>
+                <td>Non inoltrare nulla, oppure elimina una mail già inoltrata: sparisce subito</td>
+              </tr>
+              <tr>
                 <td>Sicurezza, prevenzione degli abusi, difesa in giudizio</td>
                 <td>Legittimo interesse — <strong>art. 6.1.f</strong></td>
                 <td>Valutiamo caso per caso</td>
@@ -115,7 +120,7 @@ export default function PrivacyPage() {
               <tr><td><strong>OpenAI</strong></td><td>Elabora le conversazioni con il coach e le trascrive. Secondo i termini API, i dati <strong>non</strong> sono usati per addestrare i modelli.</td><td>USA</td></tr>
               <tr><td><strong>Vercel</strong></td><td>Ospita l&rsquo;applicazione.</td><td>UE / USA</td></tr>
               <tr><td><strong>Turso</strong></td><td>Ospita il database.</td><td>UE / USA</td></tr>
-              <tr><td><strong>Resend</strong></td><td>Recapita le email (registrazione, recupero password, percorso).</td><td>UE (Irlanda)</td></tr>
+              <tr><td><strong>Resend</strong></td><td>Recapita le email (registrazione, recupero password, percorso) e riceve quelle che inoltri tu.</td><td>UE (Irlanda)</td></tr>
               <tr><td><strong>Stripe</strong></td><td>Incassa i pagamenti sul web. Titolare autonomo per i dati della carta.</td><td>USA</td></tr>
               <tr><td><strong>Apple</strong> · <strong>Google</strong></td><td>Acquisti in app, accesso con Apple/Google, notifiche push, distribuzione delle app.</td><td>USA</td></tr>
               <tr><td><strong>Google</strong> · <strong>Meta</strong> · <strong>LinkedIn</strong> · <strong>TikTok</strong></td><td>Misurazione delle campagne pubblicitarie e remarketing — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA / Singapore</td></tr>
@@ -135,6 +140,7 @@ export default function PrivacyPage() {
               <tr><td>Account e dati di apprendimento</td><td>Finché l&rsquo;account è attivo. Cancellazione su richiesta <strong>entro 30 giorni</strong>.</td></tr>
               <tr><td>Conversazioni con il coach</td><td>Con l&rsquo;account. Eliminate insieme a esso.</td></tr>
               <tr><td>Registro delle email inviate</td><td>Con l&rsquo;account.</td></tr>
+              <tr><td><strong>Testo delle mail che ci inoltri</strong></td><td><strong>30 giorni</strong>, poi viene cancellato automaticamente. Restano il riassunto e la risposta, finché non li elimini tu o cancelli l&rsquo;account.</td></tr>
               <tr><td>Registro dei consensi ai cookie</td><td>180 giorni dalla scelta, o fino alla revoca.</td></tr>
               <tr><td>Documenti fiscali di acquisto</td><td><strong>10 anni</strong>, come impone la legge italiana.</td></tr>
               <tr><td>Provvigioni e pagamenti partner</td><td>Per il tempo necessario a saldare quanto dovuto e, per i registri contabili e fiscali, fino a <strong>10 anni</strong>. Alla cancellazione dell&rsquo;account il profilo ordinario viene rimosso e i riferimenti tecnici vengono sostituiti dove possibile.</td></tr>
@@ -143,6 +149,14 @@ export default function PrivacyPage() {
           </table>
         </div>
         <p style={{ margin: "12px 0 0" }}><strong>Perché la disiscrizione ci sopravvive.</strong> Se cancelli l&rsquo;account cancelliamo anche la preferenza collegata al profilo. Se poi lo stesso indirizzo tornasse, senza una memoria separata ricominceremmo a scrivere come se non avessi mai detto niente. Per evitarlo conserviamo <strong>un&rsquo;impronta SHA-256 normalizzata dell&rsquo;indirizzo</strong>: non contiene l&rsquo;email in chiaro e non può essere usata da sola per inviare messaggi, ma permette il confronto quando un indirizzo già noto viene ripresentato. Non la consideriamo anonima: è un dato pseudonimizzato, protetto e usato esclusivamente per rispettare l&rsquo;opposizione.</p>
+      </section>
+
+      <section className="card">
+        <h2>6-bis. Le mail che ci inoltri</h2>
+        <p style={P}>Puoi inoltrare a Sam una mail scritta in inglese e ricevere in cambio cosa dice, cosa ti stanno chiedendo e una risposta pronta. È una funzione <strong>facoltativa e sempre spenta finché non la usi</strong>: non leggiamo la tua casella di posta, non abbiamo accesso al tuo account di posta e non possiamo prelevare nulla. Tratteremo esclusivamente i messaggi che ci mandi tu, uno per uno.</p>
+        <p style={P}><strong>Il punto delicato, detto chiaramente.</strong> Una mail di lavoro contiene quasi sempre dati di altre persone — chi te l&rsquo;ha scritta, chi è in copia, di chi si parla. Per quei dati il titolare del trattamento resti tu o la tua azienda: noi li trattiamo come <strong>responsabili</strong>, solo per produrre il riassunto e la risposta che hai chiesto, per il tempo indicato sopra, e per nient&rsquo;altro. Prima di inoltrare valuta se il contenuto è coperto da segreto professionale o da un obbligo di riservatezza verso il tuo cliente o la tua azienda: quella valutazione possiamo solo ricordartela, non farla al posto tuo.</p>
+        <p style={P}><strong>Cosa non facciamo.</strong> Non usiamo queste mail per addestrare modelli — né noi né il fornitore che elabora il testo, secondo i termini API che ci vincolano. Non le leggiamo per finalità commerciali, non le usiamo per profilarti oltre il tuo percorso di inglese e non le comunichiamo a nessuno oltre ai fornitori tecnici già elencati.</p>
+        <p style={{ margin: 0 }}><strong>Come si spegne.</strong> Il tuo indirizzo personale di inoltro può essere cambiato in qualsiasi momento dalla sezione <em>Le tue mail</em>: quello vecchio smette immediatamente di funzionare. Ogni mail può essere eliminata singolarmente, e con la cancellazione dell&rsquo;account spariscono tutte.</p>
       </section>
 
       <section className="card">

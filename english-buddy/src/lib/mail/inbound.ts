@@ -125,3 +125,29 @@ export function parseInbound(payload: unknown): Inbound | null {
     text: text.slice(0, MAX_BODY_CHARS).trim(),
   };
 }
+
+/**
+ * The id of a message Resend has received, if this is that kind of delivery.
+ *
+ * Resend's webhook carries only the envelope — who, to whom, what subject —
+ * and the body is fetched afterwards with this id. That is not a limitation
+ * worth working around: knowing the recipient before downloading anything
+ * means a message for an address nobody owns costs one lookup instead of a
+ * download.
+ */
+export function receivedEmailId(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const body = payload as Unknown;
+  if (str(body.type) !== "email.received") return null;
+  const data = (body.data && typeof body.data === "object" ? body.data : {}) as Unknown;
+  const id = str(data.email_id) || str(data.id);
+  return id || null;
+}
+
+/** The alias a delivery is addressed to, before its body has been fetched. */
+export function recipientAlias(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const body = payload as Unknown;
+  const data = (body.data && typeof body.data === "object" ? body.data : body) as Unknown;
+  return aliasFromAddress(firstAddress(data.to ?? data.To ?? data.received_for));
+}
