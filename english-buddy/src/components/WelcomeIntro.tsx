@@ -32,6 +32,8 @@ export function WelcomeIntro() {
   function start() {
     localStorage.setItem(SEEN_KEY, "1");
     setOpen(false);
+    // The tour takes it from here, on the real screen rather than over it.
+    window.dispatchEvent(new Event("execlingo-welcome-done"));
   }
 
   const dots = (
@@ -93,16 +95,10 @@ export function WelcomeIntro() {
         <h1>Il tuo inglese, a modo tuo</h1>
 
         <p className="muted">
-          Apri l&rsquo;app quando hai un momento libero e scegli quanto tempo dedicarle: il coach fa il resto.
-          Meglio più micro-sessioni durante la giornata che una lezione lunga una volta a settimana.
+          Apri l&rsquo;app quando hai un momento libero, anche solo due minuti: meglio più micro-sessioni
+          durante la giornata che una lezione lunga una volta a settimana. Fra un attimo ti mostro dov&rsquo;è
+          cosa — ci vogliono quindici secondi.
         </p>
-
-        <div className="welcomeGrid">
-          <div className="welcomeItem"><span className="modeIcon">✍︎</span><div><strong>Scegli il tempo, non la lezione</strong><p className="muted">2 o 5 minuti di conversazione, 20 minuti guidati, oppure &ldquo;Surprise me&rdquo;: decide il coach cosa ti serve oggi.</p></div></div>
-          <div className="welcomeItem"><span className="modeIcon">☕︎</span><div><strong>Sam ti scrive lui</strong><p className="muted">Attiva le notifiche: riceverai brevi domande in inglese nei momenti naturali della giornata. Rispondi quando vuoi.</p></div></div>
-          <div className="welcomeItem"><span className="modeIcon">🧠</span><div><strong>Una memoria che si adatta</strong><p className="muted">L&rsquo;app ricorda i tuoi errori e le espressioni imparate e le ripropone al momento giusto. Conta la costanza, non la durata.</p></div></div>
-          <div className="welcomeItem"><span className="modeIcon">🍽️</span><div><strong>Anche le basi, quando servono</strong><p className="muted">Ogni tanto il coach ti insegna parole essenziali per viaggiare, ordinare al ristorante e cavartela ovunque.</p></div></div>
-        </div>
 
         <div className="welcomeNote">
           {installed ? (

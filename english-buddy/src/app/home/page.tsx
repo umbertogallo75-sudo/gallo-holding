@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
+import { HomeTour } from "@/components/HomeTour";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { PersonalizeBanner } from "@/components/PersonalizeBanner";
 import { AppTracker } from "@/components/AppTracker";
@@ -195,6 +196,7 @@ export default async function HomePage() {
       </div>
     </a>
     <WelcomeIntro />
+    <HomeTour />
     <BottomNav active="home" />
   </main>;
 }

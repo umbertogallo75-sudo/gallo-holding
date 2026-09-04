@@ -975,3 +975,22 @@ p { line-height:1.55; font-size:16px; }
 .stepRow.done .stepTitle { color:var(--muted); font-weight:650; }
 .stepRow.next { background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:14px; margin:2px -6px; padding:12px 10px; border-top:0; }
 .stepRow.next .stepMark { border-color:var(--accent); color:var(--brandText); }
+
+/* Il tour di quindici secondi: tre riquadri illuminati sulla schermata vera.
+   L'elemento indicato viene sollevato sopra il velo, altrimenti si spiega una
+   cosa che in quel momento è grigia e illeggibile. */
+.tourVeil { position:fixed; inset:0; background:rgba(12,16,12,.72); z-index:40; }
+.tourLit { position:relative; z-index:45; }
+.tourRing { position:fixed; z-index:46; border-radius:20px; pointer-events:none;
+  box-shadow:0 0 0 3px #fff, 0 0 0 10px rgba(255,255,255,.2); }
+.tourBubble { position:fixed; left:14px; right:14px; z-index:47; background:var(--surface); border-radius:18px;
+  padding:16px 17px; box-shadow:0 18px 44px rgba(0,0,0,.4); }
+.tourBubble h3 { margin:0 0 5px; font-size:17.5px; letter-spacing:-.02em; }
+.tourBubble p { margin:0; color:var(--muted); font-size:14.5px; line-height:1.45; }
+.tourFoot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
+.tourSkip { border:0; background:none; color:var(--muted); font-size:14px; font-weight:650; font-family:inherit;
+  cursor:pointer; padding:6px 2px; min-width:44px; text-align:left; }
+.tourNext { min-height:42px; padding:0 20px; font-size:15px; }
+.tourDots { display:flex; gap:6px; }
+.tourDot { width:7px; height:7px; border-radius:999px; background:var(--line); }
+.tourDot.on { background:var(--accent); }

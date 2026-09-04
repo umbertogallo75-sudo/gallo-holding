@@ -31,6 +31,7 @@ export type FunnelEvent =
   | "voice_invite"
   | "chat_starter"
   | "first_step"
+  | "tour_end"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"
