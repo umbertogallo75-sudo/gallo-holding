@@ -77,7 +77,7 @@ describe("l'indirizzo personale", () => {
 
 describe("le mail ricevute", () => {
   it("shows each person only their own", async () => {
-    const mine = await saveIncoming(incoming("u1"), client);
+    const { id: mine } = await saveIncoming(incoming("u1"), client);
     await saveIncoming(incoming("u2"), client);
     expect((await listMail("u1", client)).map((m) => m.id)).toEqual([mine]);
     expect(await readMail(mine, "u2", client)).toBeNull();
@@ -85,7 +85,7 @@ describe("le mail ricevute", () => {
   });
 
   it("refuses to delete somebody else's", async () => {
-    const mine = await saveIncoming(incoming("u1"), client);
+    const { id: mine } = await saveIncoming(incoming("u1"), client);
     await deleteMail(mine, "u2", client);
     expect(await readMail(mine, "u1", client)).not.toBeNull();
     await deleteMail(mine, "u1", client);
@@ -107,7 +107,7 @@ describe("le mail ricevute", () => {
   });
 
   it("forgets the original text after a month and keeps what was made from it", async () => {
-    const id = await saveIncoming(incoming("u1"), client);
+    const { id } = await saveIncoming(incoming("u1"), client);
     const old = new Date(Date.now() - (BODY_RETENTION_DAYS + 1) * 86_400_000).toISOString();
     await client.execute({
       sql: "UPDATE mail_items SET received_at = ?, summary_it = 'Chiede conferma', reply_en = 'Confirmed.' WHERE id = ?",
@@ -123,5 +123,35 @@ describe("le mail ricevute", () => {
   it("leaves recent messages alone", async () => {
     await saveIncoming(incoming("u1"), client);
     expect(await forgetOldBodies("u1", new Date(), client)).toBe(0);
+  });
+});
+
+/**
+ * The mail service redelivers whatever it did not get a clean answer to, and
+ * has a Replay button besides. Without this, the first forwarded email of the
+ * evening would have become three copies in the list — one per attempt — each
+ * having paid for its own call to the model.
+ */
+describe("la stessa consegna, due volte", () => {
+  it("keeps one message however many times it is delivered", async () => {
+    const first = await saveIncoming({ ...incoming("u1"), sourceId: "evt_1" }, client);
+    const again = await saveIncoming({ ...incoming("u1"), sourceId: "evt_1" }, client);
+    expect(again.id).toBe(first.id);
+    expect(again.alreadySeen).toBe(true);
+    expect(first.alreadySeen).toBe(false);
+    expect(await listMail("u1", client)).toHaveLength(1);
+  });
+
+  it("still keeps two genuinely different messages apart", async () => {
+    await saveIncoming({ ...incoming("u1"), sourceId: "evt_1" }, client);
+    await saveIncoming({ ...incoming("u1"), sourceId: "evt_2" }, client);
+    expect(await listMail("u1", client)).toHaveLength(2);
+  });
+
+  it("does not merge messages that arrived before ids were recorded", async () => {
+    // Rows without a source id are all distinct, not all the same one.
+    await saveIncoming(incoming("u1"), client);
+    await saveIncoming(incoming("u1"), client);
+    expect(await listMail("u1", client)).toHaveLength(2);
   });
 });

@@ -27,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_mail_aliases_user ON mail_aliases(user_id);
 CREATE TABLE IF NOT EXISTS mail_items (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
+  source_id TEXT,
   from_address TEXT,
   from_name TEXT,
   subject TEXT,
@@ -57,6 +58,12 @@ export async function ensureMailSchema(client: Client = db()): Promise<void> {
     const sql = statement.trim();
     if (sql) await client.execute(sql);
   }
+  // Tables created before delivery ids were recorded: add the column, then the
+  // index that makes a redelivery collide instead of duplicating.
+  await client.execute("ALTER TABLE mail_items ADD COLUMN source_id TEXT").catch(() => {});
+  await client
+    .execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_mail_items_source ON mail_items(source_id)")
+    .catch(() => {});
   ensured = true;
 }
 
@@ -166,18 +173,44 @@ function toItem(row: Record<string, unknown>): MailItem {
   };
 }
 
+/**
+ * Stores an arriving message, once.
+ *
+ * The mail service redelivers anything it did not get a clean answer to, and
+ * offers a Replay button besides — so the same email can arrive two or three
+ * times, and each arrival would otherwise become another copy in somebody's
+ * list, each costing a call to the model. The provider's own id for the
+ * delivery is kept and made unique: a repeat collides with the row already
+ * there, and the existing one is returned as if it had just been made.
+ */
 export async function saveIncoming(
-  input: { userId: string; fromAddress: string; fromName: string; subject: string; bodyText: string; senderKnown: boolean },
+  input: {
+    userId: string;
+    fromAddress: string;
+    fromName: string;
+    subject: string;
+    bodyText: string;
+    senderKnown: boolean;
+    sourceId?: string;
+  },
   client: Client = db()
-): Promise<string> {
+): Promise<{ id: string; alreadySeen: boolean }> {
   await ensureMailSchema(client);
+  if (input.sourceId) {
+    const seen = await client.execute({
+      sql: "SELECT id FROM mail_items WHERE source_id = ? LIMIT 1",
+      args: [input.sourceId],
+    });
+    if (seen.rows.length) return { id: String(seen.rows[0].id), alreadySeen: true };
+  }
   const id = randomUUID();
   await client.execute({
-    sql: `INSERT INTO mail_items (id, user_id, from_address, from_name, subject, body_text, received_at, status, sender_known)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+    sql: `INSERT INTO mail_items (id, user_id, source_id, from_address, from_name, subject, body_text, received_at, status, sender_known)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
     args: [
       id,
       input.userId,
+      input.sourceId ?? null,
       input.fromAddress,
       input.fromName,
       input.subject,
@@ -186,7 +219,7 @@ export async function saveIncoming(
       input.senderKnown ? 1 : 0,
     ],
   });
-  return id;
+  return { id, alreadySeen: false };
 }
 
 export async function attachAnswer(

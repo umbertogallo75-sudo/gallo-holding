@@ -21,11 +21,14 @@ export const dynamic = "force-dynamic";
  * It reads the raw bytes before parsing them, because that is what the
  * signature covers.
  *
- * And it almost never returns an error. A mail relay treats a failure as
- * "try again", so a message for an address that does not exist would be
- * redelivered for days; worse, a 404 for an unknown alias and a 200 for a
- * real one is an oracle for guessing addresses. Anything unrecognised is
- * accepted and dropped.
+ * And it answers by whether trying again could help. A message for an address
+ * nobody owns, or one with nothing in it, gets 200: a relay treats a failure
+ * as "deliver it again", and it would come back for days over something that
+ * will never change — and a 404 for an unknown alias beside a 200 for a real
+ * one is an oracle for guessing addresses. A failure on our side gets 503, so
+ * the delivery is retried and shows in the log as what it was. The first real
+ * forwarded email was lost to exactly that distinction: a credential without
+ * permission answered 200 and looked, from the dashboard, like a success.
  */
 
 /**
@@ -129,7 +132,14 @@ export async function POST(request: Request) {
         const parsed = parseInbound(payload);
         return parsed && parsed.text ? { mail: parsed } : { problem: "no body" };
       })();
-  if (!("mail" in fetched)) return NextResponse.json({ ok: true, ignored: fetched.problem });
+  if (!("mail" in fetched)) {
+    // Ours to fix, so ask to be called again; theirs, so stop asking.
+    const retryable = fetched.problem.startsWith("fetch") || fetched.problem === "no api key";
+    return NextResponse.json(
+      { ok: !retryable, ignored: fetched.problem },
+      { status: retryable ? 503 : 200 }
+    );
+  }
   const mail = fetched.mail;
 
   // The address they registered with, and the level the coach has settled on:
@@ -143,7 +153,7 @@ export async function POST(request: Request) {
   const level = state.rows[0]?.cefr_level ? String(state.rows[0].cefr_level) : "B1";
 
   const known = await senderIsKnown(userId, mail.fromAddress, accountEmail, client);
-  const id = await saveIncoming(
+  const { id, alreadySeen } = await saveIncoming(
     {
       userId,
       fromAddress: mail.fromAddress,
@@ -151,9 +161,13 @@ export async function POST(request: Request) {
       subject: mail.subject,
       bodyText: mail.text,
       senderKnown: known,
+      sourceId: emailId ?? undefined,
     },
     client
   );
+  // A redelivery of something already answered: acknowledge it and stop, or
+  // the same email is answered twice and shows twice in the list.
+  if (alreadySeen) return NextResponse.json({ ok: true, id, duplicate: true });
 
   // Answered here rather than on a queue: the person has just pressed forward
   // and is looking at their phone. If it fails the item stays in the list
