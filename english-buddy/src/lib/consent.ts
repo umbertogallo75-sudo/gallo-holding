@@ -25,11 +25,14 @@ export const LINKEDIN_PARTNER_ID = "9624362";
 /** Public event-specific ID for ExecLingo's completed-registration conversion. */
 export const LINKEDIN_SIGNUP_CONVERSION_ID = "29840122";
 
+/** Public TikTok Pixel ID assigned to the ExecLingo website data source. */
+export const TIKTOK_PIXEL_ID = "DAD8VUBC77UC8FLJL7O0";
+
 /**
  * Bump when the set of tags changes: an old choice was made about a different
  * list of recipients, so it stops counting as consent and the banner returns.
  */
-export const CONSENT_VERSION = "2";
+export const CONSENT_VERSION = "3";
 
 /** Six months, then ask again — the interval the Garante considers reasonable. */
 export const CONSENT_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
@@ -57,8 +60,12 @@ function parts(cookieHeader: string | null | undefined): string[] | null {
 /** Reads a recorded choice. Returns null when there is none, or it is stale. */
 export function readConsent(cookieHeader: string | null | undefined): ConsentChoice | null {
   const segments = parts(cookieHeader);
-  if (!segments || segments[0] !== CONSENT_VERSION) return null;
+  if (!segments) return null;
   const choice = segments[1];
+  // Adding a new advertising provider requires a fresh yes, but a visitor who
+  // already refused every optional marketing tag must not be asked again.
+  if (segments[0] === "2" && choice === "denied") return "denied";
+  if (segments[0] !== CONSENT_VERSION) return null;
   return choice === "granted" || choice === "denied" ? choice : null;
 }
 
@@ -79,12 +86,13 @@ export function consentCookieValue(choice: ConsentChoice, receipt: string): stri
  * answer: consent to an unnamed list is not consent to anything.
  */
 export function activeTagNames(): string {
-  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId } = marketingTags();
+  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId, tiktokPixelId } = marketingTags();
   return [
     metaPixelId ? "meta" : "",
     googleAdsId ? "google" : "",
     analyticsId ? "ga4" : "",
     linkedinPartnerId ? "linkedin" : "",
+    tiktokPixelId ? "tiktok" : "",
   ].filter(Boolean).join(",");
 }
 
@@ -95,9 +103,9 @@ export function activeTagNames(): string {
  * VERCEL_ENV when available and preserve the production build fallback for
  * non-Vercel deployments.
  */
-function productionGa4FallbackEnabled(): boolean {
+function productionFallbackEnabled(): boolean {
   if (typeof window !== "undefined") {
-    const hostname = window.location.hostname.toLowerCase();
+    const hostname = window.location?.hostname?.toLowerCase() ?? "";
     return hostname === "execlingo.it" || hostname === "www.execlingo.it";
   }
   const vercelEnv = (process.env.VERCEL_ENV ?? "").trim().toLowerCase();
@@ -108,7 +116,13 @@ function productionGa4FallbackEnabled(): boolean {
 function analyticsMeasurementId(): string {
   const configured = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   if (configured !== undefined) return configured.trim();
-  return productionGa4FallbackEnabled() ? GA4_MEASUREMENT_ID : "";
+  return productionFallbackEnabled() ? GA4_MEASUREMENT_ID : "";
+}
+
+function tiktokPixelId(): string {
+  const configured = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+  if (configured !== undefined) return configured.trim();
+  return productionFallbackEnabled() ? TIKTOK_PIXEL_ID : "";
 }
 
 /**
@@ -121,6 +135,7 @@ export function marketingTags(): {
   googleAdsId: string;
   analyticsId: string;
   linkedinPartnerId: string;
+  tiktokPixelId: string;
 } {
   return {
     metaPixelId: (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "").trim(),
@@ -135,6 +150,9 @@ export function marketingTags(): {
     // public id as a fallback makes preview and production behave identically;
     // an explicit empty environment value can still disable it.
     linkedinPartnerId: (process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID ?? LINKEDIN_PARTNER_ID).trim(),
+    // TikTok is enabled by fallback only on the real ExecLingo host. Preview
+    // deployments must never contaminate the production Pixel.
+    tiktokPixelId: tiktokPixelId(),
   };
 }
 
@@ -169,6 +187,6 @@ export function hasMarketingTags(): boolean {
   // Analytics counts. Leaving it out would be a silent failure of the worst
   // kind: with only GA4 configured there would be no banner, so no consent,
   // so no analytics — and nothing anywhere saying why.
-  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId } = marketingTags();
-  return Boolean(metaPixelId || googleAdsId || analyticsId || linkedinPartnerId);
+  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId, tiktokPixelId } = marketingTags();
+  return Boolean(metaPixelId || googleAdsId || analyticsId || linkedinPartnerId || tiktokPixelId);
 }

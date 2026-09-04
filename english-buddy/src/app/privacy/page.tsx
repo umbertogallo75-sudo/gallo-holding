@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <section className="hero">
         <div className="kicker">Informativa privacy</div>
         <h1>I tuoi dati, in chiaro.</h1>
-        <p className="muted">Ai sensi degli artt. 13 e 14 del Regolamento (UE) 2016/679 · Ultimo aggiornamento: 26 agosto 2026</p>
+        <p className="muted">Ai sensi degli artt. 13 e 14 del Regolamento (UE) 2016/679 · Ultimo aggiornamento: 4 settembre 2026</p>
       </section>
 
       <section className="card">
@@ -118,12 +118,12 @@ export default function PrivacyPage() {
               <tr><td><strong>Resend</strong></td><td>Recapita le email (registrazione, recupero password, percorso).</td><td>UE (Irlanda)</td></tr>
               <tr><td><strong>Stripe</strong></td><td>Incassa i pagamenti sul web. Titolare autonomo per i dati della carta.</td><td>USA</td></tr>
               <tr><td><strong>Apple</strong> · <strong>Google</strong></td><td>Acquisti in app, accesso con Apple/Google, notifiche push, distribuzione delle app.</td><td>USA</td></tr>
-              <tr><td><strong>Google</strong> · <strong>Meta</strong> · <strong>LinkedIn</strong></td><td>Misurazione delle campagne pubblicitarie e remarketing — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA</td></tr>
+              <tr><td><strong>Google</strong> · <strong>Meta</strong> · <strong>LinkedIn</strong> · <strong>TikTok</strong></td><td>Misurazione delle campagne pubblicitarie e remarketing — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA / Singapore</td></tr>
             </tbody>
           </table>
         </div>
         <p style={{ margin: "12px 0 0" }}><strong>Trasferimenti fuori dall&rsquo;Unione Europea.</strong> Alcuni fornitori trattano dati negli Stati Uniti. Il trasferimento avviene sulla base delle <strong>Clausole Contrattuali Standard</strong> approvate dalla Commissione europea (art. 46.2.c GDPR) e, dove applicabile, dell&rsquo;adesione del fornitore al <strong>Data Privacy Framework UE-USA</strong> (art. 45 GDPR). Puoi chiederci copia delle garanzie adottate.</p>
-        <p style={{ margin: "10px 0 0" }}><strong>Non vendiamo i tuoi dati.</strong> Google, Meta e LinkedIn, solo se hai acconsentito, possono ricevere dati tecnici della visita e il fatto che una registrazione o un acquisto è avvenuto. Non inviamo il tuo nome, la tua email, le conversazioni con il coach o i dati di apprendimento; per LinkedIn non abilitiamo la corrispondenza avanzata tramite email.</p>
+        <p style={{ margin: "10px 0 0" }}><strong>Non vendiamo i tuoi dati.</strong> Google, Meta, LinkedIn e TikTok, solo se hai acconsentito, possono ricevere dati tecnici della visita e il fatto che una registrazione o un acquisto è avvenuto. Non inviamo il tuo nome, la tua email, le conversazioni con il coach o i dati di apprendimento; non abilitiamo la corrispondenza avanzata tramite email.</p>
       </section>
 
       <section className="card">

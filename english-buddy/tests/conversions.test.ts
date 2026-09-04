@@ -15,6 +15,20 @@ function analyticsOnlyEnvironment() {
     NEXT_PUBLIC_META_PIXEL_ID: "",
     NEXT_PUBLIC_LINKEDIN_PARTNER_ID: "",
     NEXT_PUBLIC_LINKEDIN_SIGNUP_CONVERSION_ID: "",
+    NEXT_PUBLIC_TIKTOK_PIXEL_ID: "",
+  };
+}
+
+function tiktokOnlyEnvironment() {
+  return {
+    ...process.env,
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
+    NEXT_PUBLIC_GOOGLE_ADS_ID: "",
+    NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "",
+    NEXT_PUBLIC_META_PIXEL_ID: "",
+    NEXT_PUBLIC_LINKEDIN_PARTNER_ID: "",
+    NEXT_PUBLIC_LINKEDIN_SIGNUP_CONVERSION_ID: "",
+    NEXT_PUBLIC_TIKTOK_PIXEL_ID: "DAD8VUBC77UC8FLJL7O0",
   };
 }
 
@@ -74,7 +88,7 @@ describe("reportSignupConversion con GA4", () => {
       process.env = analyticsOnlyEnvironment();
       vi.stubGlobal("window", browser);
       vi.stubGlobal("document", {
-        cookie: "eb_consent=2%3Agranted%3Atest-receipt",
+        cookie: "eb_consent=3%3Agranted%3Atest-receipt",
       });
 
       vi.resetModules();
@@ -105,7 +119,7 @@ describe("reportSignupConversion con GA4", () => {
       process.env = analyticsOnlyEnvironment();
       vi.stubGlobal("window", { addEventListener });
       vi.stubGlobal("document", {
-        cookie: "eb_consent=2%3Adenied%3Atest-receipt",
+        cookie: "eb_consent=3%3Adenied%3Atest-receipt",
       });
 
       vi.resetModules();
@@ -113,6 +127,28 @@ describe("reportSignupConversion con GA4", () => {
       reportSignupConversion();
 
       expect(addEventListener).not.toHaveBeenCalled();
+    } finally {
+      process.env = before;
+    }
+  });
+});
+
+describe("reportSignupConversion con TikTok", () => {
+  it("invia CompleteRegistration una sola volta al Pixel configurato", async () => {
+    const before = { ...process.env };
+    const track = vi.fn();
+
+    try {
+      process.env = tiktokOnlyEnvironment();
+      vi.stubGlobal("window", { ttq: { track } });
+
+      vi.resetModules();
+      const { reportSignupConversion } = await import("@/lib/conversions");
+      reportSignupConversion();
+      reportSignupConversion();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith("CompleteRegistration");
     } finally {
       process.env = before;
     }

@@ -27,6 +27,15 @@ type LinkedInWindow = Window & {
   lintrk?: Lintrk;
 };
 
+type TiktokQueue = unknown[] & {
+  page: () => void;
+  track: (eventName: string, payload?: Record<string, unknown>) => void;
+};
+type TiktokWindow = Window & {
+  TiktokAnalyticsObject?: string;
+  ttq?: TiktokQueue;
+};
+
 /**
  * Apple treats third-party tracking inside an app web view like native-app
  * tracking. ExecLingo's store shells deliberately keep those tags out: the
@@ -72,6 +81,22 @@ export function googleTagBootstrap(
   );
 }
 
+/** TikTok's official queue bootstrap, kept testable and injected only after consent. */
+export function tiktokPixelBootstrap(pixelId: string): string {
+  return (
+    `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];` +
+    `ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];` +
+    `ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};` +
+    `for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);` +
+    `ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};` +
+    `ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;` +
+    `ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};ttq._t[e]=+new Date;` +
+    `ttq._o=ttq._o||{};ttq._o[e]=n||{};n=d.createElement("script");n.type="text/javascript";n.async=!0;` +
+    `n.src=r+"?sdkid="+e+"&lib="+t;e=d.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};` +
+    `ttq.load(${JSON.stringify(pixelId)});ttq.page();}(window,document,"ttq");`
+  );
+}
+
 /**
  * Loads the advertising tags. Only ever reached after an explicit yes, which
  * is why every Google consent purpose is set to granted here: the visitor has
@@ -80,7 +105,7 @@ export function googleTagBootstrap(
 function loadMarketingTags(): void {
   if (tagsLoaded) return;
   tagsLoaded = true;
-  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId } = marketingTags();
+  const { metaPixelId, googleAdsId, analyticsId, linkedinPartnerId, tiktokPixelId } = marketingTags();
 
   // One gtag loader carries both Google tags. Either id alone is enough to
   // pull it in; whichever ids exist then get their own config line.
@@ -146,6 +171,16 @@ function loadMarketingTags(): void {
     // unlike this loader, that image cannot be held back until consent.
   }
 
+  if (tiktokPixelId) {
+    const tiktokWindow = window as TiktokWindow;
+    if (!tiktokWindow.ttq && !document.getElementById("tiktok-pixel-bootstrap")) {
+      const inline = document.createElement("script");
+      inline.id = "tiktok-pixel-bootstrap";
+      inline.text = tiktokPixelBootstrap(tiktokPixelId);
+      document.head.appendChild(inline);
+    }
+  }
+
   // The queues above exist synchronously, even though their network files are
   // async. Consumers waiting to report a conversion can flush safely now.
   window.dispatchEvent(new Event(MARKETING_TAGS_READY_EVENT));
@@ -194,7 +229,7 @@ export function ConsentBanner() {
     <div className="consentBar" role="region" aria-label="Preferenze sui cookie">
       <div className="consentInner">
         <p className="consentText">
-          Usiamo cookie di <strong>terze parti</strong> (Google, Meta e LinkedIn) per capire quali annunci portano persone davvero interessate.
+          Usiamo cookie di <strong>terze parti</strong> (Google, Meta, LinkedIn e TikTok) per capire quali annunci portano persone davvero interessate.
           Sono facoltativi: se dici di no il sito funziona esattamente allo stesso modo.{" "}
           <Link href="/cookie">Quali cookie usiamo</Link>
         </p>

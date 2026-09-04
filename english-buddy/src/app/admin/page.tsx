@@ -318,6 +318,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     browserTags: {
       metaConfigured: Boolean(configuredBrowserTags.metaPixelId),
       linkedinConfigured: Boolean(configuredBrowserTags.linkedinPartnerId),
+      tiktokConfigured: Boolean(configuredBrowserTags.tiktokPixelId),
     },
     external: latestMarketingReport && latestMarketingSnapshot ? {
       updatedAt: latestMarketingReport.generatedAt,

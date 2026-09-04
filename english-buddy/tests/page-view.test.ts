@@ -81,7 +81,7 @@ describe("GA4 SPA page views", () => {
       removeEventListener: vi.fn(),
     };
     vi.stubGlobal("window", browser);
-    vi.stubGlobal("document", { cookie: "eb_consent=2%3Agranted%3Atest-receipt", referrer: "" });
+    vi.stubGlobal("document", { cookie: "eb_consent=3%3Agranted%3Atest-receipt", referrer: "" });
 
     const onSent = vi.fn();
     const cancel = scheduleGa4PageView("/scarica", "", "", onSent);
@@ -118,7 +118,7 @@ describe("GA4 SPA page views", () => {
     };
     vi.stubGlobal("window", browser);
     vi.stubGlobal("document", {
-      cookie: "eb_consent=2%3Agranted%3Atest-receipt",
+      cookie: "eb_consent=3%3Agranted%3Atest-receipt",
       referrer: "https://www.execlingo.it/reset/RAW-REFERRER-UUID?code=secret",
     });
 
@@ -150,7 +150,7 @@ describe("GA4 SPA page views", () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { location: { origin: "https://www.execlingo.it" }, gtag });
     vi.stubGlobal("document", {
-      cookie: "eb_consent=2%3Agranted%3Atest-receipt",
+      cookie: "eb_consent=3%3Agranted%3Atest-receipt",
       referrer: "https://search.example/results?q=private",
     });
 
@@ -181,7 +181,7 @@ describe("GA4 SPA page views", () => {
     const gtag = vi.fn();
     vi.stubGlobal("window", { location: { origin: "https://www.execlingo.it" }, gtag });
     vi.stubGlobal("document", {
-      cookie: "eb_consent=2%3Agranted%3Atest-receipt",
+      cookie: "eb_consent=3%3Agranted%3Atest-receipt",
       referrer: "https://www.execlingo.it/r/RAW-REFERRER-CODE?secret=yes",
     });
 
@@ -275,11 +275,11 @@ describe("GA4 SPA page views", () => {
     vi.stubGlobal("document", browserDocument);
 
     expect(reportGa4PageView("/scarica", "", "")).toBeNull();
-    browserDocument.cookie = "eb_consent=2%3Adenied%3Atest-receipt";
+    browserDocument.cookie = "eb_consent=3%3Adenied%3Atest-receipt";
     expect(reportGa4PageView("/scarica", "", "")).toBeNull();
     expect(gtag).not.toHaveBeenCalled();
 
-    browserDocument.cookie = "eb_consent=2%3Agranted%3Atest-receipt";
+    browserDocument.cookie = "eb_consent=3%3Agranted%3Atest-receipt";
     expect(reportGa4PageView("/scarica", "", "")).not.toBeNull();
     expect(gtag.mock.calls.filter((call) => call[0] === "event" && call[1] === "page_view")).toEqual([["event", "page_view", {
       send_to: "G-TEST12345",

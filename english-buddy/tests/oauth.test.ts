@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 process.env.SESSION_SECRET = "test-secret-that-is-definitely-32-characters-long";
 
-import { createOauthState, verifyOauthState, findOrCreateOAuthUser, decodeIdToken, validClaims } from "@/lib/oauth";
+import { baseUrl, createOauthState, verifyOauthState, findOrCreateOAuthUser, decodeIdToken, validClaims } from "@/lib/oauth";
 import { createAuthUser } from "@/lib/auth-users";
 
 let dir: string;
@@ -27,6 +27,17 @@ afterAll(() => {
 });
 
 describe("social sign-in", () => {
+  it("keeps the canonical www host when APP_BASE_URL is absent", () => {
+    const configured = process.env.APP_BASE_URL;
+    delete process.env.APP_BASE_URL;
+    try {
+      expect(baseUrl()).toBe("https://www.execlingo.it");
+    } finally {
+      if (configured === undefined) delete process.env.APP_BASE_URL;
+      else process.env.APP_BASE_URL = configured;
+    }
+  });
+
   it("signs and verifies CSRF state, rejecting tampered or stale values", () => {
     const state = createOauthState();
     expect(verifyOauthState(state)).toBe(true);

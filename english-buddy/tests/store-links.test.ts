@@ -44,6 +44,10 @@ describe("Google Play cutover links", () => {
       null,
       new Date("2026-08-31T10:00:00.000Z"),
     )).toEqual({ s: "google", c: "search", t: "2026-08-31T10:00:00.000Z" });
+
+    // TikTok is web-only until the native apps have an SDK/MMP and consent:
+    // its raw click id must not enter Google Play's Install Referrer.
+    expect(safeMarketingSearch(new URLSearchParams("ttclid=tiktok-click")).toString()).toBe("");
   });
 });
 

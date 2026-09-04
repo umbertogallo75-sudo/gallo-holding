@@ -10,7 +10,7 @@ import { safeEqual } from "@/lib/auth";
  */
 
 export function baseUrl() {
-  return (process.env.APP_BASE_URL || "https://execlingo.it").replace(/\/$/, "");
+  return (process.env.APP_BASE_URL || "https://www.execlingo.it").replace(/\/$/, "");
 }
 
 export function googleEnabled() {

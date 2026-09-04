@@ -21,6 +21,7 @@ const CLICK_ID_PARAMETERS = new Set([
   "fbclid",
   "msclkid",
   "li_fat_id",
+  "ttclid",
 ]);
 
 function safeMarketingSearch(pathname: string, pagePath: string, search: string): string {

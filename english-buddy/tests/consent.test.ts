@@ -29,6 +29,11 @@ describe("readConsent", () => {
     expect(readConsent(cookie(`${CONSENT_VERSION}:granted:${RECEIPT}`))).toBe("granted");
   });
 
+  it("keeps an earlier general refusal but asks again after an earlier yes", () => {
+    expect(readConsent(cookie(`2:denied:${RECEIPT}`))).toBe("denied");
+    expect(readConsent(cookie(`2:granted:${RECEIPT}`))).toBeNull();
+  });
+
   it("never reads a hand-edited value as consent", () => {
     expect(readConsent(cookie(`${CONSENT_VERSION}:yes`))).toBeNull();
     expect(readConsent(cookie("granted"))).toBeNull();
@@ -65,7 +70,7 @@ describe("privacy nelle app degli store", () => {
 
   it("lascia disponibili i tag sul sito pubblico", async () => {
     const { isStoreShellContext } = await import("@/components/ConsentBanner");
-    expect(isStoreShellContext("Safari", "eb_consent=2%3Agranted%3Areceipt")).toBe(false);
+    expect(isStoreShellContext("Safari", "eb_consent=3%3Agranted%3Areceipt")).toBe(false);
     expect(isStoreShellContext("Safari", "eb_app=qualcosa")).toBe(false);
   });
 
@@ -84,6 +89,7 @@ describe("hasMarketingTags con la sola analitica", () => {
     process.env.NEXT_PUBLIC_GOOGLE_ADS_ID = "";
     process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-TEST12345";
     process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID = "";
+    process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID = "";
     vi.resetModules();
     const { hasMarketingTags, activeTagNames } = await import("@/lib/consent");
     // Senza questo il banner non comparirebbe, quindi nessun consenso e
@@ -91,6 +97,43 @@ describe("hasMarketingTags con la sola analitica", () => {
     expect(hasMarketingTags()).toBe(true);
     expect(activeTagNames()).toContain("ga4");
     process.env = before;
+  });
+});
+
+describe("TikTok Pixel di ExecLingo", () => {
+  it("usa il Pixel assegnato soltanto sul dominio di produzione", async () => {
+    const before = { ...process.env };
+    try {
+      delete process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+      vi.stubGlobal("window", { location: { hostname: "www.execlingo.it" } });
+      vi.resetModules();
+      const { marketingTags, TIKTOK_PIXEL_ID } = await import("@/lib/consent");
+      expect(TIKTOK_PIXEL_ID).toBe("DAD8VUBC77UC8FLJL7O0");
+      expect(marketingTags().tiktokPixelId).toBe(TIKTOK_PIXEL_ID);
+    } finally {
+      process.env = before;
+    }
+  });
+
+  it("non usa il Pixel di produzione su preview", async () => {
+    const before = { ...process.env };
+    try {
+      delete process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+      vi.stubGlobal("window", { location: { hostname: "preview.vercel.app" } });
+      vi.resetModules();
+      const { marketingTags } = await import("@/lib/consent");
+      expect(marketingTags().tiktokPixelId).toBe("");
+    } finally {
+      process.env = before;
+    }
+  });
+
+  it("genera il bootstrap ufficiale con l'ID corretto", async () => {
+    const { tiktokPixelBootstrap } = await import("@/components/ConsentBanner");
+    const script = tiktokPixelBootstrap("PIXEL-TEST");
+    expect(script).toContain("analytics.tiktok.com/i18n/pixel/events.js");
+    expect(script).toContain('ttq.load("PIXEL-TEST")');
+    expect(script).toContain("ttq.page()");
   });
 });
 

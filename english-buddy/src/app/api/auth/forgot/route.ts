@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Prefer the explicit base URL, else the domain the user is actually on,
     // so reset links follow the app onto execlingo.it automatically.
     const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-    const base = process.env.APP_BASE_URL || (host ? `https://${host}` : "https://execlingo.it");
+    const base = process.env.APP_BASE_URL || (host ? `https://${host}` : "https://www.execlingo.it");
     const link = `${base}/reset?token=${reset.token}`;
     const firstName = reset.name ? ` ${reset.name}` : "";
     await sendEmail(
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         ctaUrl: link,
         footerNote: "Hai ricevuto questa email perché è stato richiesto il recupero del codice per il tuo account ExecLingo.",
       }),
-      `Ciao${firstName},\n\nhai chiesto di reimpostare il tuo codice di accesso a ExecLingo.\n\nApri questo link per sceglierne uno nuovo (vale 30 minuti, una sola volta):\n${link}\n\nSe non sei stato tu, ignora questa email: il tuo codice resta invariato.\n\nExecLingo · un servizio VASP ITALIA SRL\nhttps://execlingo.it`
+      `Ciao${firstName},\n\nhai chiesto di reimpostare il tuo codice di accesso a ExecLingo.\n\nApri questo link per sceglierne uno nuovo (vale 30 minuti, una sola volta):\n${link}\n\nSe non sei stato tu, ignora questa email: il tuo codice resta invariato.\n\nExecLingo · un servizio VASP ITALIA SRL\nhttps://www.execlingo.it`
     );
   }
   return NextResponse.json({ ok: true, emailConfigured: true });

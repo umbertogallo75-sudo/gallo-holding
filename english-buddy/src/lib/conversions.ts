@@ -15,13 +15,15 @@ import {
 type Gtag = (command: string, action: string, params?: Record<string, unknown>) => void;
 type Fbq = (command: string, eventName: string, params?: Record<string, unknown>) => void;
 type Lintrk = (command: "track", params: { conversion_id: number }) => void;
-type TrackingWindow = Window & { gtag?: Gtag; fbq?: Fbq; lintrk?: Lintrk };
+type Ttq = { track: (eventName: string, params?: Record<string, unknown>) => void };
+type TrackingWindow = Window & { gtag?: Gtag; fbq?: Fbq; lintrk?: Lintrk; ttq?: Ttq };
 
 /** Once per platform and page load: a re-render must never double count. */
 let googleReported = false;
 let ga4Reported = false;
 let metaReported = false;
 let linkedinReported = false;
+let tiktokReported = false;
 let retryRegistered = false;
 
 function retryWhenTagsAreReady(): void {
@@ -43,7 +45,7 @@ export function reportSignupConversion(): void {
   const trackingWindow = window as TrackingWindow;
   const sendTo = googleAdsSignupTarget();
   const linkedinConversionId = linkedinSignupConversionId();
-  const { analyticsId, metaPixelId, linkedinPartnerId } = marketingTags();
+  const { analyticsId, metaPixelId, linkedinPartnerId, tiktokPixelId } = marketingTags();
   const gtag = trackingWindow.gtag;
 
   if (!googleReported && sendTo && typeof gtag === "function") {
@@ -91,6 +93,16 @@ export function reportSignupConversion(): void {
     }
   }
 
+  const ttq = trackingWindow.ttq;
+  if (!tiktokReported && tiktokPixelId && typeof ttq?.track === "function") {
+    try {
+      ttq.track("CompleteRegistration");
+      tiktokReported = true;
+    } catch {
+      // A campaign counter is never worth interrupting a registration for.
+    }
+  }
+
   // OAuth returns can mount before the consent component has installed the
   // queues. Retry only when consent already existed: a later yes must never
   // make a conversion that happened before consent leave the browser.
@@ -98,7 +110,8 @@ export function reportSignupConversion(): void {
     (sendTo && !googleReported) ||
     (analyticsId && !ga4Reported) ||
     (metaPixelId && !metaReported) ||
-    (linkedinPartnerId && linkedinConversionId && !linkedinReported)
+    (linkedinPartnerId && linkedinConversionId && !linkedinReported) ||
+    (tiktokPixelId && !tiktokReported)
   ) {
     retryWhenTagsAreReady();
   }

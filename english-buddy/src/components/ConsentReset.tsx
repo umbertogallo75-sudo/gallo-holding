@@ -18,6 +18,15 @@ export function ConsentReset() {
   const clear = () => {
     const receipt = readConsentReceipt(document.cookie);
     if (receipt) void logConsent(receipt, "withdrawn");
+    const tiktokQueue = (window as Window & {
+      ttq?: { revokeConsent?: () => void; disableCookie?: () => void };
+    }).ttq;
+    try {
+      tiktokQueue?.revokeConsent?.();
+      tiktokQueue?.disableCookie?.();
+    } catch {
+      // Reloading below still stops every tag even if a vendor API is absent.
+    }
     document.cookie = `${CONSENT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
     notifyConsentChanged();
     // Tags already running on this page can only be stopped by reloading it.

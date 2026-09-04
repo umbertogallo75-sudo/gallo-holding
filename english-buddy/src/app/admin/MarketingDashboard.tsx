@@ -105,6 +105,7 @@ export type MarketingDashboardData = {
   browserTags: {
     metaConfigured: boolean;
     linkedinConfigured: boolean;
+    tiktokConfigured: boolean;
   };
   external: DashboardExternalSnapshot | null;
 };
@@ -498,7 +499,7 @@ function Tracking({ data }: { data: MarketingDashboardData }) {
     label: string;
     measure: string;
     reportingKey?: string;
-    tag?: "meta" | "linkedin";
+    tag?: "meta" | "linkedin" | "tiktok";
   }> = [
     { key: "backend", reportingKey: "backend", label: "Database ExecLingo", measure: "Visite, registrazioni, onboarding, acquisti" },
     { key: "ga4", reportingKey: "ga4", label: "Google Analytics 4", measure: "Evento web sign_up" },
@@ -508,6 +509,7 @@ function Tracking({ data }: { data: MarketingDashboardData }) {
     { key: "meta", reportingKey: "meta", label: "Meta Ads — API reporting", measure: "Spesa e CompleteRegistration attribuite" },
     { key: "linkedin_tag", tag: "linkedin", label: "LinkedIn Insight Tag — sito", measure: "Tag browser dopo consenso" },
     { key: "linkedin", reportingKey: "linkedin", label: "LinkedIn Ads — API reporting", measure: "Spesa e Lead Gen HR/L&D" },
+    { key: "tiktok_tag", tag: "tiktok", label: "TikTok Pixel — sito", measure: "Registrazione web dopo consenso" },
     { key: "app_store", reportingKey: "app_store", label: "App Store Connect", measure: "Download iOS" },
     { key: "google_play", reportingKey: "google_play", label: "Google Play Console", measure: "Download Android" },
     { key: "youtube", reportingKey: "youtube", label: "YouTube Ads", measure: "Conversioni della campagna video" },
@@ -526,6 +528,8 @@ function Tracking({ data }: { data: MarketingDashboardData }) {
               ? data.browserTags.metaConfigured
               : definition.tag === "linkedin"
                 ? data.browserTags.linkedinConfigured
+                : definition.tag === "tiktok"
+                  ? data.browserTags.tiktokConfigured
                 : null;
             const status = tagConfigured !== null
               ? tagConfigured ? "verified" : "unavailable"

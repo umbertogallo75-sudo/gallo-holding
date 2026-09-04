@@ -48,6 +48,7 @@ function channelOf(referrer: string): string {
     if (host.includes("facebook") || host === "fb.me") return "facebook";
     if (host.includes("whatsapp")) return "whatsapp";
     if (host.includes("youtube") || host === "youtu.be") return "youtube";
+    if (host.includes("tiktok") || host === "tiktok.com") return "tiktok";
     if (host.includes("google")) return "google";
     if (host.includes("bing")) return "bing";
     if (host.includes("duckduckgo")) return "duckduckgo";
@@ -56,6 +57,20 @@ function channelOf(referrer: string): string {
   } catch {
     return "direct";
   }
+}
+
+/**
+ * Ad click ids remain useful even when a platform strips the referrer and the
+ * campaign URL was created without UTMs. We keep only the platform name in
+ * our first-party cookie; the external identifier itself is never persisted.
+ */
+function sourceFromClickId(params: URLSearchParams): string | null {
+  if (params.has("gclid") || params.has("dclid") || params.has("wbraid") || params.has("gbraid")) return "google";
+  if (params.has("fbclid")) return "facebook";
+  if (params.has("li_fat_id")) return "linkedin";
+  if (params.has("ttclid")) return "tiktok";
+  if (params.has("msclkid")) return "bing";
+  return null;
 }
 
 /**
@@ -92,7 +107,7 @@ export function ensureAttribution(): ClientAttribution | null {
     const utmSource = params.get("utm_source")?.trim().slice(0, 60) || "";
     const record: Record<string, string> = {
       v: id,
-      s: utmSource || channelOf(document.referrer),
+      s: utmSource || sourceFromClickId(params) || channelOf(document.referrer),
       t: new Date().toISOString(),
     };
     const medium = params.get("utm_medium")?.trim().slice(0, 60);
