@@ -59,6 +59,26 @@ const HANDOFF_HREF = "/buddy?mode=buddy";
  */
 const RESUME_GRACE_MS = 45_000;
 
+/**
+ * Tells the iPhone app that a call is starting, or has ended.
+ *
+ * Inside the native shell this switches the phone into its voice-call audio
+ * mode, which is what turns on the echo canceller that stops the loudspeaker
+ * being heard by the microphone beside it. On the web, and on any build that
+ * predates the handler, it does nothing at all — the guard is the whole
+ * compatibility story.
+ */
+function tellPhoneAboutCall(active: boolean): void {
+  try {
+    const bridge = (window as unknown as {
+      webkit?: { messageHandlers?: { audio?: { postMessage: (body: unknown) => void } } };
+    }).webkit?.messageHandlers?.audio;
+    bridge?.postMessage({ action: active ? "start" : "stop" });
+  } catch {
+    /* not inside the app, or an older one */
+  }
+}
+
 export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -238,6 +258,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   }
 
   function cleanup(report: boolean) {
+    tellPhoneAboutCall(false);
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     pcRef.current?.close(); pcRef.current = null;
@@ -328,6 +349,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
 
       setStatus("live"); statusRef.current = "live";
+      tellPhoneAboutCall(true);
       startClock();
       // The chat stops introducing the microphone once it has been used for
       // real: the invitation is for people who have never seen this screen.

@@ -90,9 +90,20 @@ Conversation rules:
               prompt:
                 "An Italian professional practising business English with a coach. They speak English, and sometimes Italian when they are stuck. Never transcribe into any other language.",
             },
-            // A phone held in the hand, in a room. Tells the far end to expect
-            // near-field audio and filter the rest.
-            noise_reduction: { type: "near_field" },
+            // Far field, not near.
+            //
+            // Near field is the setting for a microphone next to a mouth — a
+            // headset. It was chosen on the assumption of a phone held in the
+            // hand, and the assumption was wrong: people put the phone on the
+            // table and use the loudspeaker, which is a metre away, in a room,
+            // with the coach's own voice coming out of it. That is precisely
+            // the case far field exists for, and it is the case where the far
+            // end kept hearing speech in a silent room and cutting itself off.
+            //
+            // On headphones this filters a little more than strictly needed,
+            // which costs nothing: headphones were the configuration that
+            // already worked.
+            noise_reduction: { type: "far_field" },
             // Semantic rather than level-based: it judges whether the speaker
             // actually meant to take a turn instead of reacting to whatever
             // crossed a volume threshold.
