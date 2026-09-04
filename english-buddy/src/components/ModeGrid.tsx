@@ -19,6 +19,22 @@ function Wide({ href, icon, title, meta, color }: { href:string; icon:string; ti
   return <Link href={href} className="mode wide" style={cardTint(color)}><span className="modeIcon" style={tint(color)}>{icon}</span><div><div className="modeTitle">{title}</div><div className="modeMeta">{meta}</div></div></Link>;
 }
 
+/**
+ * The four activities shown on the home screen itself.
+ *
+ * Not a second catalogue: every one of these is also in the grid below, and a
+ * test holds them to it. They are the four that answer "what else is there?"
+ * fastest — the two that are not writing at all, the one with a goal, and the
+ * emergency — because the point of the rail is to prove the catalogue exists,
+ * not to replace it.
+ */
+export const HOME_RAIL = [
+  { icon: "🎙️", title: "A voce", meta: "Parla davvero con Sam, come in una call", href: "/voice" },
+  { icon: "🎧", title: "Ascolta e scrivi", meta: "Senti una frase, scrivi quello che hai capito", href: "/buddy?mode=listen" },
+  { icon: "🎯", title: "Missione", meta: "Un obiettivo per scena: riunioni, viaggi", href: "/buddy?mode=mission" },
+  { icon: "🆘", title: "Mi serve adesso", meta: "Scrivi in italiano, esce in inglese", href: "/rescue" },
+] as const;
+
 export function ModeGrid({ beginner = false }: { beginner?: boolean }) {
   return <div className="modeGrid">
     {beginner ? <>

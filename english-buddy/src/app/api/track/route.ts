@@ -33,6 +33,7 @@ const bodySchema = z.object({
     "home_session_start",
     "home_shortcut",
     "home_all_trainings",
+    "home_rail",
     "personalize_shown",
     "personalize_dismissed",
     // Middle of the funnel. The server records the rest itself, where it can

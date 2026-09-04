@@ -16,10 +16,18 @@
   --success: #285f43;
   --bubble: rgba(255, 255, 255, 0.88);
   --glow: #ffffff;
+  color-scheme: light;
 }
 
+/* Il tema segue il sistema finché non viene scelto a mano nel profilo.
+   La scelta si stampa come data-theme sull'elemento radice e vince in tutte e
+   due le direzioni: chiaro su un telefono impostato scuro, scuro su uno
+   chiaro. Serviva perché il wrapper iOS forza la sua scena in scuro, e da
+   dentro la pagina la preferenza di sistema risultava scura comunque.
+   I due blocchi qui sotto dichiarano di proposito le stesse variabili — un
+   test li tiene allineati. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #101210;
     --surface: #181a17;
     --ink: #eef0e9;
@@ -32,9 +40,27 @@
     --success: #8fc7a8;
     --bubble: rgba(24, 26, 23, 0.9);
     --glow: #1c1f1b;
+    color-scheme: dark;
   }
-  .warnText { color: #ff8f7d; }
+  :root:not([data-theme="light"]) .warnText { color: #ff8f7d; }
 }
+
+:root[data-theme="dark"] {
+    --bg: #101210;
+    --surface: #181a17;
+    --ink: #eef0e9;
+    --muted: #969a8f;
+    --line: #2b2e29;
+    --accent: #2f8f63;
+    --brandText: #5ec79a;
+    --amber: #e6a94e;
+    --soft: #22251f;
+    --success: #8fc7a8;
+    --bubble: rgba(24, 26, 23, 0.9);
+    --glow: #1c1f1b;
+    color-scheme: dark;
+}
+:root[data-theme="dark"] .warnText { color: #ff8f7d; }
 
 * { box-sizing: border-box; }
 html { background: var(--bg); }
@@ -84,8 +110,10 @@ p { line-height:1.55; font-size:16px; }
 .stat strong { display:block; font-size:31px; letter-spacing:-.04em; color:var(--brandText); }
 .stat span { color:var(--muted); font-size:14.5px; }
 
-.bottomNav { position:fixed; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); width:min(520px, calc(100% - 24px)); background:rgba(20,22,18,.93); backdrop-filter:blur(20px); border-radius:20px; padding:9px; display:grid; grid-template-columns:repeat(4,1fr); z-index:20; }
-.bottomNav a, .bottomNav button { color:#d9dccf; text-align:center; padding:12px 2px; font-size:13px; font-weight:600; border-radius:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; touch-action:manipulation; -webkit-tap-highlight-color:transparent; transition:transform .08s ease, background .15s ease; background:none; border:0; font-family:inherit; cursor:pointer; }
+.bottomNav { position:fixed; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); width:min(520px, calc(100% - 24px)); background:rgba(20,22,18,.93); backdrop-filter:blur(20px); border-radius:20px; padding:9px; display:grid; grid-template-columns:repeat(5,1fr); z-index:20; }
+/* Icon above the label, not beside it: with five tabs on a 390px phone the
+   inline layout cut "Allenamenti" and "Progressi" down to an ellipsis. */
+.bottomNav a, .bottomNav button { color:#d9dccf; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:8px 2px; font-size:11px; letter-spacing:-.01em; font-weight:600; border-radius:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; touch-action:manipulation; -webkit-tap-highlight-color:transparent; transition:transform .08s ease, background .15s ease; background:none; border:0; font-family:inherit; cursor:pointer; }
 .bottomNav a:active, .bottomNav button:active { transform:scale(.93); background:rgba(255,255,255,.09); }
 .bottomNav a.active, .bottomNav button.active { background:var(--accent); color:#fff; font-weight:750; }
 .sheetBack { position:fixed; inset:0; z-index:60; background:rgba(6,9,7,.62); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; }
@@ -93,7 +121,7 @@ p { line-height:1.55; font-size:16px; }
 @keyframes sheetup { from { transform:translateY(14px); opacity:0; } to { transform:none; opacity:1; } }
 .sheetOpt { display:flex; gap:12px; align-items:center; width:100%; padding:15px 14px; margin-top:10px; border-radius:16px; border:1px solid var(--line); background:color-mix(in srgb, var(--ink) 5%, var(--surface)); color:var(--ink); font:inherit; font-size:16px; text-align:left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .sheetOpt:active { transform:scale(.98); }
-.navIcon { display:inline-block; min-width:18px; }
+.navIcon { display:inline-block; min-width:18px; font-size:17px; line-height:1; }
 .navSpin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spinround .7s linear infinite; vertical-align:-1px; }
 .pageSpin { width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spinround .8s linear infinite; }
 @keyframes spinround { to { transform:rotate(360deg); } }
@@ -191,8 +219,6 @@ p { line-height:1.55; font-size:16px; }
 .shortcut strong { display:block; font-size:15.5px; font-weight:720; letter-spacing:-.01em; }
 .shortcut span span, .shortcut > span:last-child { color:var(--muted); font-size:14px; line-height:1.4; }
 .shortcut > span:last-child strong { color:var(--ink); }
-.allTrainings { display:block; text-align:center; margin:16px 0 4px; padding:14px; border:1px dashed var(--line); border-radius:16px; color:var(--muted); font-size:15.5px; font-weight:650; text-decoration:none; }
-.allTrainings:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); color:var(--ink); }
 .optionRow { display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; border:1.5px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:15px 17px; margin:7px 0; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .1s ease; }
 .optionRow:active { transform:scale(.98); }
 .optionActive { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
@@ -229,7 +255,9 @@ p { line-height:1.55; font-size:16px; }
 
 .alertBar { border:2px solid #c4483a; background:color-mix(in srgb, #c4483a 9%, var(--surface)); color:var(--ink); border-radius:16px; padding:14px 16px; font-size:15px; line-height:1.55; margin:0 0 16px; }
 .alertBar strong:first-child { color:#b3362a; }
-@media (prefers-color-scheme: dark) { .alertBar strong:first-child { color:#ff8f7d; } .alertBar { border-color:#8a3a30; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .alertBar strong:first-child { color:#ff8f7d; } :root:not([data-theme="light"]) .alertBar { border-color:#8a3a30; } }
+:root[data-theme="dark"] .alertBar strong:first-child { color:#ff8f7d; }
+:root[data-theme="dark"] .alertBar { border-color:#8a3a30; }
 
 .oauthBtn { display:flex; align-items:center; justify-content:center; gap:10px; min-height:50px; border-radius:14px; font-size:16px; font-weight:700; text-decoration:none; box-shadow:0 2px 8px rgba(0,0,0,.1); transition:transform .1s ease; }
 .oauthBtn:active { transform:scale(.97); }
@@ -864,3 +892,38 @@ p { line-height:1.55; font-size:16px; }
 .voiceLive .voiceTimer { display:flex; flex-direction:column; align-items:flex-start; gap:1px; line-height:1.2; min-width:0; }
 .voiceLive .voiceSep { display:none; }
 .voiceLive .voiceClock { font-size:14.5px; }
+
+/* The activity catalogue, on the home screen.
+   It used to be a dashed grey line reading "Tutti gli allenamenti" — the
+   weakest element on the page, and not one person interviewed had noticed it.
+   Four real cards that scroll sideways say what a link cannot: there is more
+   behind this. The rail bleeds to both edges so the fifth card is visibly cut
+   off, which is what tells a thumb to push. */
+.sectionHead { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:22px 0 10px; }
+.sectionHead h2 { font-size:19px; font-weight:800; letter-spacing:-.02em; margin:0; }
+.sectionHead a { font-size:14.5px; font-weight:700; color:var(--brandText); text-decoration:none; white-space:nowrap; }
+.trainRail { display:flex; gap:10px; overflow-x:auto; padding:2px 18px 8px; margin:0 -18px; scroll-snap-type:x proximity; scrollbar-width:none; overscroll-behavior-x:contain; }
+.trainRail::-webkit-scrollbar { display:none; }
+.trainCard { flex:0 0 150px; scroll-snap-align:start; border:1px solid var(--line); border-radius:18px; background:var(--surface); padding:14px; text-decoration:none; color:var(--ink); box-shadow:0 3px 14px rgba(0,0,0,.06); transition:transform .1s ease; }
+.trainCard:active { transform:scale(.98); }
+.trainIcon { font-size:22px; width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:var(--soft); }
+.trainTitle { font-weight:760; font-size:15.5px; margin-top:10px; letter-spacing:-.02em; }
+.trainMeta { color:var(--muted); font-size:13px; margin-top:3px; line-height:1.35; }
+/* The two ways to do today's session, said on the card itself. */
+.todayCta { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.todayHow { font-weight:650; letter-spacing:0; font-size:13.5px; opacity:.85; }
+
+/* Il selettore del tema. Tre riquadri sulla stessa riga: quello scelto si
+   riconosce dal bordo e dal fondo, non solo da un pallino — su un telefono in
+   pieno sole un segno piccolo non si vede. */
+.themeRow { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+.themeOption { display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center;
+  padding:14px 8px 12px; border:1.5px solid var(--line); border-radius:16px; background:var(--surface);
+  color:var(--ink); font-family:inherit; cursor:pointer; transition:transform .1s ease, border-color .12s ease, background .12s ease; }
+.themeOption:active { transform:scale(.97); }
+.themeOption strong { font-size:14.5px; font-weight:730; letter-spacing:-.01em; }
+.themeIcon { font-size:22px; line-height:1; }
+.themeMeta { color:var(--muted); font-size:11.5px; line-height:1.3; }
+.themeOption.on { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--surface));
+  box-shadow:0 0 0 1px var(--accent) inset; }
+.themeOption.on strong { color:var(--brandText); }

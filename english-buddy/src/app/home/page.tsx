@@ -6,6 +6,7 @@ import { NotificationReminder } from "@/components/NotificationReminder";
 import { PersonalizeBanner } from "@/components/PersonalizeBanner";
 import { AppTracker } from "@/components/AppTracker";
 import { pickFirstSession } from "@/lib/learning/first-session";
+import { HOME_RAIL } from "@/components/ModeGrid";
 import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
@@ -110,7 +111,7 @@ export default async function HomePage() {
       <div className="todayKicker">La tua sessione di oggi</div>
       <div className="todayTitle">{isFirstTime ? "Scopriamo il tuo livello" : session.title}</div>
       <div className="todayWhy">{isFirstTime ? "Tre minuti di chiacchierata. Niente esame, niente voti." : session.why}</div>
-      <div className="todayCta">INIZIA →</div>
+      <div className="todayCta"><span>INIZIA →</span><span className="todayHow">✍️ scritta · 🎙️ o a voce</span></div>
     </a>
 
     {/* Three shortcuts, and only three: the situations urgent enough that
@@ -131,9 +132,23 @@ export default async function HomePage() {
       </Link>
     </div>
 
-    {/* Always visible, never in the way: the door to all sixteen activities
-        for the days when choosing is the point. */}
-    <Link href="/allenamenti" className="allTrainings" data-track="home_all_trainings">📋 Tutti gli allenamenti →</Link>
+    {/* The catalogue, shown rather than linked. A dashed line saying "tutti gli
+        allenamenti" was the weakest thing on this page and nobody interviewed
+        had ever noticed it; four cards you can see and push sideways say there
+        is more behind them. The tab bar now carries the same door. */}
+    <div className="sectionHead">
+      <h2>Allenamenti</h2>
+      <Link href="/allenamenti" data-track="home_all_trainings">Vedi tutti →</Link>
+    </div>
+    <div className="trainRail">
+      {HOME_RAIL.map((card) => (
+        <Link key={card.href} href={card.href} className="trainCard" data-track="home_rail" data-where={card.title}>
+          <span className="trainIcon" aria-hidden>{card.icon}</span>
+          <div className="trainTitle">{card.title}</div>
+          <div className="trainMeta">{card.meta}</div>
+        </Link>
+      ))}
+    </div>
 
     {/* Three zeros are the worst possible welcome: the first thing the app
         would tell somebody who has just arrived is that they have done

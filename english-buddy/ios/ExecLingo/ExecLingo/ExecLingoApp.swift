@@ -7,9 +7,13 @@ struct ExecLingoApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // No preferredColorScheme here on purpose. Forcing the scene to
+            // .dark also forced the web view's trait collection, so the page
+            // inside read prefers-color-scheme: dark on every iPhone — even
+            // one set to light — and nothing on the web side could argue with
+            // it. The page follows the system, or the choice made in Profilo.
             ContentView()
                 .ignoresSafeArea()
-                .preferredColorScheme(.dark)
         }
     }
 }

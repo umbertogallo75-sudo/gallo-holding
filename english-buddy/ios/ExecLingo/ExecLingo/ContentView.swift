@@ -3,11 +3,21 @@ import WebKit
 import StoreKit
 import UserNotifications
 
+/// What shows behind the page: while it loads, and in the rubber-band area at
+/// the edges of a scroll. A fixed near-black made every launch and every
+/// overscroll look dark regardless of the theme, so it follows the system
+/// instead — the same two colours the stylesheet uses for --bg.
+let webBackdrop = UIColor { traits in
+    traits.userInterfaceStyle == .dark
+        ? UIColor(red: 0.063, green: 0.071, blue: 0.063, alpha: 1)   // #101210
+        : UIColor(red: 0.965, green: 0.965, blue: 0.949, alpha: 1)   // #f6f6f2
+}
+
 struct ContentView: View {
     var body: some View {
         WebView(url: URL(string: "https://www.execlingo.it")!)
             .ignoresSafeArea()
-            .background(Color(red: 0.04, green: 0.06, blue: 0.05))
+            .background(Color(webBackdrop))
     }
 }
 
@@ -69,7 +79,8 @@ struct WebView: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
-        webView.backgroundColor = UIColor(red: 0.04, green: 0.06, blue: 0.05, alpha: 1)
+        webView.backgroundColor = webBackdrop
+        webView.scrollView.backgroundColor = webBackdrop
         context.coordinator.webView = webView
         PushBridge.shared.webView = webView
         webView.load(URLRequest(url: PushBridge.shared.consumePendingURL() ?? url))

@@ -27,6 +27,7 @@ export type FunnelEvent =
   | "home_session_start"
   | "home_shortcut"
   | "home_all_trainings"
+  | "home_rail"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BottomNav } from "@/components/BottomNav";
+import { ThemePicker } from "@/components/ThemePicker";
 import { NotificationReminder } from "@/components/NotificationReminder";
 import { requireUserId, OWNER_ID } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -67,6 +68,8 @@ export default async function ProfilePage() {
         <div className="stat"><strong>{interactions}</strong><span>scambi</span></div>
         <div className="stat"><strong>{caps}/{CAPABILITIES.length}</strong><span>abilità</span></div>
       </section>
+
+      <ThemePicker />
 
       <Link href="/abbonamento" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         💳 Abbonamento e piani

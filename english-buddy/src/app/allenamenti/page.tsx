@@ -38,7 +38,7 @@ export default async function AllenamentiPage() {
         <p className="muted">Se hai voglia di scegliere tu. Altrimenti, nella home c&rsquo;è già la sessione di oggi.</p>
       </section>
       <ModeGrid beginner={["zero", "basics"].includes(String(row.starting_level ?? ""))} />
-      <BottomNav active="home" />
+      <BottomNav active="allenamenti" />
     </main>
   );
 }

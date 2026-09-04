@@ -8,6 +8,7 @@ import { PageView } from "@/components/PageView";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { SignupConversion } from "@/components/SignupConversion";
 import { configuredAppStoreUrl, configuredPlayStoreUrl } from "@/lib/store-links";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_BASE_URL || "https://www.execlingo.it"),
@@ -84,7 +85,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="it">
+    // suppressHydrationWarning: the script below stamps data-theme on this
+    // element before React ever sees the page, which is the whole point.
+    <html lang="it" suppressHydrationWarning>
+      <head>
+        {/* Before the first paint, or the page flashes the wrong colours. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <script
           type="application/ld+json"
