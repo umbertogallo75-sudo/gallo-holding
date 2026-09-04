@@ -36,6 +36,7 @@ const bodySchema = z.object({
     "home_rail",
     "voice_invite",
     "chat_starter",
+    "first_step",
     "personalize_shown",
     "personalize_dismissed",
     // Middle of the funnel. The server records the rest itself, where it can

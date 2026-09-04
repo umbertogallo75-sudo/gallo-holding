@@ -30,6 +30,7 @@ export type FunnelEvent =
   | "home_rail"
   | "voice_invite"
   | "chat_starter"
+  | "first_step"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"

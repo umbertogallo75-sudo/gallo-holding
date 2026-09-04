@@ -955,3 +955,23 @@ p { line-height:1.55; font-size:16px; }
   transition:transform .1s ease, border-color .12s ease; }
 .starter:active { transform:scale(.99); }
 .starter:hover { border-color:color-mix(in srgb, var(--accent) 40%, var(--line)); }
+
+/* «I tuoi primi passi»: tre cose da fare nei primi giorni, spuntate da quello
+   che la persona ha fatto davvero e non da una casella che ha toccato. Uno
+   solo dei passi aperti è evidenziato — due inviti insieme valgono come
+   nessuno — e il riquadro sparisce da solo quando sono finiti. */
+.firstSteps { padding:16px 16px 6px; }
+.firstStepsHead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:10px; }
+.firstStepsTitle { font-weight:800; font-size:18px; letter-spacing:-.02em; }
+.firstStepsCount { font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.stepRow { display:flex; align-items:center; gap:13px; padding:12px 4px; border-top:1px solid var(--line); text-decoration:none; color:var(--ink); }
+.firstSteps .stepRow:nth-of-type(1) { border-top:0; }
+.stepMark { width:30px; height:30px; border-radius:999px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:14px; border:1.5px solid var(--line); color:var(--muted); background:var(--surface); }
+.stepTitle { display:block; font-weight:730; font-size:15.5px; letter-spacing:-.01em; }
+.stepMeta { display:block; color:var(--muted); font-size:13.5px; margin-top:1px; line-height:1.35; }
+.stepGo { margin-left:auto; color:var(--brandText); font-weight:800; flex-shrink:0; font-size:17px; }
+.stepRow.done .stepMark { background:var(--accent); border-color:var(--accent); color:#fff; }
+.stepRow.done .stepTitle { color:var(--muted); font-weight:650; }
+.stepRow.next { background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:14px; margin:2px -6px; padding:12px 10px; border-top:0; }
+.stepRow.next .stepMark { border-color:var(--accent); color:var(--brandText); }

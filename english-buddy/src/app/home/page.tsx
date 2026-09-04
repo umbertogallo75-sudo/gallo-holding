@@ -7,6 +7,7 @@ import { PersonalizeBanner } from "@/components/PersonalizeBanner";
 import { AppTracker } from "@/components/AppTracker";
 import { pickFirstSession } from "@/lib/learning/first-session";
 import { HOME_RAIL } from "@/components/ModeGrid";
+import { firstSteps, showFirstSteps } from "@/lib/learning/first-steps";
 import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
@@ -68,6 +69,7 @@ export default async function HomePage() {
   // any rule about levels and goals, and it is the moment the coach earns its
   // place. Otherwise the same table that chose the first session chooses this
   // one.
+  const steps = await firstSteps(userId, database);
   const events = await upcomingEvents(userId, today);
   const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   const imminent = events.find((e) => e.date === today || e.date === tomorrow);
@@ -106,6 +108,35 @@ export default async function HomePage() {
           <div className="modeMeta">{embedded ? "Il test del livello (3 minuti) è gratis. Hai un codice aziendale? Inseriscilo qui" : "Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il codice aziendale"}</div>
         </div>
       </a>
+    ) : null}
+    {showFirstSteps(steps, dayOfPath) ? (
+      <section className="card firstSteps">
+        <div className="firstStepsHead">
+          <span className="firstStepsTitle">I tuoi primi passi</span>
+          <span className="firstStepsCount">{steps.filter((s) => s.done).length} di {steps.length}</span>
+        </div>
+        {steps.map((step, index) => {
+          // Exactly one step is highlighted: the first one still open. Two
+          // invitations at once is the same as none.
+          const next = !step.done && steps.findIndex((s) => !s.done) === index;
+          return (
+            <Link
+              key={step.key}
+              href={step.href}
+              className={step.done ? "stepRow done" : next ? "stepRow next" : "stepRow"}
+              data-track="first_step"
+              data-where={step.key}
+            >
+              <span className="stepMark" aria-hidden>{step.done ? "✓" : index + 1}</span>
+              <span>
+                <span className="stepTitle">{step.title}</span>
+                <span className="stepMeta">{step.done ? step.doneMeta : step.meta}</span>
+              </span>
+              {step.done ? null : <span className="stepGo" aria-hidden>→</span>}
+            </Link>
+          );
+        })}
+      </section>
     ) : null}
     <a href={isFirstTime ? "/buddy?mode=levelcheck" : session.href} className="todayCard" data-track="home_session_start">
       <div className="todayKicker">La tua sessione di oggi</div>
