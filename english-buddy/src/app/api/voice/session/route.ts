@@ -68,7 +68,12 @@ Conversation rules:
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      expires_after: { anchor: "created_at", seconds: 900 },
+      // Comfortably longer than the 15 minutes the call itself lasts. When the
+      // two numbers were equal, the seconds spent asking for the microphone
+      // and negotiating the connection came out of the conversation's end —
+      // and a call that dies on its own credential looks, from the sofa,
+      // exactly like the crash the graceful ending exists to avoid.
+      expires_after: { anchor: "created_at", seconds: 1800 },
       session: {
         type: "realtime",
         model: modelFor("voice"),

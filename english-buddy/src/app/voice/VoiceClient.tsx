@@ -27,7 +27,27 @@ const PHASE_LABEL: Record<Phase, string> = {
 /** If the far end goes quiet without saying why, stop claiming it is thinking. */
 const THINKING_TIMEOUT_MS = 12_000;
 
-const MAX_SECONDS = 600; // hard cap per conversation to keep costs sane
+/**
+ * How long one spoken session lasts, and how it ends.
+ *
+ * Fifteen minutes of real conversation is a full lesson. What matters more is
+ * the last minute: when the cap simply cut the call, the screen said "Ottima
+ * sessione" and the person read it as a crash — nothing had announced it and
+ * nothing followed it. So the ending is now told in advance, Sam is asked to
+ * close the spoken part himself, and the lesson carries on in writing.
+ */
+const MAX_SECONDS = 900;
+const WARNING_SECONDS = MAX_SECONDS - 60;
+
+/**
+ * Where the conversation continues once the voice stops.
+ *
+ * A written mode from the coach's own list, never the voice one: "voice" and
+ * "diary" are not activities the chat API knows, and sending one would greet
+ * the handoff with an error. "buddy" is the closest thing in writing to what
+ * they were just doing — a friend, still talking.
+ */
+const HANDOFF_HREF = "/buddy?mode=buddy";
 
 /**
  * How long the app waits before deciding an interruption is over for good.
@@ -55,6 +75,11 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const [detached, setDetached] = useState(false);
   /** Something took the microphone or the screen: a call, a lock, a swipe. */
   const [interrupted, setInterrupted] = useState<null | "paused" | "lost">(null);
+  /** The last minute of voice, and then the cap: both are said out loud. */
+  const [nearLimit, setNearLimit] = useState(false);
+  const [reachedLimit, setReachedLimit] = useState(false);
+  const warnedRef = useRef(false);
+  const channelRef = useRef<RTCDataChannel | null>(null);
   const [phase, setPhase] = useState<Phase>("waiting");
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const awaySinceRef = useRef<number | null>(null);
@@ -176,8 +201,37 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     timerRef.current = setInterval(() => {
       secondsRef.current += 1;
       setSeconds(secondsRef.current);
-      if (secondsRef.current >= MAX_SECONDS) stop();
+      if (!warnedRef.current && secondsRef.current >= WARNING_SECONDS) warnLastMinute();
+      if (secondsRef.current >= MAX_SECONDS) endAtLimit();
     }, 1000);
+  }
+
+  /**
+   * One minute left: say so, and ask Sam to land the plane.
+   *
+   * The notice alone would still leave him mid-sentence when the cap hits, so
+   * the session is told too — as a plain conversation item, not a forced
+   * response, which would talk over whoever is speaking right now. It reaches
+   * him on his next turn, which is exactly when it should.
+   */
+  function warnLastMinute() {
+    warnedRef.current = true;
+    setNearLimit(true);
+    const channel = channelRef.current;
+    if (!channel || channel.readyState !== "open") return;
+    try {
+      channel.send(JSON.stringify({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "system",
+          content: [{
+            type: "input_text",
+            text: "The spoken session ends in about one minute. On your next turn, wrap up warmly: one short line on what they did well, then tell them the two of you will carry on in writing.",
+          }],
+        },
+      }));
+    } catch { /* the channel can close under us; the notice on screen is enough */ }
   }
   function pauseClock() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -187,6 +241,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     pcRef.current?.close(); pcRef.current = null;
+    channelRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
     if (report && secondsRef.current > 3) {
       const payload = JSON.stringify({
@@ -211,6 +266,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     setStatus("connecting"); statusRef.current = "connecting";
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
+    setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
     followRef.current = true; setDetached(false);
     try {
       const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
@@ -251,6 +307,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       };
 
       const channel = pc.createDataChannel("oai-events");
+      channelRef.current = channel;
       channel.onmessage = (message) => {
         try {
           const event = JSON.parse(message.data as string) as { type?: string; transcript?: string };
@@ -286,6 +343,14 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     setStatus("ended");
   }
 
+  /** The fifteen minutes are up: a pause, not a failure. */
+  function endAtLimit() {
+    cleanup(true);
+    statusRef.current = "ended";
+    setReachedLimit(true);
+    setStatus("ended");
+  }
+
   /** Ended by something outside the app rather than by the person. */
   function endInterrupted() {
     cleanup(true);
@@ -304,7 +369,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
       {status === "idle" || status === "error" || status === "ended" ? (
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
-          {status === "ended" && interrupted === "lost" ? (
+          {status === "ended" && reachedLimit ? (
+            <>
+              <h2>Facciamo una pausa ☕</h2>
+              <p className="muted">Hai parlato <strong>{mm}:{ss}</strong>: è il massimo di una sessione a voce, e sono tutti registrati nei tuoi progressi. Non è successo niente — la lezione continua, adesso scrivendo.</p>
+            </>
+          ) : status === "ended" && interrupted === "lost" ? (
             <>
               <h2>Conversazione interrotta</h2>
               <p className="muted">Qualcosa ha preso il microfono — di solito è una telefonata in arrivo. I <strong>{mm}:{ss}</strong> che avevi fatto sono salvati nei tuoi progressi: il tempo dell&rsquo;interruzione non è stato contato.</p>
@@ -317,14 +387,23 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           ) : (
             <>
               <h2>Parla con Sam</h2>
-              <p className="muted">Una conversazione vera: ti ascolta, risponde e ti corregge con delicatezza. Serve il permesso del microfono, e dura al massimo 10 minuti.</p>
+              <p className="muted">Una conversazione vera: ti ascolta, risponde e ti corregge con delicatezza. Serve il permesso del microfono, e dura al massimo 15 minuti.</p>
             </>
           )}
           {status === "error" ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
-          <p className="composerNote" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
-          <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} onClick={start}>
-            🎙️ {status === "ended" ? "Parla ancora" : "Inizia a parlare"}
-          </button>
+          {status === "ended" && reachedLimit ? (
+            <>
+              <a className="primary full voiceHandoff" href={HANDOFF_HREF}>✍️ Continuiamo a scrivere</a>
+              <button className="secondary full" style={{ marginTop: 10 }} onClick={start}>🎙️ Riprendi a voce</button>
+            </>
+          ) : (
+            <>
+              <p className="composerNote" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
+              <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} onClick={start}>
+                🎙️ {status === "ended" ? "Parla ancora" : "Inizia a parlare"}
+              </button>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -340,12 +419,20 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           <section className="card voiceLive">
             <div className={interrupted === "paused" ? "voiceOrb" : "voiceOrb pulsing"}>🎙️</div>
             <p className="voiceTimer">
-              {interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}
-              {phase === "thinking" && !interrupted ? <span className="voiceDots" aria-hidden>…</span> : null}
-              <span className="voiceClock"> · {mm}:{ss}</span>
+              <span className="voicePhase">
+                {interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}
+                {phase === "thinking" && !interrupted ? <span className="voiceDots" aria-hidden>…</span> : null}
+              </span>
+              {/* Only there when the two sit on one line; the stylesheet stacks
+                  them on a phone and hides it. */}
+              <span className="voiceSep" aria-hidden> · </span>
+              <span className="voiceClock">{mm}:{ss}</span>
             </p>
             <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
             <button className="secondary full voiceStop" onClick={stop}>⏹ Termina</button>
+            {nearLimit && !interrupted ? (
+              <p className="voiceAlert">⏳ <strong>Ultimo minuto</strong> a voce — poi facciamo una pausa e continuiamo a scrivere.</p>
+            ) : null}
             {interrupted === "paused" ? (
               <p className="voiceAlert">📞 Audio sospeso — probabilmente una telefonata. <strong>Il tempo è fermo</strong>: torna qui e riprendi da dove eravate.</p>
             ) : null}

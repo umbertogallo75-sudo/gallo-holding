@@ -846,3 +846,21 @@ p { line-height:1.55; font-size:16px; }
 .voiceDots { display: inline-block; animation: voiceDots 1.2s steps(1) infinite; }
 @keyframes voiceDots { 0% { opacity: .25; } 50% { opacity: 1; } 100% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .voiceDots { animation: none; } }
+
+/* The button that carries the lesson from voice into writing. It is an anchor
+   rather than a button — it navigates — so it needs the box behaviour the
+   .primary rule assumes of a real button. */
+.voiceHandoff {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:10px; min-height:58px; font-size:18px; text-decoration:none;
+}
+
+/* The status line during a call: the turn on one line, the clock under it.
+   Two digits more of clock — "14:02" where it used to be "9:02" — were enough
+   to wrap it onto a second line on a 375px phone, so the card grew and shrank
+   as the minutes and the phase changed, dragging the transcript with it.
+   Stacked, the height is the same every second, and it costs nothing: the orb
+   beside it is taller than both lines together. */
+.voiceLive .voiceTimer { display:flex; flex-direction:column; align-items:flex-start; gap:1px; line-height:1.2; min-width:0; }
+.voiceLive .voiceSep { display:none; }
+.voiceLive .voiceClock { font-size:14.5px; }
