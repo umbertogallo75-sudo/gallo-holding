@@ -927,3 +927,31 @@ p { line-height:1.55; font-size:16px; }
 .themeOption.on { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--surface));
   box-shadow:0 0 0 1px var(--accent) inset; }
 .themeOption.on strong { color:var(--brandText); }
+
+/* L'invito a parlare, dentro la barra di scrittura.
+   Il microfono accanto a Invia significa "dettatura" ovunque nel mondo, ed è
+   esattamente così che l'hanno letto tutti i tester: nessuno immaginava che
+   dietro ci fosse una telefonata con Sam. Qui la cosa è detta a parole, e
+   sparisce da sola dopo la prima conversazione a voce. */
+.composer { flex-wrap:wrap; }
+.voiceInvite { flex:1 0 100%; order:-1; display:flex; align-items:center; gap:12px; margin:0 0 8px; padding:11px 13px;
+  border-radius:16px; text-decoration:none; color:var(--ink); position:relative;
+  background:linear-gradient(135deg, color-mix(in srgb, #b0567a 14%, var(--surface)), var(--surface) 78%);
+  border:1px solid color-mix(in srgb, #b0567a 34%, var(--line)); }
+.voiceInviteIcon { font-size:19px; width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, #b0567a 17%, var(--surface)); flex-shrink:0; }
+.voiceInviteText strong { display:block; font-size:15px; font-weight:760; letter-spacing:-.01em; }
+.voiceInviteText span { color:var(--muted); font-size:13.5px; }
+.voiceInviteGo { margin-left:auto; font-weight:800; color:#b0567a; padding-right:16px; }
+.voiceInviteClose { position:absolute; top:2px; right:2px; width:30px; height:30px; border:0; background:none; color:var(--muted);
+  font-size:19px; line-height:1; cursor:pointer; border-radius:999px; font-family:inherit; }
+.composerMic { flex-direction:column; gap:0; width:58px; font-size:19px; }
+.composerMicLabel { font-size:10px; font-weight:800; letter-spacing:.04em; color:var(--muted); text-transform:uppercase; }
+
+/* Le tre frasi offerte quando la casella è ancora vuota. */
+.starters { display:flex; flex-direction:column; gap:8px; margin:6px 0 2px; }
+.starter { display:flex; align-items:center; gap:9px; border:1px solid var(--line); background:var(--surface); border-radius:14px;
+  padding:12px 14px; font-size:15px; font-weight:640; color:var(--ink); text-align:left; font-family:inherit; cursor:pointer;
+  transition:transform .1s ease, border-color .12s ease; }
+.starter:active { transform:scale(.99); }
+.starter:hover { border-color:color-mix(in srgb, var(--accent) 40%, var(--line)); }

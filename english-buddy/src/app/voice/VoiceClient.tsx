@@ -329,6 +329,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
       setStatus("live"); statusRef.current = "live";
       startClock();
+      // The chat stops introducing the microphone once it has been used for
+      // real: the invitation is for people who have never seen this screen.
+      try { localStorage.setItem("execlingo-voice-known", "1"); } catch { /* private browsing */ }
     } catch (e) {
       cleanup(false);
       statusRef.current = "error";

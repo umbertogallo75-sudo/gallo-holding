@@ -28,6 +28,8 @@ export type FunnelEvent =
   | "home_shortcut"
   | "home_all_trainings"
   | "home_rail"
+  | "voice_invite"
+  | "chat_starter"
   | "personalize_shown"
   | "personalize_dismissed"
   | "register_done"

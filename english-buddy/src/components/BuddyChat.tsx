@@ -45,6 +45,31 @@ const openers: Record<string,string> = {
   levelcheck: "Let's find my starting level with a short friendly chat. Start easy.",
 };
 
+/**
+ * What to say when you cannot think of anything.
+ *
+ * A blank box after Sam's first question is where the first session dies:
+ * people who came to practise English are asked to produce English before
+ * they have warmed up at all. These three are deliberately not answers — they
+ * are the phrases that keep a real conversation alive when you are lost, and
+ * they work whatever Sam has just asked.
+ */
+const STARTERS = [
+  "Sorry, can you repeat that more slowly?",
+  "Can you explain that word, please?",
+  "How do you say … in English?",
+] as const;
+
+/** Whether the voice call still needs introducing on this device. */
+const VOICE_KNOWN_KEY = "execlingo-voice-known";
+function voiceIsKnown(): boolean {
+  try { return localStorage.getItem(VOICE_KNOWN_KEY) === "1"; } catch { return true; }
+}
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
 /** Hidden dictation sentence: audio-first, text revealed only on demand. */
 function DictationCard({ sentence }: { sentence: string }) {
   const [revealed, setRevealed] = useState(false);
@@ -105,6 +130,11 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
   const offline = useSyncExternalStore(subscribeToNetwork, () => !navigator.onLine, () => false);
   // Store-app wrappers show no purchase wording (reader-app rules).
   const embedded = useSyncExternalStore(() => () => {}, inStoreApp, () => false);
+  // The microphone beside the send button reads as dictation, because that is
+  // what it means everywhere else. Nobody found the spoken conversation until
+  // something said so in words.
+  const knowsVoice = useSyncExternalStore(subscribeToStorage, voiceIsKnown, () => true);
+  const [inviteHidden, setInviteHidden] = useState(false);
   useEffect(() => {
     const backOnline = () => {
       const pending = failedRef.current;
@@ -183,6 +213,8 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
+  /** Sam has spoken, the person has not, and the box is still empty. */
+  const blank = !loading && !text && messages.some(m => m.role === "assistant") && !messages.some(m => m.role === "user");
   // The end of the very first session: three answers is enough to have felt
   // what the coach does, which is the only moment the notification request
   // means anything. Asked before that, it is a permission dialog from a
@@ -253,6 +285,16 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
         <a href="/home" className="secondary full" style={{ display: "block", textAlign: "center", marginTop: 10, textDecoration: "none" }}>Torna alla home</a>
       </section>
     ) : null}
+    {blank ? (
+      <div className="starters">
+        <div className="composerNote" style={{ marginBottom: 2 }}>Non sai come cominciare? Tocca una frase, poi modificala pure:</div>
+        {STARTERS.map((phrase) => (
+          <button key={phrase} type="button" className="starter" data-track="chat_starter" onClick={() => setText(phrase)}>
+            <span aria-hidden>💬</span>{phrase}
+          </button>
+        ))}
+      </div>
+    ) : null}
     {suggestions.length > 0 && (
         <div className="suggestBox">
           <div className="composerNote" style={{ marginBottom: 4 }}>Scegli una risposta, poi puoi modificarla prima di inviare:</div>
@@ -275,8 +317,24 @@ export function BuddyChat({ mode, initialQuestion, first = false }: { mode:strin
         because it works in an open office, on a train and in a meeting; the
         voice is one tap away for whoever can use it. */}
     <form className="composer" onSubmit={submit}>
+      {!knowsVoice && !inviteHidden ? (
+        <a className="voiceInvite" href="/voice" data-track="voice_invite">
+          <span className="voiceInviteIcon" aria-hidden>🎙️</span>
+          <span className="voiceInviteText">
+            <strong>Preferisci parlare?</strong>
+            <span>Non è dettatura: Sam ti risponde a voce</span>
+          </span>
+          <span className="voiceInviteGo" aria-hidden>→</span>
+          <button
+            type="button"
+            className="voiceInviteClose"
+            aria-label="Nascondi"
+            onClick={(e) => { e.preventDefault(); setInviteHidden(true); }}
+          >×</button>
+        </a>
+      ) : null}
       <textarea aria-label="La tua risposta" placeholder="Rispondi in inglese…" value={text} onChange={e=>setText(e.target.value)} />
-      <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️</a>
+      <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️<span className="composerMicLabel">Voce</span></a>
       <button className="primary" disabled={loading || !text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
     </form>
   </>;
