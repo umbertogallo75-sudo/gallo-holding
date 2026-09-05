@@ -22,8 +22,12 @@ export type Guide = {
   blurb: string;
   /** Whole seconds, for the "quanto dura" line. */
   seconds: number;
+  /** YouTube id, when the film is hosted there. Preferred: adaptive quality. */
+  youtube: string | null;
   video: string | null;
   captions: string | null;
+  /** Offered for download only when the file is actually somewhere. */
+  subtitles: string | null;
   chapters: Chapter[];
 };
 
@@ -84,6 +88,22 @@ function url(value: string | undefined): string | null {
   return /^https?:\/\//i.test(trimmed) ? trimmed : null;
 }
 
+/**
+ * The eleven characters YouTube actually needs, out of whatever got pasted.
+ *
+ * Nobody copies a bare id: they copy the address bar, or the share link, or
+ * the studio link. All three carry the id, and refusing them would mean one
+ * more thing to get wrong in a settings page nobody visits twice.
+ */
+export function youtubeId(value: string | undefined): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  const direct = raw.match(/^[\w-]{11}$/);
+  if (direct) return raw;
+  const found = raw.match(/(?:v=|\/(?:embed|shorts|live|v)\/|youtu\.be\/)([\w-]{11})/);
+  return found ? found[1] : null;
+}
+
 export function guides(): Guide[] {
   return [
     {
@@ -91,8 +111,10 @@ export function guides(): Guide[] {
       title: "Guida completa",
       blurb: "Tutta l'app, un passaggio alla volta: dalla registrazione ai pagamenti, senza saltare niente.",
       seconds: 693,
+      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_FULL_YT),
       video: url(process.env.NEXT_PUBLIC_GUIDE_FULL_URL),
       captions: url(process.env.NEXT_PUBLIC_GUIDE_FULL_VTT),
+      subtitles: url(process.env.NEXT_PUBLIC_GUIDE_FULL_SRT),
       chapters: MANUALE,
     },
     {
@@ -100,8 +122,10 @@ export function guides(): Guide[] {
       title: "In tre minuti",
       blurb: "Se hai poco tempo: cosa fa ExecLingo e come si comincia.",
       seconds: 180,
+      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_SHORT_YT),
       video: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_URL),
       captions: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_VTT),
+      subtitles: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_SRT),
       chapters: SINTESI,
     },
   ];
@@ -109,7 +133,7 @@ export function guides(): Guide[] {
 
 /** Whether there is anything to watch at all. */
 export function guideIsPublished(): boolean {
-  return guides().some((guide) => guide.video);
+  return guides().some((guide) => guide.youtube || guide.video);
 }
 
 /** `693` → `11:33`. */

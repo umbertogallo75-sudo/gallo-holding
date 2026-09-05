@@ -123,6 +123,7 @@ export default function PrivacyPage() {
               <tr><td><strong>Resend</strong></td><td>Recapita le email (registrazione, recupero password, percorso) e riceve quelle che inoltri tu.</td><td>UE (Irlanda)</td></tr>
               <tr><td><strong>Stripe</strong></td><td>Incassa i pagamenti sul web. Titolare autonomo per i dati della carta.</td><td>USA</td></tr>
               <tr><td><strong>Apple</strong> · <strong>Google</strong></td><td>Acquisti in app, accesso con Apple/Google, notifiche push, distribuzione delle app.</td><td>USA</td></tr>
+              <tr><td><strong>YouTube</strong> (Google)</td><td>Mostra la guida video su <em>/guida</em>. Il player si carica <strong>solo quando premi play</strong>: prima di quel momento la pagina non contatta YouTube e non deposita cookie. Dopo, valgono l&rsquo;informativa di Google e la modalità &laquo;privacy avanzata&raquo;.</td><td>USA</td></tr>
               <tr><td><strong>Google</strong> · <strong>Meta</strong> · <strong>LinkedIn</strong> · <strong>TikTok</strong></td><td>Misurazione delle campagne pubblicitarie e remarketing — <strong>solo se acconsenti ai cookie</strong>.</td><td>USA / Singapore</td></tr>
             </tbody>
           </table>

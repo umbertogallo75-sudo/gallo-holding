@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { clock, guideIsPublished, guides, resolveDeepLink, slugify } from "@/lib/guide";
+import { clock, guideIsPublished, guides, resolveDeepLink, slugify, youtubeId } from "@/lib/guide";
 
 const all = guides();
 
@@ -40,9 +40,22 @@ describe("the video manual", () => {
     expect(resolveDeepLink({ v: "sintesi", c: "le-tue-email-di-lavoro" }, all).chapter).toBeNull();
   });
 
-  it("says nothing is published until the addresses are set", () => {
-    // The films live in an object store, not in Git, so a checkout has none.
-    expect(guideIsPublished()).toBe(Boolean(process.env.NEXT_PUBLIC_GUIDE_FULL_URL));
+  it("takes the eleven characters out of whatever gets pasted", () => {
+    // Nobody copies a bare id. All four of these are what people actually paste.
+    expect(youtubeId("dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://youtu.be/dQw4w9WgXcQ?si=abc")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://www.youtube.com/embed/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("")).toBeNull();
+    expect(youtubeId("https://www.youtube.com/")).toBeNull();
+    expect(youtubeId(undefined)).toBeNull();
+  });
+
+  it("says nothing is published until an address is set", () => {
+    // The films live on YouTube or in an object store, never in Git, so a
+    // fresh checkout has neither.
+    const configured = Boolean(process.env.NEXT_PUBLIC_GUIDE_FULL_YT || process.env.NEXT_PUBLIC_GUIDE_FULL_URL);
+    expect(guideIsPublished()).toBe(configured);
   });
 
   it("writes the clock the way people read it", () => {
