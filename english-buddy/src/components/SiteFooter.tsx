@@ -31,6 +31,7 @@ export function SiteFooter({ showPricing = true, signedIn = false, showStoreBadg
             <Link href="/#percorso">Il percorso</Link>
             {showPricing ? <Link href="/#abbonamenti">Abbonamenti</Link> : null}
             {showPricing ? <Link href="/offerte">Piani e offerte</Link> : null}
+            <Link href="/guida">Guida video</Link>
             <Link href="/scarica">App iOS e Android</Link>
           </div>
           <div>

@@ -15,6 +15,7 @@ const PUBLIC_PAGES = new Set([
   "/",
   "/inglese-lavoro",
   "/scarica",
+  "/guida",
   "/offerte",
   "/aziende",
   "/partner",

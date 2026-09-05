@@ -1056,3 +1056,41 @@ button:disabled .navSpin { opacity: 1; }
 .agendaDay + .mailRow { border-top:0; }
 .agendaTime { flex-shrink:0; width:46px; font-weight:750; font-size:15px; font-variant-numeric:tabular-nums;
   color:var(--ink); }
+
+/* La guida video. Il filmato è verticale perché è un telefono: su desktop non
+   va allargato, va messo accanto all'indice, che è la parte con cui davvero si
+   interagisce. Su un telefono i due si impilano e l'indice resta sotto, dove
+   uno lo cerca dopo aver guardato. */
+.guideSwitch { display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 10px; }
+.guideTab { display:flex; align-items:baseline; gap:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:10px 16px; font-size:14px; font-weight:700; cursor:pointer; }
+.guideTab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.guideTabTime { font-size:12px; font-weight:600; opacity:.72; font-variant-numeric:tabular-nums; }
+.guideBlurb { margin:0 0 14px; font-size:14.5px; }
+
+.guideLayout { display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:18px; align-items:start; }
+.guideStage { min-width:0; }
+.guideVideo { display:block; width:100%; aspect-ratio:9/16; max-height:74vh; background:#0e100e; border-radius:16px; border:1px solid var(--line); object-fit:contain; }
+.guideMissing { border:1px dashed var(--line); border-radius:16px; background:var(--soft); padding:26px 20px; text-align:center; }
+.guideMissing p { margin:0 0 6px; }
+.guideNow { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:8px 2px 0; font-size:13.5px; font-weight:700; }
+.guideClock { font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.guideIndex { min-width:0; border:1px solid var(--line); border-radius:16px; background:var(--surface); padding:14px 16px 16px; }
+.guideChapters { list-style:none; margin:10px 0 0; padding:0; max-height:520px; overflow-y:auto; }
+.guideChapters li { display:flex; align-items:stretch; gap:6px; }
+.guideChapters li + li { margin-top:2px; }
+.guideChapter { flex:1; display:flex; align-items:baseline; gap:11px; text-align:left; border:0; background:transparent; color:var(--ink); border-radius:10px; padding:10px 10px; font-size:14px; cursor:pointer; }
+.guideChapter:hover:not(:disabled) { background:var(--soft); }
+.guideChapter.on { background:var(--soft); font-weight:700; }
+.guideChapter:disabled { cursor:default; opacity:.55; }
+.guideChapterTime { flex:none; min-width:38px; font-size:12px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; }
+.guideChapter.on .guideChapterTime { color:var(--brandText); }
+.guideChapterTitle { line-height:1.35; }
+.guideCopy { flex:none; align-self:center; border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:8px; padding:5px 8px; font-size:11px; font-weight:700; cursor:pointer; }
+.guideCopy:hover { background:var(--soft); color:var(--ink); }
+
+@media (max-width: 760px) {
+  .guideLayout { grid-template-columns:1fr; }
+  .guideVideo { max-height:66vh; margin:0 auto; max-width:360px; }
+  .guideChapters { max-height:none; }
+}

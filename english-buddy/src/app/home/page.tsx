@@ -210,6 +210,14 @@ export default async function HomePage() {
       </div>
     </Link>
 
+    <Link href="/guida" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="guide_open" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>▶︎</span>
+      <div>
+        <div className="modeTitle">Come si usa ExecLingo</div>
+        <div className="modeMeta">La guida video, con l&rsquo;indice: vai dritto al pezzo che ti serve</div>
+      </div>
+    </Link>
+
     {/* Three zeros are the worst possible welcome: the first thing the app
         would tell somebody who has just arrived is that they have done
         nothing. Numbers appear once there is something to count. */}

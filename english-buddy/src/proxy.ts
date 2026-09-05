@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const INDEXABLE_PAGES = new Set([
   "/",
   "/inglese-lavoro",
+  "/guida",
   "/scarica",
   "/offerte",
   "/aziende",
@@ -50,6 +51,7 @@ export function proxy(request: NextRequest) {
     path === "/aziende" ||
     path === "/partner" ||
     path === "/scarica" ||
+    path === "/guida" ||
     path === "/offerte" ||
     path === "/inglese-lavoro" ||
     path === "/app" ||
