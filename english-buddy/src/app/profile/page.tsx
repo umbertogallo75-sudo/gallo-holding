@@ -86,6 +86,11 @@ export default async function ProfilePage() {
           👑 Dashboard di monitoraggio
         </Link>
       ) : null}
+      {/* Il manuale, dove la gente lo cerca davvero: nel profilo, insieme alle
+          altre cose che non sono un allenamento. */}
+      <Link href="/guida" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }} data-track="guide_open" data-where="profile">
+        ▶︎ Come si usa l&rsquo;app — la guida video
+      </Link>
       <Link href="/elimina-account" className="secondary full" style={{ display: "block", textAlign: "center", marginBottom: 10 }}>
         Elimina il mio account e i miei dati
       </Link>

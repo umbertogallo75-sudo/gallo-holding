@@ -8,6 +8,7 @@ type SiteHeaderProps = {
 const coreLinks = [
   { href: "/#come-funziona", label: "Come funziona" },
   { href: "/#percorso", label: "Il percorso" },
+  { href: "/guida", label: "Guida video" },
   { href: "/aziende", label: "Per aziende" },
   { href: "/scarica", label: "Scarica l’app" },
 ] as const;

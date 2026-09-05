@@ -36,6 +36,12 @@ export default async function AllenamentiPage() {
       <section className="hero">
         <h1>Tutto quello che puoi fare.</h1>
         <p className="muted">Se hai voglia di scegliere tu. Altrimenti, nella home c&rsquo;è già la sessione di oggi.</p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Non sai da dove cominciare?{" "}
+          <Link href="/guida" style={{ fontWeight: 700 }} data-track="guide_open" data-where="allenamenti">
+            Guarda la guida video →
+          </Link>
+        </p>
       </section>
       <ModeGrid beginner={["zero", "basics"].includes(String(row.starting_level ?? ""))} />
       <BottomNav active="allenamenti" />
