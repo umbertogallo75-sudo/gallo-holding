@@ -55,7 +55,63 @@ export async function getPushStatus(): Promise<PushStatus> {
   if (Notification.permission === "denied") return "denied";
   const registration = await navigator.serviceWorker.ready;
   const existing = await registration.pushManager.getSubscription();
-  return existing ? "subscribed" : "need-enable";
+  if (!existing) return "need-enable";
+
+  // A subscription made against a different VAPID key is not a subscription:
+  // the push service answers 403 to every attempt, for ever, and the browser
+  // goes on reporting it as active — so the person sees "notifiche attive"
+  // and receives nothing, which is exactly the failure we found in production.
+  // Throwing it away turns a silent dead end back into one visible tap.
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (publicKey && !sameApplicationServerKey(existing.options?.applicationServerKey ?? null, publicKey)) {
+    await existing.unsubscribe().catch(() => {});
+    return "need-enable";
+  }
+
+  void resendSubscription(existing);
+  return "subscribed";
+}
+
+/**
+ * Whether a live subscription was made with the key we still hold.
+ *
+ * Exported for the test: getting this backwards would either unsubscribe
+ * everybody on every page load, or keep the dead ones alive.
+ */
+export function sameApplicationServerKey(raw: ArrayBuffer | null, publicKey: string): boolean {
+  // Nothing to compare against — an older browser that does not report the
+  // key. Leave the subscription alone rather than destroying a working one.
+  if (!raw) return true;
+  const current = urlBase64ToUint8Array(publicKey);
+  const bytes = new Uint8Array(raw);
+  return bytes.length === current.length && bytes.every((byte, index) => byte === current[index]);
+}
+
+const RESYNC_KEY = "push-resynced";
+
+/**
+ * Hands the subscription back to the server, once per browser session.
+ *
+ * The browser is the only place that knows the subscription is still good. If
+ * the row was dropped server-side — a run of failures during an outage, an
+ * account restored from elsewhere — nothing would ever put it back, because
+ * the app can see a live subscription and never asks again.
+ */
+async function resendSubscription(subscription: PushSubscription): Promise<void> {
+  try {
+    if (sessionStorage.getItem(RESYNC_KEY) === "1") return;
+    sessionStorage.setItem(RESYNC_KEY, "1");
+  } catch {
+    return; // private mode: skip rather than repeat the call on every render
+  }
+  await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      subscription: subscription.toJSON(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  }).catch(() => null);
 }
 
 /**

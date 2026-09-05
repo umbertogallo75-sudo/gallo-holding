@@ -225,7 +225,7 @@ export async function POST(request: Request) {
   // Nudge: one motivational push, recorded in history so the scheduler sees it.
   const question = data.message || "Sam qui, mi manchi! Una domanda veloce: How was your day? (Com\u2019\u00e8 andata la tua giornata?) Rispondi in inglese, anche una riga conta.";
   const notificationId = randomUUID();
-  const delivered = await sendPushToUser(data.userId, {
+  const { delivered } = await sendPushToUser(data.userId, {
     title: "Sam · ExecLingo",
     body: question,
     image: bannerForNotification({ question, kind: "nudge", seed: notificationId }),

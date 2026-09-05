@@ -155,7 +155,7 @@ async function run(request: Request) {
       );
 
       const notificationId = randomUUID();
-      const delivered = await sendPushToUser(userId, {
+      const { delivered, problems } = await sendPushToUser(userId, {
         title: "Sam · ExecLingo",
         body: question,
         image: bannerForNotification({ question, window: due.window, kind: due.kind, seed: notificationId }),
@@ -172,7 +172,9 @@ async function run(request: Request) {
         });
         results[userId] = `sent:${due.window}`;
       } else {
-        results[userId] = "skipped:no-live-subscriptions";
+        // Why, not just that it did not happen: "no-live-subscriptions" beside
+        // a row in the device census is the shape of a bug nobody can see.
+        results[userId] = `not-delivered:${problems.join(",") || "no-devices"}`;
       }
     } catch (error) {
       console.error(`scheduler failed for user ${userId}:`, error);
@@ -187,11 +189,11 @@ async function run(request: Request) {
   try {
     const tomorrow = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
     for (const { userId, event } of await eventsToRemind(tomorrow, database)) {
-      const delivered = await sendPushToUser(userId, {
+      const { delivered } = await sendPushToUser(userId, {
         title: "Sam · ExecLingo",
         body: `Domani: ${event.title}. Cinque minuti di ripasso adesso?`,
         data: { url: `/prepara/${event.id}` },
-      }).catch(() => 0);
+      }).catch(() => ({ delivered: 0 }));
       if (delivered > 0) {
         await markReminded(event.id, now.toISOString(), database);
         reminders++;
@@ -213,11 +215,11 @@ async function run(request: Request) {
         .catch(() => "Europe/Rome");
       const localHour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", hour12: false }).format(now));
       if (localHour < 18) continue;
-      const delivered = await sendPushToUser(userId, {
+      const { delivered } = await sendPushToUser(userId, {
         title: "Sam · ExecLingo",
         body: `Com'è andata: ${event.title}? Due minuti e ne ricaviamo qualcosa.`,
         data: { url: `/prepara/${event.id}` },
-      }).catch(() => 0);
+      }).catch(() => ({ delivered: 0 }));
       if (delivered > 0) {
         await markDebriefAsked(event.id, now.toISOString(), database);
         debriefs++;

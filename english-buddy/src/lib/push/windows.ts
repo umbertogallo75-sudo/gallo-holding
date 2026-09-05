@@ -70,16 +70,30 @@ export type ShouldSendInput = {
 /**
  * Decides whether a Buddy notification is due right now for a user.
  * Returns the dedupe `kind` (window + local date) to record, or null.
+ *
+ * The rule is "the latest window that has already begun", not "the window we
+ * are standing in", and that difference is the whole point. The scheduler is
+ * driven by a hosted cron that asks for sixteen runs a day and, on a busy
+ * morning, delivers four: measured over a week, the runs landed around 11:00,
+ * 16:15 and 20:15 Rome time. Under the old rule somebody on the normal
+ * intensity — morning, lunch, evening — was never once looked at inside the
+ * morning or the lunch window, so two of their three notifications simply did
+ * not exist. Now a run at 11:00 finds the morning still unsent and sends it.
+ *
+ * Only the latest begun window is considered, never the ones before it, so a
+ * quiet day cannot pile up into four notifications at nine in the evening. A
+ * missed window is caught up until the next one opens, and then let go.
  */
 export function shouldSend(input: ShouldSendInput): { kind: string; window: WindowKey } | null {
   const { hour, dateKey } = localParts(input.now, input.timeZone);
   if (isQuietHour(hour, input.quietStart, input.quietEnd)) return null;
 
-  const window = windowForHour(hour);
-  if (!window) return null;
-  if (!WINDOWS_BY_INTENSITY[input.intensity].includes(window)) return null;
+  const enabled = WINDOWS_BY_INTENSITY[input.intensity];
+  const begun = WINDOWS.filter((w) => enabled.includes(w.key) && hour >= w.start);
+  const latest = begun[begun.length - 1];
+  if (!latest) return null;
 
-  const kind = `buddy:${window}:${dateKey}`;
+  const kind = `buddy:${latest.key}:${dateKey}`;
   if (input.alreadySentKinds.has(kind)) return null;
-  return { kind, window };
+  return { kind, window: latest.key };
 }
