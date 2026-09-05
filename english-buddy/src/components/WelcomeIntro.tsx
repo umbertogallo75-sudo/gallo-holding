@@ -118,6 +118,24 @@ export function WelcomeIntro() {
           📶 <strong>Serve Internet</strong>: ExecLingo funziona con una connessione attiva (Wi-Fi o dati). Senza connessione il coach non può risponderti.
         </div>
 
+        {/* L'ultima cosa prima di entrare, e per chi preferisce vedere invece
+            che leggere è la prima. Si apre di fianco: chi torna qui trova
+            l'introduzione dov'era, invece di ricominciarla. */}
+        <p className="composerNote" style={{ marginTop: 12, marginBottom: 0 }}>
+          Preferisci vederlo? C&rsquo;è la{" "}
+          <a
+            href="/guida"
+            target="_blank"
+            rel="noreferrer"
+            style={{ fontWeight: 700, color: "var(--brandText)" }}
+            data-track="guide_open"
+            data-where="welcome"
+          >
+            guida video con l&rsquo;indice
+          </a>
+          : undici minuti in tutto, e ogni capitolo si apre da solo.
+        </p>
+
         {dots}
         <div className="welcomeRow">
           <button className="secondary" onClick={() => setPage(1)}>Indietro</button>
