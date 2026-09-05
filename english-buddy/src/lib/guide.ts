@@ -1,52 +1,23 @@
-/**
- * The video manual, and the map that makes it usable.
- *
- * A eighteen-minute film about an app is only worth having if somebody who
- * wants one answer — how do I forward an email? — can be standing at that
- * answer in two taps. So the chapters are data, every one of them has a name
- * that can go in a link, and the page can be sent to somebody already opened
- * at the minute that helps them.
- *
- * The files themselves are not in this repository and must not be: a video is
- * tens of megabytes of bytes that never diff, and Git is the wrong shelf for
- * it. The addresses arrive from the environment, and until they do the page
- * says so honestly instead of showing a broken player.
- */
+import manualChapters from "../../public/marketing/guide/ExecLingo_Manuale-capitoli.json";
+import shortChapters from "../../public/marketing/guide/ExecLingo_Sintesi_3min-capitoli.json";
 
-export type Chapter = { title: string; start: number; slug: string };
+export type Chapter = { title: string; start: number; end: number; slug: string };
 export type GuideKey = "manuale" | "sintesi";
-
 export type Guide = {
-  key: GuideKey;
-  title: string;
-  blurb: string;
-  /** Whole seconds, for the "quanto dura" line. */
-  seconds: number;
-  /** YouTube id, when the film is hosted there. Preferred: adaptive quality. */
-  youtube: string | null;
-  video: string | null;
-  captions: string | null;
-  /** Offered for download only when the file is actually somewhere. */
-  subtitles: string | null;
-  chapters: Chapter[];
+  key: GuideKey; title: string; blurb: string; seconds: number;
+  youtube: string | null; captions: string; subtitles: string;
+  chapterFile: string; chapters: Chapter[];
 };
 
-/** `Le tue email di lavoro` → `le-tue-email-di-lavoro`. */
 export function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+  return title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 }
 
-function withSlugs(entries: { title: string; start: number }[]): Chapter[] {
+function withSlugs(entries: { title: string; start: number; end: number }[]): Chapter[] {
   const seen = new Set<string>();
   return entries.map((entry) => {
     let slug = slugify(entry.title);
-    // Two chapters with the same name would fight over the same link.
     let n = 2;
     while (seen.has(slug)) slug = `${slugify(entry.title)}-${n++}`;
     seen.add(slug);
@@ -54,100 +25,76 @@ function withSlugs(entries: { title: string; start: number }[]): Chapter[] {
   });
 }
 
-const MANUALE = withSlugs([
-  { title: "Una giornata, un coach", start: 0 },
-  { title: "Installa, registrati e accedi", start: 21 },
-  { title: "Personalizzazione e Home", start: 64 },
-  { title: "Scrivi e allenati con Sam", start: 99 },
-  { title: "Voce e diario parlato", start: 143 },
-  { title: "Il catalogo degli allenamenti", start: 181 },
-  { title: "Mi serve adesso: Rescue", start: 240 },
-  { title: "Agenda e calendari", start: 269 },
-  { title: "Documenti e PDF", start: 318 },
-  { title: "Prima, durante e dopo la call", start: 350 },
-  { title: "Le tue email di lavoro", start: 380 },
-  { title: "Notifiche e comunicazioni", start: 416 },
-  { title: "Progressi e frasario", start: 466 },
-  { title: "Prova, piani e pagamenti", start: 502 },
-  { title: "Profilo, impostazioni e dati", start: 591 },
-  { title: "Aziende, partner e prossimo passo", start: 647 },
-]);
-
-const SINTESI = withSlugs([
-  { title: "Il tuo inglese al lavoro", start: 0 },
-  { title: "Account e primo percorso", start: 13 },
-  { title: "Allenati con Sam", start: 27 },
-  { title: "Prima, durante e dopo il lavoro", start: 50 },
-  { title: "Continua e ritrova il filo", start: 96 },
-  { title: "Prova, piani e pagamento", start: 114 },
-  { title: "Preferenze, team e prossimo passo", start: 150 },
-]);
-
-function url(value: string | undefined): string | null {
-  const trimmed = (value ?? "").trim();
-  return /^https?:\/\//i.test(trimmed) ? trimmed : null;
-}
-
-/**
- * The eleven characters YouTube actually needs, out of whatever got pasted.
- *
- * Nobody copies a bare id: they copy the address bar, or the share link, or
- * the studio link. All three carry the id, and refusing them would mean one
- * more thing to get wrong in a settings page nobody visits twice.
- */
+/** Accept only a YouTube ID or a URL on an actual YouTube host. */
 export function youtubeId(value: string | undefined): string | null {
   const raw = (value ?? "").trim();
-  if (!raw) return null;
-  const direct = raw.match(/^[\w-]{11}$/);
-  if (direct) return raw;
-  const found = raw.match(/(?:v=|\/(?:embed|shorts|live|v)\/|youtu\.be\/)([\w-]{11})/);
-  return found ? found[1] : null;
+  if (/^[\w-]{11}$/.test(raw)) return raw;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    const host = parsed.hostname.toLowerCase();
+    let id: string | null = null;
+    if (host === "youtu.be") id = parsed.pathname.split("/")[1];
+    if (["youtube.com", "www.youtube.com", "m.youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"].includes(host)) {
+      id = parsed.pathname === "/watch" ? parsed.searchParams.get("v")
+        : parsed.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})\/?$/)?.[1] ?? null;
+    }
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
+  } catch { return null; }
 }
 
+/** Published, approved films. An explicit empty override disables a film. */
 export function guides(): Guide[] {
   return [
     {
-      key: "manuale",
-      title: "Guida completa",
-      blurb: "Tutta l'app, un passaggio alla volta: dalla registrazione ai pagamenti, senza saltare niente.",
-      seconds: 693,
-      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_FULL_YT),
-      video: url(process.env.NEXT_PUBLIC_GUIDE_FULL_URL),
-      captions: url(process.env.NEXT_PUBLIC_GUIDE_FULL_VTT),
-      subtitles: url(process.env.NEXT_PUBLIC_GUIDE_FULL_SRT),
-      chapters: MANUALE,
+      key: "manuale", title: "Manuale completo", seconds: 693,
+      blurb: "Tutta l’app, dalla registrazione alle impostazioni. Scegli il passaggio che ti serve.",
+      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_FULL_YT ?? "_MUhXil1lek"),
+      captions: "/marketing/guide/ExecLingo_Manuale.vtt", subtitles: "/marketing/guide/ExecLingo_Manuale.srt",
+      chapterFile: "/marketing/guide/ExecLingo_Manuale-capitoli.json", chapters: withSlugs(manualChapters.chapters),
     },
     {
-      key: "sintesi",
-      title: "In tre minuti",
-      blurb: "Se hai poco tempo: cosa fa ExecLingo e come si comincia.",
-      seconds: 180,
-      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_SHORT_YT),
-      video: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_URL),
-      captions: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_VTT),
-      subtitles: url(process.env.NEXT_PUBLIC_GUIDE_SHORT_SRT),
-      chapters: SINTESI,
+      key: "sintesi", title: "Sintesi", seconds: 180,
+      blurb: "Il quadro d’insieme in tre minuti. Per approfondire, passa al manuale completo.",
+      youtube: youtubeId(process.env.NEXT_PUBLIC_GUIDE_SHORT_YT ?? "dEGY0PMMO7M"),
+      captions: "/marketing/guide/ExecLingo_Sintesi_3min.vtt", subtitles: "/marketing/guide/ExecLingo_Sintesi_3min.srt",
+      chapterFile: "/marketing/guide/ExecLingo_Sintesi_3min-capitoli.json", chapters: withSlugs(shortChapters.chapters),
     },
   ];
 }
 
-/** Whether there is anything to watch at all. */
-export function guideIsPublished(): boolean {
-  return guides().some((guide) => guide.youtube || guide.video);
-}
-
-/** `693` → `11:33`. */
+export function guideIsPublished(): boolean { return guides().some((guide) => guide.youtube); }
 export function clock(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
+  const whole = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
-
-/** The guide and moment a link is asking for, taking nothing on trust. */
-export function resolveDeepLink(
-  params: { v?: string; c?: string },
-  all: Guide[] = guides()
-): { guide: Guide; chapter: Chapter | null } {
+export function resolveDeepLink(params: { v?: string; c?: string }, all: Guide[] = guides()) {
   const guide = all.find((g) => g.key === params.v) ?? all[0];
   const chapter = params.c ? guide.chapters.find((c) => c.slug === params.c) ?? null : null;
   return { guide, chapter };
+}
+export function currentChapter(chapters: Chapter[], seconds: number): Chapter | null {
+  return chapters.reduce<Chapter | null>((found, chapter) => chapter.start <= seconds ? chapter : found, null);
+}
+
+const synonyms: Record<string, string> = {
+  "email": "mail inoltrare posta risposta",
+  "pagament": "pagamento abbonamento prezzo rinnovo acquisto carta stripe apple google",
+  "notifiche": "notifica promemoria permesso comunicazioni",
+  "calendari": "calendario agenda outlook google icloud",
+  "call": "riunione telefono lavoro",
+};
+const normalize = (value: string) => value.toLocaleLowerCase("it").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+export function matchingChapters(chapters: Chapter[], query: string) {
+  const terms = normalize(query.trim()).split(/\s+/).filter(Boolean);
+  return chapters.map((chapter, index) => ({ chapter, index })).filter(({ chapter }) => {
+    const title = normalize(chapter.title);
+    const text = title + " " + Object.entries(synonyms).filter(([key]) => title.includes(key)).map(([, words]) => words).join(" ");
+    return terms.every((term) => text.includes(term));
+  });
+}
+export function youtubeWatchUrl(guide: Guide, seconds = 0): string | null {
+  if (!guide.youtube) return null;
+  const time = Number.isFinite(seconds) ? Math.max(0, Math.min(Math.floor(seconds), guide.seconds - 1)) : 0;
+  return `https://www.youtube.com/watch?v=${guide.youtube}&t=${time}s`;
 }

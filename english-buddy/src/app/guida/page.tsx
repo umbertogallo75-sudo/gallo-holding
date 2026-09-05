@@ -3,12 +3,13 @@ import { SitePage } from "@/components/SitePage";
 import { LandingTracker } from "@/app/LandingTracker";
 import { GuidePlayer } from "./GuidePlayer";
 import { clock, guides, resolveDeepLink } from "@/lib/guide";
+import styles from "./guide.module.css";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "Come si usa ExecLingo — la guida video",
+  title: "Guida ExecLingo: video e capitoli per usare l’app con Sam",
   description:
-    "La guida video di ExecLingo: registrazione, allenamenti con Sam, voce, agenda, mail, documenti, pagamenti. Con indice, per andare subito al punto che ti serve.",
+    "Manuale completo e sintesi di 3 minuti, con capitoli su Sam, allenamenti, notifiche, calendari e abbonamenti. Trova subito il passaggio che ti serve.",
   alternates: { canonical: "/guida" },
 };
 
@@ -33,25 +34,19 @@ export default async function GuidaPage({ searchParams }: GuidaPageProps) {
   return (
     <SitePage>
       <LandingTracker page="guida" />
+      <div className={styles.root}>
+        <section className={styles.hero}>
+          <div className={styles.eyebrow}>Video manuale · Coach Sam</div>
+          <h1>Trova subito il passaggio che ti serve.</h1>
+          <p className={styles.intro}>Segui la guida completa oppure parti dalla sintesi. L’indice ti porta direttamente a registrazione, allenamenti, notifiche, pagamenti e tutte le altre sezioni.</p>
+        </section>
+        <GuidePlayer key={`${guide.key}:${chapter?.slug ?? "inizio"}`} guides={all} initial={guide.key} startAt={chapter?.start ?? 0} />
 
-      <section className="hero">
-        <div className="kicker">Guida video</div>
-        <h1>Come si usa ExecLingo.</h1>
-        <p className="muted">
-          Tutto quello che l&rsquo;app sa fare, mostrato passaggio per passaggio. Usa l&rsquo;indice per andare
-          dritto a quello che ti serve: <em>inoltrare una mail</em>, <em>parlare a voce con Sam</em>,{" "}
-          <em>collegare l&rsquo;agenda</em>, <em>pagare</em>.
-        </p>
-      </section>
-
-      <GuidePlayer guides={all} initial={guide.key} startAt={chapter?.start ?? 0} />
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <div className="kicker">Da qui si comincia</div>
-        <p style={{ margin: "6px 0 12px" }}>
+      <section className={styles.cta}>
+        <div><h2>Da qui si comincia</h2><p>
           Il test del livello dura tre minuti ed è gratuito, anche senza abbonamento.
-        </p>
-        <Link href="/register" className="primary full" style={{ textAlign: "center", textDecoration: "none" }}>
+        </p></div>
+        <Link href="/register">
           Prova ExecLingo
         </Link>
       </section>
@@ -60,18 +55,19 @@ export default async function GuidaPage({ searchParams }: GuidaPageProps) {
           drawn, and the voice is not a person. Anybody who watches it will
           work that out in ninety seconds, and finding it out for themselves
           costs more than being told. */}
-      <p className="composerNote" style={{ marginTop: 16 }}>
+      <p className={styles.note}>
         Le schermate del video sono <strong>ricostruite a scopo dimostrativo</strong>: nomi, mail e documenti sono
         inventati, nessun account è stato creato e nessun pagamento è stato eseguito per girarlo. La voce narrante è{" "}
         <strong>generata con intelligenza artificiale</strong>. I prezzi mostrati sono quelli in vigore alla
         registrazione del video: valgono le condizioni indicate al momento dell&rsquo;acquisto.
       </p>
 
-      <p className="composerNote">
+      <p className={styles.note}>
         Durata: guida completa {clock(693)}, sintesi {clock(180)}.{" "}
         <Link href="/scarica" style={{ fontWeight: 700 }}>Scarica l&rsquo;app</Link> ·{" "}
         <Link href="/privacy" style={{ fontWeight: 700 }}>Privacy</Link>
       </p>
+      </div>
     </SitePage>
   );
 }

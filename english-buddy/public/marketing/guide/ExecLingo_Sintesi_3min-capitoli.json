@@ -1,0 +1,41 @@
+{
+  "title": "ExecLingo — Il tuo coach, nella tua giornata",
+  "duration": 180,
+  "chapters": [
+    {
+      "title": "Il tuo inglese al lavoro",
+      "start": 0,
+      "end": 13.39713529856387
+    },
+    {
+      "title": "Account e primo percorso",
+      "start": 13.39713529856387,
+      "end": 26.587127739984886
+    },
+    {
+      "title": "Allenati con Sam",
+      "start": 26.587127739984886,
+      "end": 50.393915343915346
+    },
+    {
+      "title": "Prima, durante e dopo il lavoro",
+      "start": 50.393915343915346,
+      "end": 95.61910052910054
+    },
+    {
+      "title": "Continua e ritrova il filo",
+      "start": 95.61910052910054,
+      "end": 113.72132275132276
+    },
+    {
+      "title": "Prova, piani e pagamento",
+      "start": 113.72132275132276,
+      "end": 150.41125472411187
+    },
+    {
+      "title": "Preferenze, team e prossimo passo",
+      "start": 150.41125472411187,
+      "end": 180
+    }
+  ]
+}

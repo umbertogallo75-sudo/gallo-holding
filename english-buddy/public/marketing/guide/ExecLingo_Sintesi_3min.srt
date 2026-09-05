@@ -1,0 +1,215 @@
+1
+00:00:00,500 --> 00:00:05,490
+ExecLingo: il tuo coach di Business English. Questa guida usa schermate
+
+2
+00:00:05,490 --> 00:00:07,528
+simulate e dati dimostrativi.
+
+3
+00:00:07,675 --> 00:00:12,780
+Devi presentare una proposta in inglese. Prepariamo le parole, prima della
+
+4
+00:00:12,780 --> 00:00:13,401
+riunione.
+
+5
+00:00:13,547 --> 00:00:19,001
+Registrati con nome, email e password. Leggi termini e privacy; il codice
+
+6
+00:00:19,001 --> 00:00:20,645
+partner è facoltativo.
+
+7
+00:00:20,791 --> 00:00:26,237
+Scegli livello, obiettivo e tempo disponibile. La Home propone la sessione di
+
+8
+00:00:26,237 --> 00:00:26,591
+oggi.
+
+9
+00:00:26,737 --> 00:00:32,374
+Questo è Sam. Scrivi una frase, anche imperfetta, e lavora sui suggerimenti.
+
+10
+00:00:32,520 --> 00:00:37,660
+Rileggi la correzione, ascolta e riprova. Anche un errore diventa pratica
+
+11
+00:00:37,660 --> 00:00:38,082
+utile.
+
+12
+00:00:38,229 --> 00:00:43,715
+Preferisci parlare? Consenti il microfono, avvia la conversazione e rileggi la
+
+13
+00:00:43,715 --> 00:00:44,629
+trascrizione.
+
+14
+00:00:44,776 --> 00:00:49,744
+Negli Allenamenti scegli pratica rapida, ascolto, pronuncia o una situazione
+
+15
+00:00:49,744 --> 00:00:50,398
+di lavoro.
+
+16
+00:00:50,544 --> 00:00:55,634
+Con Rescue scrivi in italiano: confronta tre versioni inglesi, ascolta e
+
+17
+00:00:55,634 --> 00:00:56,058
+copia.
+
+18
+00:00:56,204 --> 00:01:00,501
+Aggiungi l'incontro in Agenda e prepara con Sam i punti da discutere.
+
+19
+00:01:00,647 --> 00:01:05,551
+Oppure importa gli impegni dal collegamento di condivisione del calendario, in
+
+20
+00:01:05,551 --> 00:01:06,368
+formato iCal.
+
+21
+00:01:06,514 --> 00:01:11,937
+Carica un PDF: riassunto, parole e domande ti aiutano a prepararti sul tuo
+
+22
+00:01:11,937 --> 00:01:12,669
+materiale.
+
+23
+00:01:12,816 --> 00:01:17,658
+In riunione cerchi manualmente le frasi: questa modalità non ascolta né
+
+24
+00:01:17,658 --> 00:01:18,817
+registra la call.
+
+25
+00:01:18,963 --> 00:01:24,001
+Poi racconta com'è andata: riparti dalle difficoltà nella prossima occasione
+
+26
+00:01:24,001 --> 00:01:24,731
+di pratica.
+
+27
+00:01:24,877 --> 00:01:29,645
+Inoltra una mail al tuo Sam: trovi riassunto, richieste e proposta di
+
+28
+00:01:29,645 --> 00:01:30,267
+risposta.
+
+29
+00:01:30,414 --> 00:01:35,623
+Scegli il tono, rileggi e copia. Sei tu a inviare la risposta al cliente.
+
+30
+00:01:35,769 --> 00:01:40,445
+Autorizza le notifiche per tornare alla pratica. Gestisci separatamente
+
+31
+00:01:40,445 --> 00:01:42,487
+permessi del telefono ed email.
+
+32
+00:01:42,633 --> 00:01:47,410
+Nei Progressi ritrovi il percorso, le capacità da allenare e le espressioni
+
+33
+00:01:47,410 --> 00:01:48,111
+incontrate.
+
+34
+00:01:48,257 --> 00:01:53,153
+Dal Frasario riascolta e ripassa le espressioni salvate, prima della prossima
+
+35
+00:01:53,153 --> 00:01:53,725
+riunione.
+
+36
+00:01:53,871 --> 00:01:58,735
+Test gratuito e prova dell'app sono distinti. Controlla durata e scadenza
+
+37
+00:01:58,735 --> 00:01:59,602
+nell'account.
+
+38
+00:01:59,748 --> 00:02:05,027
+Confronta mensile e annuale: controlla sempre importo, durata dell'accesso e
+
+39
+00:02:05,027 --> 00:02:06,346
+rinnovo automatico.
+
+40
+00:02:06,493 --> 00:02:10,950
+Il Programma dura tre mesi, senza rinnovo. Il Mantenimento dipende
+
+41
+00:02:10,950 --> 00:02:12,774
+dall'idoneità dell'account.
+
+42
+00:02:12,920 --> 00:02:18,065
+Sul sito paghi con Stripe. Controlla riepilogo e metodi disponibili prima di
+
+43
+00:02:18,065 --> 00:02:18,809
+confermare.
+
+44
+00:02:18,956 --> 00:02:23,564
+Nelle app valgono prezzo e condizioni mostrati da App Store o Google Play.
+
+45
+00:02:23,710 --> 00:02:28,925
+Gestisci rinnovo e ripristino dal gestore originario. Eliminare l'account non
+
+46
+00:02:28,925 --> 00:02:30,415
+disdice l'abbonamento.
+
+47
+00:02:30,561 --> 00:02:35,715
+Dal Profilo gestisci preferenze e accesso. Trovi anche privacy, assistenza e
+
+48
+00:02:35,715 --> 00:02:37,410
+richiesta d'eliminazione.
+
+49
+00:02:37,557 --> 00:02:43,018
+Per il team: licenze a volume, fattura aziendale e codici per i collaboratori.
+
+50
+00:02:43,164 --> 00:02:48,383
+Vuoi proporre ExecLingo ai tuoi contatti? Scopri il programma Partner e le
+
+51
+00:02:48,383 --> 00:02:49,159
+condizioni.
+
+52
+00:02:49,305 --> 00:02:53,260
+Parti dalla prossima call, da una frase o dalla sessione di oggi.
+
+53
+00:02:53,406 --> 00:02:58,844
+ExecLingo: il tuo inglese, al lavoro. Scarica l'app e inizia dal test
+
+54
+00:02:58,844 --> 00:02:59,554
+gratuito.

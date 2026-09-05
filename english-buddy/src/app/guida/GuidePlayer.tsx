@@ -1,313 +1,306 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { clock, type Chapter, type Guide, type GuideKey } from "@/lib/guide";
+import { clock, currentChapter, matchingChapters, youtubeWatchUrl, type Chapter, type Guide, type GuideKey } from "@/lib/guide";
+import { consentSnapshot, subscribeConsent } from "@/lib/consent-store";
 import { track } from "@/lib/track-client";
-
-/**
- * The manual, made searchable.
- *
- * Nobody watches eighteen minutes of anything to find out how to forward an
- * email. So the index is the main object on this page and the film is what it
- * points at: every chapter can be jumped to, searched for by the word somebody
- * would actually type, and copied as a link that opens here at that minute.
- *
- * Two ways of holding the film, because they fail differently. YouTube sends
- * whoever is on a train a smaller picture instead of a stalled one, which a
- * single fat file on our own storage can never do — so it wins when it is
- * configured. The file remains for the day we want the video on our own
- * domain with nothing else in the frame.
- *
- * Nothing from YouTube is fetched until somebody asks for the video: no
- * iframe, no script, no cookie, no request. The panel you see before that is
- * ours, which is both the honest reading of consent and a page that loads in
- * one tenth of the weight.
- */
+import styles from "./guide.module.css";
 
 type YtPlayer = {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number;
   playVideo: () => void;
+  pauseVideo: () => void;
+  getIframe: () => HTMLIFrameElement;
   destroy: () => void;
 };
-type YtApi = {
-  Player: new (element: HTMLElement, options: Record<string, unknown>) => YtPlayer;
+type YtApi = { Player: new (element: HTMLElement, options: Record<string, unknown>) => YtPlayer };
+type PlayerEvent = { target: YtPlayer; data: number };
+type Status = "idle" | "loading" | "ready" | "playing" | "paused" | "ended" | "blocked" | "error";
+let apiPromise: Promise<YtApi> | null = null;
+
+/** No script until the visitor explicitly loads this external content. */
+function loadYouTubeApi(): Promise<YtApi> {
+  const w = window as unknown as { YT?: YtApi; onYouTubeIframeAPIReady?: () => void };
+  if (w.YT?.Player) return Promise.resolve(w.YT);
+  if (apiPromise) return apiPromise;
+  apiPromise = new Promise<YtApi>((resolve, reject) => {
+    const previous = w.onYouTubeIframeAPIReady;
+    const script = document.createElement("script");
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      if (w.onYouTubeIframeAPIReady === ready) w.onYouTubeIframeAPIReady = previous;
+      if (error) { script.remove(); reject(error); }
+      else resolve(w.YT as YtApi);
+    };
+    const ready = () => {
+      try { previous?.(); } finally {
+        if (w.YT?.Player) finish();
+        else finish(new Error("youtube-api-unavailable"));
+      }
+    };
+    const timeout = window.setTimeout(() => finish(new Error("youtube-api-timeout")), 15000);
+    w.onYouTubeIframeAPIReady = ready;
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    script.onerror = () => finish(new Error("youtube-api-network"));
+    document.head.append(script);
+  }).catch((error) => { apiPromise = null; throw error; });
+  return apiPromise;
+}
+
+const messages: Record<Status, string> = {
+  idle: "Scegli un capitolo, poi carica il video.",
+  loading: "Caricamento del video…",
+  ready: "Premi play oppure scegli un capitolo.",
+  playing: "In riproduzione",
+  paused: "In pausa · riprendi o scegli un capitolo.",
+  ended: "Guida completata · puoi tornare a qualsiasi capitolo.",
+  blocked: "Capitolo selezionato. Premi play nel video per iniziare.",
+  error: "Non riusciamo a riprodurre il video qui. Riprova oppure aprilo su YouTube.",
 };
 
-const API_SRC = "https://www.youtube.com/iframe_api";
-
-/** Loads YouTube's player script once, and only once somebody wants it. */
-function loadYouTubeApi(): Promise<YtApi> {
-  const w = window as unknown as { YT?: YtApi; __ytReady?: Promise<YtApi>; onYouTubeIframeAPIReady?: () => void };
-  if (w.YT?.Player) return Promise.resolve(w.YT);
-  if (w.__ytReady) return w.__ytReady;
-  w.__ytReady = new Promise<YtApi>((resolve, reject) => {
-    w.onYouTubeIframeAPIReady = () => resolve(w.YT as YtApi);
-    const script = document.createElement("script");
-    script.src = API_SRC;
-    script.async = true;
-    script.onerror = () => reject(new Error("youtube-api"));
-    document.head.append(script);
-  });
-  return w.__ytReady;
-}
-
-function search(value: string): string {
-  return value.toLocaleLowerCase("it").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
 export function GuidePlayer({ guides, initial, startAt }: { guides: Guide[]; initial: GuideKey; startAt: number }) {
-  const video = useRef<HTMLVideoElement | null>(null);
-  const mount = useRef<HTMLDivElement | null>(null);
+  const mount = useRef<HTMLDivElement>(null);
   const player = useRef<YtPlayer | null>(null);
-  const pending = useRef<number | null>(startAt > 0 ? startAt : null);
+  const ready = useRef(false);
+  const pending = useRef(startAt);
+  const positions = useRef<Record<GuideKey, number>>({ manuale: 0, sintesi: 0 });
   const opened = useRef(false);
-
-  const [key, setKey] = useState<GuideKey>(initial);
+  const copyTimer = useRef(0);
+  const [key, setKey] = useState(initial);
   const [armed, setArmed] = useState(false);
   const [at, setAt] = useState(startAt);
+  const [attempt, setAttempt] = useState(0);
+  const [status, setStatus] = useState<Status>("idle");
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState("");
-  const [broken, setBroken] = useState(false);
-
+  const [copyFallback, setCopyFallback] = useState("");
+  const [selectionMessage, setSelectionMessage] = useState("");
   const guide = guides.find((one) => one.key === key) ?? guides[0];
-  const needle = search(query.trim());
-  const shown = needle
-    ? guide.chapters.map((chapter, index) => ({ chapter, index })).filter((row) => search(row.chapter.title).includes(needle))
-    : guide.chapters.map((chapter, index) => ({ chapter, index }));
-
-  // The chapter you are inside is the last one that has already started.
-  const current = guide.chapters.reduce<Chapter | null>(
-    (found, chapter) => (chapter.start <= at + 0.25 ? chapter : found),
-    null
-  );
+  const shown = matchingChapters(guide.chapters, query);
+  const current = currentChapter(guide.chapters, at);
+  const watchUrl = youtubeWatchUrl(guide, at);
 
   useEffect(() => {
-    if (opened.current) return;
-    opened.current = true;
-    track("guide_open", { where: initial });
+    if (!opened.current) { opened.current = true; track("guide_open", { where: initial }); }
+    // Content permission does not grant marketing consent. A site-wide refusal
+    // or withdrawal also stops this optional content, including delayed loads.
+    const unsubscribe = subscribeConsent(() => {
+      if (consentSnapshot() !== "granted") {
+        ready.current = false;
+        player.current?.pauseVideo?.();
+        setArmed(false);
+        setStatus("idle");
+      }
+    });
+    return () => { unsubscribe(); window.clearTimeout(copyTimer.current); };
   }, [initial]);
 
-  // The YouTube player exists only while it is wanted, and is taken down when
-  // the guide changes so the two films can never fight over one frame.
   useEffect(() => {
     if (!armed || !guide.youtube || !mount.current) return;
     let live = true;
+    let failed = false;
+    let instance: YtPlayer | null = null;
     let ticker = 0;
-    const element = mount.current;
-    loadYouTubeApi()
-      .then((api) => {
-        if (!live) return;
-        player.current = new api.Player(element, {
-          host: "https://www.youtube-nocookie.com",
-          videoId: guide.youtube,
-          playerVars: { start: Math.floor(pending.current ?? 0), autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1, hl: "it" },
-        });
-        pending.current = null;
-        ticker = window.setInterval(() => {
-          const seconds = player.current?.getCurrentTime?.();
-          if (typeof seconds === "number") setAt(seconds);
-        }, 500);
-      })
-      .catch(() => { if (live) setBroken(true); });
+    const wrapper = mount.current;
+    // YouTube replaces its argument. Only this child belongs to the API;
+    // React keeps the stable wrapper through retry, switching and StrictMode.
+    const element = document.createElement("div");
+    wrapper.replaceChildren(element);
+    ready.current = false;
+    const sync = () => {
+      if (!live || failed || !ready.current) return;
+      const time = instance?.getCurrentTime?.();
+      if (typeof time === "number" && Number.isFinite(time) && time >= 0) {
+        positions.current[guide.key] = time;
+        setAt(time);
+      }
+    };
+    const fail = () => {
+      if (!live || failed) return;
+      failed = true;
+      window.clearInterval(ticker);
+      window.clearTimeout(timeout);
+      ready.current = false;
+      instance?.pauseVideo?.();
+      if (player.current === instance) player.current = null;
+      instance?.destroy?.();
+      instance = null;
+      wrapper.replaceChildren();
+      setStatus("error");
+    };
+    const timeout = window.setTimeout(fail, 22000);
+    loadYouTubeApi().then((api) => {
+      if (!live || failed) return;
+      instance = new api.Player(element, {
+        host: "https://www.youtube-nocookie.com",
+        videoId: guide.youtube,
+        width: "100%", height: "100%",
+        playerVars: { autoplay: 0, rel: 0, playsinline: 1, hl: "it", cc_lang_pref: "it", origin: window.location.origin, enablejsapi: 1 },
+        events: {
+          onReady: (event: PlayerEvent) => {
+            if (!live || failed) return;
+            window.clearTimeout(timeout);
+            ready.current = true;
+            const iframe = event.target.getIframe();
+            iframe.title = `ExecLingo — ${guide.title}`;
+            iframe.referrerPolicy = "strict-origin-when-cross-origin";
+            event.target.seekTo(pending.current, true);
+            setStatus("ready");
+            event.target.playVideo();
+          },
+          onStateChange: (event: PlayerEvent) => {
+            if (!live || failed) return;
+            window.clearInterval(ticker);
+            sync();
+            if (event.data === 1) {
+              setStatus("playing");
+              ticker = window.setInterval(sync, 500);
+            } else if (event.data === 2) setStatus("paused");
+            else if (event.data === 0) setStatus("ended");
+          },
+          onAutoplayBlocked: () => { if (live && !failed) setStatus("blocked"); },
+          onError: fail,
+        },
+      });
+      player.current = instance;
+    }).catch(fail);
     return () => {
       live = false;
+      ready.current = false;
+      window.clearTimeout(timeout);
       window.clearInterval(ticker);
-      player.current?.destroy?.();
-      player.current = null;
+      if (player.current === instance) player.current = null;
+      instance?.destroy?.();
+      wrapper.replaceChildren();
     };
-  }, [armed, guide.youtube]);
+  }, [armed, guide.youtube, guide.key, guide.title, attempt]);
 
-  function start(seconds: number) {
-    pending.current = seconds;
-    setAt(seconds);
+  function loadVideo() {
+    pending.current = at;
+    setStatus("loading");
+    if (armed) setAttempt((value) => value + 1);
     setArmed(true);
   }
 
   function go(chapter: Chapter) {
     track("guide_chapter", { where: `${guide.key}:${chapter.slug}` });
-    setBroken(false);
-    if (guide.youtube) {
-      if (player.current) {
-        player.current.seekTo(chapter.start, true);
-        player.current.playVideo();
-        setAt(chapter.start);
-      } else {
-        start(chapter.start);
-      }
-      return;
+    pending.current = chapter.start;
+    positions.current[key] = chapter.start;
+    setAt(chapter.start);
+    setSelectionMessage(`${chapter.title}, da ${clock(chapter.start)}.${!armed ? " Premi Carica il video YouTube per iniziare." : ""}`);
+    if (ready.current && player.current) {
+      player.current.seekTo(chapter.start, true);
+      player.current.playVideo();
     }
-    const element = video.current;
-    if (!element) return;
-    if (element.readyState >= 1) {
-      element.currentTime = chapter.start;
-      setAt(chapter.start);
-      void element.play().catch(() => {});
-    } else {
-      pending.current = chapter.start;
-      element.load();
-    }
+    // Selecting a chapter alone never silently grants permission to YouTube.
   }
 
   function switchTo(next: GuideKey) {
     if (next === key) return;
-    track("guide_switch", { where: next });
-    pending.current = null;
+    positions.current[key] = at;
+    player.current?.pauseVideo?.();
+    ready.current = false;
+    pending.current = positions.current[next];
     setArmed(false);
-    setBroken(false);
+    setStatus("idle");
     setKey(next);
-    setAt(0);
+    setAt(positions.current[next]);
     setQuery("");
+    setCopied("");
+    setCopyFallback("");
+    setSelectionMessage("");
+    track("guide_switch", { where: next });
+  }
+
+  function stopYouTube() {
+    player.current?.pauseVideo?.();
+    ready.current = false;
+    setArmed(false);
+    setStatus("idle");
   }
 
   async function copy(chapter: Chapter) {
     const link = `${window.location.origin}/guida?v=${guide.key}&c=${chapter.slug}`;
+    setCopyFallback("");
     try {
       await navigator.clipboard.writeText(link);
       setCopied(chapter.slug);
-      window.setTimeout(() => setCopied(""), 2200);
-    } catch {
-      window.prompt("Copia il link a questo capitolo:", link);
-    }
+      window.clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => setCopied(""), 2200);
+    } catch { setCopyFallback(link); }
   }
 
-  const playable = Boolean(guide.youtube || guide.video);
-  const downloads = [
-    guide.video ? { href: guide.video, label: "Scarica il video" } : null,
-    guide.subtitles ? { href: guide.subtitles, label: "Sottotitoli SRT" } : null,
-    guide.captions ? { href: guide.captions, label: "Sottotitoli VTT" } : null,
-  ].filter((one): one is { href: string; label: string } => one !== null);
-
   return (
-    <>
-      <div className="guideSwitch" role="group" aria-label="Scegli la guida">
-        {guides.map((one) => (
-          <button
-            key={one.key}
-            type="button"
-            className={one.key === key ? "guideTab on" : "guideTab"}
-            aria-pressed={one.key === key}
-            onClick={() => switchTo(one.key)}
-          >
-            {one.title}
-            <span className="guideTabTime">{clock(one.seconds)}</span>
-          </button>
-        ))}
+    <div className={styles.player} data-kind={guide.key}>
+      <div className={styles.switcher} role="group" aria-label="Scegli il video">
+        {guides.map((one) => <button key={one.key} type="button" aria-pressed={one.key === key} onClick={() => switchTo(one.key)}>
+          {one.title}<span>{clock(one.seconds)}</span>
+        </button>)}
       </div>
-      <p className="muted guideBlurb">{guide.blurb}</p>
-
-      <div className="guideLayout">
-        <div className="guideStage">
-          <div className="guideScreen">
-            {guide.youtube ? (
-              armed ? (
-                <div className="guideFrame"><div ref={mount} /></div>
-              ) : (
-                <button type="button" className="guidePoster" onClick={() => start(pending.current ?? 0)}>
-                  <span className="guidePlay" aria-hidden>▶</span>
-                  <span className="guidePosterTitle">{guide.title}</span>
-                  <span className="guidePosterNote">
-                    Tocca per avviare. Il video parte da YouTube: prima di questo momento non gli viene chiesto niente.
-                  </span>
-                </button>
-              )
-            ) : guide.video ? (
-              <video
-                key={guide.key}
-                ref={video}
-                className="guideVideo"
-                controls
-                playsInline
-                preload="metadata"
-                aria-label={`Guida video: ${guide.title}`}
-                onLoadedMetadata={() => {
-                  const element = video.current;
-                  if (!element) return;
-                  const target = pending.current;
-                  pending.current = null;
-                  if (target !== null && target > 0) {
-                    element.currentTime = target;
-                    setAt(target);
-                    void element.play().catch(() => {});
-                  }
-                }}
-                onTimeUpdate={() => setAt(video.current?.currentTime ?? 0)}
-                onSeeked={() => setAt(video.current?.currentTime ?? 0)}
-                onError={() => setBroken(true)}
-              >
-                <source src={guide.video} type="video/mp4" />
-                {guide.captions ? <track kind="captions" srcLang="it" label="Italiano" src={guide.captions} /> : null}
-                Il tuo browser non riesce a mostrare il video.
-              </video>
-            ) : (
-              <div className="guideMissing">
-                <p><strong>Il video sta arrivando.</strong></p>
-                <p style={{ margin: 0 }}>
-                  L&rsquo;indice qui accanto è già quello definitivo: appena il filmato è online, ogni capitolo diventa cliccabile.
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="guideBar">
-            <span className="guideNow">{current ? current.title : guide.title}</span>
-            <span className="guideClock">{clock(at)} / {clock(guide.seconds)}</span>
-          </div>
-        </div>
-
-        <aside className="guideIndex" aria-label="Capitoli">
-          <div className="sectionHead" style={{ marginTop: 0 }}>
-            <h2>Vai al punto</h2>
-            <span className="muted" style={{ fontSize: 12 }}>{guide.chapters.length} capitoli</span>
-          </div>
-          <input
-            className="linkInput"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca: mail, pagamento, voce…"
-            aria-label="Cerca un capitolo"
-          />
-          <ol className="guideChapters">
-            {shown.map(({ chapter, index }) => (
-              <li key={chapter.slug}>
-                <button
-                  type="button"
-                  className={current?.slug === chapter.slug ? "guideChapter on" : "guideChapter"}
-                  aria-current={current?.slug === chapter.slug ? "true" : undefined}
-                  disabled={!playable}
-                  onClick={() => go(chapter)}
-                >
-                  <span className="guideChapterNum">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="guideChapterTitle">{chapter.title}</span>
-                  <span className="guideChapterTime">{clock(chapter.start)}</span>
-                </button>
-                <button
-                  type="button"
-                  className="guideCopy"
-                  onClick={() => copy(chapter)}
-                  aria-label={`Copia il link a «${chapter.title}»`}
-                >
-                  {copied === chapter.slug ? "copiato" : "link"}
-                </button>
-              </li>
-            ))}
-          </ol>
-          {shown.length ? null : <p className="muted" style={{ fontSize: 13 }}>Nessun capitolo con questa parola.</p>}
-          {downloads.length ? (
-            <div className="guideTools">
-              {downloads.map((one) => (
-                <a key={one.label} href={one.href} download>{one.label}</a>
-              ))}
+      <p className={styles.blurb}>{guide.blurb}</p>
+      <div className={styles.layout}>
+        <section aria-label="Riproduzione del video">
+          <div className={styles.stage}>
+            <div className={styles.screen}>
+              {armed && guide.youtube ? <div ref={mount} className={styles.frame} /> :
+                <div className={styles.poster}>
+                  <span className={styles.playIcon} aria-hidden="true">▶</span>
+                  <h2>{guide.title}</h2>
+                  <p>{clock(guide.seconds)} · Voce, musica e sottotitoli</p>
+                  {guide.youtube ? <>
+                    <button type="button" className={styles.load} onClick={loadVideo}>Carica il video YouTube</button>
+                    <p className={styles.permission}>Il video è ospitato su YouTube. Caricandolo ti colleghi a Google; puoi interrompere il collegamento qui sotto. La scelta vale solo per questo lettore, non per i cookie pubblicitari.</p>
+                    {at > 0 ? <p>Partenza da {clock(at)}</p> : null}
+                  </> : <p>Questo video non è disponibile al momento. L’indice resta consultabile.</p>}
+                </div>}
             </div>
-          ) : null}
+            <div className={styles.bar}>
+              <div><strong>{current?.title ?? guide.title}</strong><span role="status">{messages[status]}</span></div>
+              <span className={styles.clock}>{clock(at)} / {clock(guide.seconds)}</span>
+            </div>
+          </div>
+          {status === "error" ? <div className={styles.notice} role="alert">
+            {messages.error} <button type="button" onClick={loadVideo}>Riprova</button>
+          </div> : null}
+          <div className={styles.external}>
+            {watchUrl ? <a href={watchUrl} target="_blank" rel="noopener noreferrer">Guarda su YouTube ↗</a> : null}
+            {armed ? <button type="button" onClick={stopYouTube}>Interrompi YouTube</button> : null}
+          </div>
+          <p className={styles.note}>Voce italiana generata con intelligenza artificiale OpenAI, musica discreta e sottotitoli. La traccia aggiuntiva YouTube è facoltativa: i testi sono già visibili nel video.</p>
+        </section>
+        <aside className={styles.index} aria-label="Indice e materiali">
+          <div className={styles.panelHead}><h2>Vai al punto</h2><span>{guide.chapters.length} capitoli</span></div>
+          <p className={styles.hint}>Tocca un capitolo per scegliere da dove iniziare. Durante il video viene evidenziata la sezione corrente.</p>
+          <input className={styles.filter} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca: pagamento, mail, notifiche…" aria-label="Cerca un capitolo" />
+          <p className={styles.srOnly} aria-live="polite">{query ? `${shown.length} risultati` : ""}</p>
+          <nav aria-label="Capitoli del video"><ol className={styles.chapters}>
+            {shown.map(({ chapter, index }) => <li key={chapter.slug}>
+              <button type="button" className={styles.chapter} aria-current={current?.slug === chapter.slug ? "true" : undefined} onClick={() => go(chapter)}>
+                <span className={styles.num}>{String(index + 1).padStart(2, "0")}</span>
+                <span>{chapter.title}</span><span className={styles.chapterTime}>{clock(chapter.start)}</span>
+              </button>
+              <button type="button" className={styles.copy} onClick={() => void copy(chapter)} aria-label={`Copia il link a «${chapter.title}»`}>
+                {copied === chapter.slug ? "✓" : "↗"}
+              </button>
+            </li>)}
+          </ol></nav>
+          {!shown.length ? <p className={styles.hint}>Nessun capitolo corrisponde alla ricerca. Prova con Sam, email, pagamenti o notifiche. <button type="button" onClick={() => setQuery("")}>Cancella ricerca</button></p> : null}
+          <p className={styles.selection} role="status">{copied ? "Link copiato" : selectionMessage}</p>
+          {copyFallback ? <label className={styles.hint}>Copia questo link:<input className={styles.filter} readOnly value={copyFallback} onFocus={(e) => e.currentTarget.select()} /></label> : null}
+          <div className={styles.tools} aria-label="Materiali del video selezionato">
+            <a href={guide.subtitles} download>Sottotitoli SRT</a>
+            <a href={guide.captions} download>Sottotitoli VTT</a>
+            <a href={guide.chapterFile} download>Indice e tempi</a>
+          </div>
+          <p className={styles.note}>Schermo iPhone illustrato: interfaccia ricostruita a scopo dimostrativo. Nomi, email e contenuti sono esempi. Nessun account creato e nessun pagamento eseguito per queste scene.</p>
+          <details className={styles.help}><summary>Come usare la guida</summary><p>Scegli manuale o sintesi, cerca un argomento e carica il video. Il pulsante accanto a ogni capitolo copia un link che apre questa pagina nel punto scelto. Per fermare il collegamento usa Interrompi YouTube.</p><p>Le condizioni mostrate si riferiscono alla preparazione del video, il 5 settembre 2026. Prima di acquistare verifica prezzi e condizioni nel gestore di pagamento.</p></details>
         </aside>
       </div>
-
-      {broken ? (
-        <div className="notice" style={{ marginTop: 12 }}>
-          Il video non è partito. Riprova, oppure aprilo direttamente su YouTube: a volte è una rete che blocca il player.
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 }

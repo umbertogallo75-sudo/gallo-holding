@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { clock, guideIsPublished, guides, resolveDeepLink, slugify, youtubeId } from "@/lib/guide";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { clock, currentChapter, guideIsPublished, guides, matchingChapters, resolveDeepLink, slugify, youtubeId, youtubeWatchUrl } from "@/lib/guide";
 
 const all = guides();
+afterEach(() => vi.unstubAllEnvs());
 
 describe("the video manual", () => {
   it("gives every chapter a name that can travel in a link", () => {
@@ -31,7 +32,7 @@ describe("the video manual", () => {
   it("reads a deep link, and shrugs off a broken one", () => {
     const wanted = resolveDeepLink({ v: "manuale", c: "le-tue-email-di-lavoro" }, all);
     expect(wanted.guide.key).toBe("manuale");
-    expect(wanted.chapter?.start).toBe(380);
+    expect(wanted.chapter?.start).toBeCloseTo(380.4641950113379, 9);
 
     // Nothing here may throw: these values come from a URL somebody typed.
     expect(resolveDeepLink({ v: "../../etc", c: "nope" }, all).guide.key).toBe("manuale");
@@ -51,17 +52,75 @@ describe("the video manual", () => {
     expect(youtubeId(undefined)).toBeNull();
   });
 
-  it("says nothing is published until an address is set", () => {
-    // The films live on YouTube or in an object store, never in Git, so a
-    // fresh checkout has neither.
-    const configured = Boolean(process.env.NEXT_PUBLIC_GUIDE_FULL_YT || process.env.NEXT_PUBLIC_GUIDE_FULL_URL);
-    expect(guideIsPublished()).toBe(configured);
+  it("uses the two approved published films without requiring deployment secrets", () => {
+    vi.stubEnv("NEXT_PUBLIC_GUIDE_FULL_YT", undefined);
+    vi.stubEnv("NEXT_PUBLIC_GUIDE_SHORT_YT", undefined);
+    expect(guides().map((guide) => guide.youtube)).toEqual(["_MUhXil1lek", "dEGY0PMMO7M"]);
+    expect(guideIsPublished()).toBe(true);
+  });
+
+  it("allows an explicit empty override and never falls back to an MP4", () => {
+    vi.stubEnv("NEXT_PUBLIC_GUIDE_FULL_YT", "");
+    vi.stubEnv("NEXT_PUBLIC_GUIDE_SHORT_YT", "");
+    vi.stubEnv("NEXT_PUBLIC_GUIDE_FULL_URL", "https://example.com/film.mp4");
+    expect(guideIsPublished()).toBe(false);
+    expect(guides().every((guide) => !("video" in guide))).toBe(true);
+  });
+
+  it("rejects lookalike hosts and accepts Shorts", () => {
+    expect(youtubeId("https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ")).toBeNull();
+    expect(youtubeId("https://example.com/?v=dQw4w9WgXcQ")).toBeNull();
+    expect(youtubeId("javascript:alert(1)")).toBeNull();
+    expect(youtubeId("https://youtube.com/shorts/dEGY0PMMO7M")).toBe("dEGY0PMMO7M");
+  });
+
+  it("keeps the exact 16 + 7 chapter boundaries from the approved material", () => {
+    expect(all.map((guide) => guide.chapters.length)).toEqual([16, 7]);
+    for (const guide of all) {
+      const source = JSON.parse(readFileSync(`public${guide.chapterFile}`, "utf8"));
+      expect(guide.seconds).toBe(source.duration);
+      expect(guide.chapters.map(({ title, start, end }) => ({ title, start, end }))).toEqual(source.chapters);
+      for (let index = 0; index < guide.chapters.length; index++) {
+        const chapter = guide.chapters[index];
+        expect(currentChapter(guide.chapters, chapter.start)?.slug).toBe(chapter.slug);
+        if (index) expect(currentChapter(guide.chapters, chapter.start - .001)?.slug).toBe(guide.chapters[index - 1].slug);
+      }
+    }
+  });
+
+  it("finds common names for the topics without changing chapter numbers", () => {
+    for (const query of ["mail", "pagamento", "notifiche", "Google", "calendario", "abbonamento"]) {
+      expect(matchingChapters(all[0].chapters, query).length, query).toBeGreaterThan(0);
+    }
+    expect(matchingChapters(all[0].chapters, "EMAIL")[0].index).toBe(10);
+    expect(matchingChapters(all[0].chapters, "nessun-risultato")).toEqual([]);
+    expect(matchingChapters(all[0].chapters, "  ")).toHaveLength(16);
+  });
+
+  it("provides a safe external fallback at the selected time", () => {
+    expect(youtubeWatchUrl({ ...all[0], youtube: "_MUhXil1lek" }, 416.346)).toBe("https://www.youtube.com/watch?v=_MUhXil1lek&t=416s");
+    expect(youtubeWatchUrl({ ...all[0], youtube: null })).toBeNull();
+    expect(youtubeWatchUrl(all[0], Infinity)).toMatch(/t=0s$/);
+  });
+
+  it("ships public subtitle and index files, not video files", () => {
+    for (const guide of all) {
+      for (const path of [guide.captions, guide.subtitles, guide.chapterFile]) {
+        expect(path).toMatch(/^\/marketing\/guide\//);
+        expect(readFileSync(`public${path}`, "utf8").length).toBeGreaterThan(100);
+      }
+      expect(readFileSync(`public${guide.captions}`, "utf8")).toMatch(/^WEBVTT/);
+    }
+    expect(readFileSync("src/proxy.ts", "utf8")).toContain('path.startsWith("/marketing/")');
   });
 
   it("writes the clock the way people read it", () => {
     expect(clock(693)).toBe("11:33");
     expect(clock(0)).toBe("0:00");
     expect(clock(-4)).toBe("0:00");
+    expect(clock(416.99)).toBe("6:56");
+    expect(clock(Infinity)).toBe("0:00");
+    expect(clock(NaN)).toBe("0:00");
   });
 });
 
