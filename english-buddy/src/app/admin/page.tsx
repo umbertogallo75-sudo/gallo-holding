@@ -11,6 +11,7 @@ import { marketingTags } from "@/lib/consent";
 import { readLatestCompletedMarketingSnapshot } from "@/lib/marketing/collector-store";
 import { buildMarketingReport } from "@/lib/marketing/performance-report";
 import { AdminActions } from "./AdminActions";
+import { AdminUserLookup } from "./AdminUserLookup";
 import { AdminTools } from "./AdminTools";
 import { AdminCampaign } from "./AdminCampaign";
 import {
@@ -427,6 +428,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               Stato reale della produzione. {overridden.length ? `${overridden.length} configurazioni stanno sostituendo il modello previsto.` : "Nessuna variabile d’ambiente sta sostituendo le scelte del codice."}
             </p>
           </section>
+
+          <AdminUserLookup />
 
           <div className="adminUserGrid">
             {userRows.map((row) => (

@@ -5,7 +5,7 @@ import { isAdminUser } from "@/lib/admin-access";
 import { adminResetCode } from "@/lib/auth-users";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/sender";
-import { saveBilling } from "@/lib/stripe";
+import { getEntitlement, saveBilling } from "@/lib/stripe";
 import { generateLicenses } from "@/lib/licenses";
 import { audit, MIN_PAYOUT_CENTS, promoteHeldCommissions, setPartnerRate, setPartnerStatus } from "@/lib/partners";
 import { bannerForNotification } from "@/lib/push/content";
@@ -45,6 +45,10 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("freeaccess"),
     userId: z.string().min(1).max(80),
     grant: z.boolean(),
+  }),
+  z.object({
+    action: z.literal("finduser"),
+    email: z.string().trim().min(3).max(200),
   }),
   z.object({
     action: z.literal("deleteuser"),
@@ -173,6 +177,46 @@ export async function POST(request: Request) {
     });
     await audit(OWNER_ID, "payout_marked_paid", data.payoutId, data.reference ?? null);
     return NextResponse.json({ ok: true });
+  }
+
+  /**
+   * Finds an account by the address it was registered with.
+   *
+   * The list above starts from `profiles`, and a profile is only created when
+   * somebody finishes onboarding — so a person who registered and stopped is
+   * invisible there. That is a gap with legal consequences: an erasure
+   * request under article 17 cannot be answered by a controller who cannot
+   * find the person. It reads auth_users, which is where an account actually
+   * begins.
+   *
+   * It also reports any live plan, because deleting an account does not
+   * cancel a recurring subscription — and someone who has been erased has no
+   * way left to cancel it themselves.
+   */
+  if (data.action === "finduser") {
+    const email = data.email.trim().toLowerCase();
+    const found = await db().execute({
+      sql: "SELECT id, display_name, email, created_at FROM auth_users WHERE lower(email) = ? LIMIT 1",
+      args: [email],
+    });
+    const row = found.rows[0];
+    if (!row) return NextResponse.json({ found: false });
+    const userId = String(row.id);
+    const [profile, entitlement] = await Promise.all([
+      db().execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] }).catch(() => ({ rows: [] })),
+      getEntitlement(userId).catch(() => null),
+    ]);
+    return NextResponse.json({
+      found: true,
+      userId,
+      name: row.display_name ? String(row.display_name) : null,
+      email: row.email ? String(row.email) : null,
+      createdAt: row.created_at ? String(row.created_at) : null,
+      hasProfile: profile.rows.length > 0,
+      plan: entitlement?.access ? entitlement.reason : null,
+      planName: entitlement && "plan" in entitlement ? entitlement.plan ?? null : null,
+      periodEnd: entitlement && "currentPeriodEnd" in entitlement ? entitlement.currentPeriodEnd ?? null : null,
+    });
   }
 
   if (data.action === "deleteuser") {
