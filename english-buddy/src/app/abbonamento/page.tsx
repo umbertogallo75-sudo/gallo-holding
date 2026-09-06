@@ -88,9 +88,9 @@ export default async function AbbonamentoPage({ searchParams }: { searchParams: 
               ) : null}
             </>
           ) : iapOn || playOn ? (
-            <p className="muted">Il test del livello con Sam è gratuito. Per allenarti ogni giorno — chat, voce, missioni, notifiche — attiva un piano qui sotto.</p>
+            <p className="muted">La tua settimana gratuita è finita. <strong>Quello che hai costruito è ancora lì</strong>: livello, frasario ed errori su cui stavi lavorando ti aspettano, e riattivando riprendi da quel punto — non da capo.</p>
           ) : (
-            <p className="muted">Il test del livello con Sam è gratuito. L&rsquo;accesso completo si attiva con un piano sul tuo account ExecLingo o con un codice aziendale.</p>
+            <p className="muted">La tua settimana gratuita è finita. <strong>I tuoi progressi restano tuoi</strong>: l&rsquo;accesso completo si riattiva con un piano sul tuo account ExecLingo o con un codice aziendale, e riprendi da dove eri.</p>
           )}
         </section>
         {/* Native IAP UI stays dark until the products are approved with a

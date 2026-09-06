@@ -1,3 +1,4 @@
+import { ensureTrial } from "@/lib/marketing/trial";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { safeEqual, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
@@ -35,6 +36,13 @@ export async function POST(request: Request) {
   }
 
   const userId = await createAuthUser(name, code, email);
+
+  // The free week starts with the account, not with a button somebody has to
+  // find. It used to wait for a link in an email or a tap on the home screen,
+  // and most people met neither — so the offer existed and was not received.
+  // Never fatal: an account that exists without a trial row still gets one the
+  // first time it talks to the coach.
+  await ensureTrial(userId).catch((error) => console.error("trial grant failed:", error));
 
   // The visitor id is what joins the anonymous half of the funnel to the named
   // half: without it the landing views and the accounts are two separate piles

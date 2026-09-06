@@ -3,9 +3,9 @@ import { db } from "@/lib/db";
 import { isEmailConfigured } from "@/lib/email";
 import { unsubscribedIds } from "./prefs";
 import { dailyKey, isRealAddress, onceKey, sendMarketing, type Sender } from "./send";
-import { eveningRecap, trialEnded, trialExtended, trialReminder, winBack } from "./templates";
+import { eveningRecap, trialEnded, trialReminder, winBack } from "./templates";
 import { winBackFor, winBackKey, winBackKind } from "./winback";
-import { hoursLeft, readTrial } from "./trial";
+import { daysLeft, readTrial } from "./trial";
 
 /**
  * The hourly pass that decides who hears from Sam today.
@@ -29,7 +29,12 @@ const EVENING_END_UTC = 20;
 /** Ten minutes: the same bar the trial extension uses. One promise, one number. */
 const RECAP_MINUTES = 10;
 /** The last hours of the trial, when a nudge can still change the outcome. */
-const REMINDER_WINDOW_MS = 6 * 60 * 60 * 1000;
+/**
+ * How close to the end the reminder goes out. Six hours was right for a
+ * twenty-four hour trial; on a week it would arrive after the last evening
+ * anybody could have done something with it. Two days leaves a weekend.
+ */
+const REMINDER_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export type LifecycleReport = Record<string, number | string>;
 
@@ -141,18 +146,13 @@ export async function runLifecycleEmails(
     let claimKey = "";
     let message = null;
 
-    // Only while it is still running. Without the second half this branch
-    // caught every extended trial for ever, and the closing email became
-    // unreachable for exactly the people who had engaged most — the ones who
-    // finished the path and earned the extra day.
-    if (trial?.extended && trial.active) {
-      kind = "trial_extended";
-      claimKey = onceKey(userId, kind);
-      message = trialExtended(userId, name);
-    } else if (trial?.active && trial.msLeft <= REMINDER_WINDOW_MS) {
+    // The week no longer has a bonus half to celebrate, so there are two
+    // letters left: one while there is still time to use what remains, and one
+    // when it is over.
+    if (trial?.active && trial.msLeft <= REMINDER_WINDOW_MS) {
       kind = "trial_reminder";
       claimKey = onceKey(userId, kind);
-      message = trialReminder(userId, name, hoursLeft(trial));
+      message = trialReminder(userId, name, daysLeft(trial));
     } else if (trial && !trial.active && !paying.has(userId)) {
       kind = "trial_ended";
       claimKey = onceKey(userId, kind);

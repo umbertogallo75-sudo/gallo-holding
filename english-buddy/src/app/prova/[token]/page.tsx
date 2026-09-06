@@ -4,7 +4,7 @@ import { readEmailToken } from "@/lib/marketing/tokens";
 import { readTrial } from "@/lib/marketing/trial";
 import { TrialStart } from "./TrialStart";
 
-export const metadata = { title: "Le tue 24 ore gratis · ExecLingo" };
+export const metadata = { title: "La tua settimana gratis · ExecLingo" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -24,8 +24,8 @@ export default async function TrialPage({ params }: { params: Promise<{ token: s
       <div className="topbar"><div className="brand">ExecLingo</div><Link className="chip" href="/">← Indietro</Link></div>
       <section className="hero">
         <div className="kicker">Il tuo assaggio</div>
-        <h1>24 ore di ExecLingo completo, gratis.</h1>
-        <p className="muted">Nessuna carta, nessun rinnovo automatico. Parte quando premi tu.</p>
+        <h1>La prima settimana è gratis.</h1>
+        <p className="muted">Sette giorni con tutto aperto. Nessuna carta, nessun rinnovo automatico.</p>
       </section>
 
       <section className="card">
@@ -35,15 +35,16 @@ export default async function TrialPage({ params }: { params: Promise<{ token: s
             <p style={{ marginBottom: 0 }}>Questo link non è più valido. Accedi con la tua email da <Link href="/login">execlingo.it</Link> e scrivici se il problema resta.</p>
           </>
         ) : (
-          <TrialStart token={token} alreadyStarted={Boolean(existing)} extended={Boolean(existing?.extended)} active={Boolean(existing?.active)} signedIn={signedIn} />
+          <TrialStart token={token} alreadyStarted={Boolean(existing)} active={Boolean(existing?.active)} signedIn={signedIn} />
         )}
       </section>
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Come funziona, senza giri di parole</h2>
-        <p>⏱️ <strong>24 ore</strong> con tutto aperto: chat e voce con Sam, riunioni simulate, English Rescue.</p>
-        <p>🎁 Se <strong>entro quelle 24 ore</strong> rispondi alle tre domande del percorso e fai <strong>almeno 10 minuti</strong> di pratica, ricevi <strong>altre 24 ore</strong> gratis. Si attivano da sole, non devi chiedere nulla.</p>
-        <p style={{ marginBottom: 0 }}>💳 Alla fine l&rsquo;accesso si chiude e basta. <strong>Nessun addebito automatico</strong>: se vorrai continuare, sceglierai tu un piano.</p>
+        <p>⏱️ <strong>Sette giorni</strong> con tutto aperto: chat e voce con Sam, riunioni simulate, English Rescue, le tue mail, i tuoi documenti, la tua agenda.</p>
+        <p>🚀 <strong>Parte da sola alla registrazione.</strong> Non devi chiedere niente e non devi ricordarti di attivarla.</p>
+        <p>💾 <strong>Quello che fai resta tuo.</strong> Alla fine della settimana l&rsquo;accesso si chiude, ma il tuo livello, il frasario e gli errori su cui stai lavorando restano dove sono: se torni, riprendi da lì.</p>
+        <p style={{ marginBottom: 0 }}>💳 <strong>Nessun addebito automatico.</strong> Non chiediamo la carta, e alla fine non parte nessun pagamento: se vorrai continuare, sceglierai tu un piano.</p>
       </section>
     </main>
   );

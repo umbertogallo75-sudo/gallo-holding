@@ -16,5 +16,5 @@ export async function POST(_request: Request, context: { params: Promise<{ token
   if (!userId) return NextResponse.json({ error: "Link non valido" }, { status: 400 });
   const trial = await grantTrial(userId);
   if (!trial) return NextResponse.json({ error: "Riprova tra un minuto" }, { status: 503 });
-  return NextResponse.json({ ok: true, endsAt: trial.endsAt.toISOString(), extended: trial.extended });
+  return NextResponse.json({ ok: true, endsAt: trial.endsAt.toISOString() });
 }

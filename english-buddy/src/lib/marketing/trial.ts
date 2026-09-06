@@ -3,15 +3,17 @@ import { db } from "@/lib/db";
 import { trackEvent } from "@/lib/analytics";
 
 /**
- * The free trial the welcome email hands out.
+ * The free week every account starts with.
  *
- * 24 hours on the click, and another 24 the moment the path is actually
- * walked — onboarding answered and ten minutes of real practice. Then the
- * paywall, exactly as before: this grants access, it never sells anything.
+ * It used to be twenty-four hours, handed out by a link in the welcome email
+ * and a button on the home screen, with a second day to be earned by finishing
+ * the onboarding. Three ways to not get it, and a promise too complicated to
+ * put on a poster. It is now one sentence — *la prima settimana è gratis* —
+ * and it starts by itself the moment an account exists, because an offer
+ * somebody has to find is an offer most people never receive.
  *
- * The extension is worked out on read rather than by a scheduled job. A
- * trial that expires at 03:00 must not stay expired until an hourly pass
- * happens to notice that the person had earned another day at 02:58.
+ * Seven days of everything, then the paywall. This grants access; it never
+ * sells anything, and nothing is charged when it ends.
  */
 const SCHEMA = `CREATE TABLE IF NOT EXISTS trials (
   user_id TEXT PRIMARY KEY,
@@ -20,14 +22,12 @@ const SCHEMA = `CREATE TABLE IF NOT EXISTS trials (
   extended_at TEXT
 );`;
 
-export const TRIAL_MS = 24 * 60 * 60 * 1000;
-/** Ten minutes of practice, the same threshold as the evening recap. */
-export const TRIAL_MINUTES_REQUIRED = 10;
+export const TRIAL_DAYS = 7;
+export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
 export type Trial = {
   startedAt: Date;
   endsAt: Date;
-  extended: boolean;
   active: boolean;
   msLeft: number;
 };
@@ -45,22 +45,15 @@ async function heal(client: Client) {
   } catch { /* concurrent create */ }
 }
 
-function toTrial(row: Record<string, unknown>, now: Date): Trial {
-  const endsAt = parseStamp(row.ends_at);
+function toTrial(startedAt: Date, endsAt: Date, now: Date): Trial {
   const msLeft = endsAt.getTime() - now.getTime();
-  return {
-    startedAt: parseStamp(row.started_at),
-    endsAt,
-    extended: Boolean(row.extended_at),
-    active: msLeft > 0,
-    msLeft: Math.max(0, msLeft),
-  };
+  return { startedAt, endsAt, active: msLeft > 0, msLeft: Math.max(0, msLeft) };
 }
 
 /**
- * Starts the trial. Idempotent: clicking the link in the welcome email twice,
- * or on two devices, is one trial — otherwise the email would be a renewable
- * subscription to free access.
+ * Starts the week. Idempotent: registering, then opening a conversation, then
+ * clicking the link in the welcome email is one trial and not three, otherwise
+ * the offer would be a renewable subscription to free access.
  */
 export async function grantTrial(userId: string, client: Client = db(), now: Date = new Date()): Promise<Trial | null> {
   const endsAt = new Date(now.getTime() + TRIAL_MS).toISOString();
@@ -88,33 +81,19 @@ export async function grantTrial(userId: string, client: Client = db(), now: Dat
   return trial;
 }
 
-/** Onboarding answered, and ten minutes of practice actually done. */
-export async function hasCompletedModules(userId: string, client: Client = db()): Promise<boolean> {
-  try {
-    const result = await client.execute({
-      sql: `SELECT (SELECT onboarding_done_at FROM profiles WHERE id = ?) AS done,
-                   (SELECT COALESCE(SUM(minutes_practiced), 0) FROM daily_metrics WHERE user_id = ?) AS minutes`,
-      args: [userId, userId],
-    });
-    const row = result.rows[0];
-    if (!row?.done) return false;
-    return Number(row.minutes ?? 0) >= TRIAL_MINUTES_REQUIRED;
-  } catch {
-    // A missing onboarding column means the migration has not run. Not having
-    // earned the extension is the safe answer; it is never the reason someone
-    // loses access they already have.
-    return false;
-  }
-}
-
 /**
- * The trial as it stands, extending it first if that has been earned. Returns
- * null for anyone who never started one.
+ * The trial as it stands. Returns null for anyone who never started one.
+ *
+ * A trial shorter than a week is one of the old twenty-four hour ones, and it
+ * is lengthened here to the new promise rather than left to expire under the
+ * old one. Doing it on read rather than in a migration means it holds for
+ * whoever comes back next month too, and nobody is worse off for having
+ * arrived early.
  */
 export async function readTrial(userId: string, client: Client = db(), now: Date = new Date()): Promise<Trial | null> {
   let result;
   try {
-    result = await client.execute({ sql: "SELECT * FROM trials WHERE user_id = ? LIMIT 1", args: [userId] });
+    result = await client.execute({ sql: "SELECT started_at, ends_at FROM trials WHERE user_id = ? LIMIT 1", args: [userId] });
   } catch {
     await heal(client);
     return null;
@@ -122,36 +101,30 @@ export async function readTrial(userId: string, client: Client = db(), now: Date
   const row = result.rows[0] as Record<string, unknown> | undefined;
   if (!row) return null;
 
-  const trial = toTrial(row, now);
-  if (trial.extended) return trial;
-  if (!(await hasCompletedModules(userId, client))) return trial;
+  const startedAt = parseStamp(row.started_at);
+  const endsAt = parseStamp(row.ends_at);
+  const full = new Date(startedAt.getTime() + TRIAL_MS);
+  if (endsAt.getTime() >= full.getTime()) return toTrial(startedAt, endsAt, now);
 
-  // Earned: a second day, measured from the end of the first, so finishing
-  // the modules early is not quietly punished by losing the hours in between.
-  const extendedEnd = new Date(trial.endsAt.getTime() + TRIAL_MS).toISOString();
   try {
     await client.execute({
-      sql: "UPDATE trials SET ends_at = ?, extended_at = ? WHERE user_id = ? AND extended_at IS NULL",
-      args: [extendedEnd, now.toISOString(), userId],
+      sql: "UPDATE trials SET ends_at = ? WHERE user_id = ? AND ends_at < ?",
+      args: [full.toISOString(), userId, full.toISOString()],
     });
   } catch {
-    return trial;
+    // The old end still stands if the write fails; better a short trial than
+    // an error on the page that reads it.
+    return toTrial(startedAt, endsAt, now);
   }
-  await trackEvent("trial_extended", { userId }, client);
-  return { ...trial, endsAt: new Date(extendedEnd), extended: true, active: true, msLeft: new Date(extendedEnd).getTime() - now.getTime() };
+  return toTrial(startedAt, full, now);
 }
 
 /**
- * Starts the trial the first time somebody actually tries to use the coach.
+ * Starts the week if it has not started already.
  *
- * It was only ever started by clicking the link in the welcome email or a
- * button on the home screen, and most people saw neither — so the offer
- * existed and almost nobody received it. Somebody opening a conversation with
- * Sam is exactly who it is for, and this is a real authenticated action
- * rather than a link a mail gateway might follow, which was the only reason
- * the emailed version needed a button in the first place.
- *
- * Idempotent: one trial per account, whichever door it comes through.
+ * Called the moment an account is created — password, Google or Apple — and
+ * again the first time somebody actually talks to the coach, which covers the
+ * accounts that existed before any of this.
  */
 export async function ensureTrial(userId: string, client: Client = db(), now: Date = new Date()): Promise<Trial | null> {
   const existing = await readTrial(userId, client, now);
@@ -161,4 +134,9 @@ export async function ensureTrial(userId: string, client: Client = db(), now: Da
 
 export function hoursLeft(trial: Trial): number {
   return Math.max(0, Math.ceil(trial.msLeft / (60 * 60 * 1000)));
+}
+
+/** Whole days, rounded up: "ti restano 3 giorni" on the last hours of day 3. */
+export function daysLeft(trial: Trial): number {
+  return Math.max(0, Math.ceil(trial.msLeft / (24 * 60 * 60 * 1000)));
 }

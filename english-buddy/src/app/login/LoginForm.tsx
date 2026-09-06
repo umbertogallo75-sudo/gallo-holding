@@ -29,7 +29,7 @@ export function LoginForm({ oauth, oauthError, embedded = false, trialClaimed = 
     {/* Arriving from the emailed trial link on a device with no session: the
         gift is already on the account, and saying so turns a login wall into
         the last step of accepting it. */}
-    {trialClaimed ? <div className="notice" style={{marginBottom:8}}>🎁 Le tue 24 ore gratis sono attive. Accedi con la tua email e Sam è tutto aperto.</div> : null}
+    {trialClaimed ? <div className="notice" style={{marginBottom:8}}>🎁 La tua settimana gratis è attiva. Accedi con la tua email e Sam è tutto aperto.</div> : null}
     {oauth}<form onSubmit={submit}>
     <input className="field" type="email" autoComplete="email" required placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
     <input className="field" type="password" autoComplete="current-password" required placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} style={{marginTop:8}} />

@@ -1,42 +1,48 @@
-import { hoursLeft, type Trial } from "@/lib/marketing/trial";
+import Link from "next/link";
+import { daysLeft, type Trial } from "@/lib/marketing/trial";
 
 /**
- * The free trial, made visible.
+ * The free week, made visible.
  *
- * A countdown nobody can see is not an offer, it is a surprise ending — and
- * the second day has to be earned by doing something specific, so the two
- * things it takes are named here rather than only in an email that may never
- * have been opened.
+ * A countdown nobody can see is not an offer, it is a surprise ending. It says
+ * the same thing all week and changes tone only at the end, where the useful
+ * sentence is not "buy now" but "what you have built stays where it is" —
+ * because the thing people are actually afraid of losing is the work, not the
+ * access.
  */
-export function TrialBanner({ trial, onboarded, minutes }: { trial: Trial; onboarded: boolean; minutes: number }) {
+const DAY = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long" });
+
+export function TrialBanner({ trial }: { trial: Trial }) {
   if (!trial.active) return null;
-  const hours = hoursLeft(trial);
-
-  if (trial.extended) {
-    return (
-      <section className="trialBanner">
-        <div className="trialTop"><span className="trialTag">🎁 Regalo sbloccato</span><strong className="trialClock">{hours}h</strong></div>
-        <p className="trialLine">Hai completato il percorso: queste sono le tue <strong>24 ore extra</strong>, tutte aperte.</p>
-        <p className="trialNote">Poi l&rsquo;accesso si chiude — nessun addebito automatico, deciderai tu.</p>
-      </section>
-    );
-  }
-
-  const missingMinutes = Math.max(0, 10 - minutes);
-  const todo: string[] = [];
-  if (!onboarded) todo.push("rispondi alle 3 domande");
-  if (missingMinutes > 0) todo.push(`allenati ${missingMinutes} minut${missingMinutes === 1 ? "o" : "i"}`);
+  const days = daysLeft(trial);
+  const closing = days <= 2;
 
   return (
     <section className="trialBanner">
-      <div className="trialTop"><span className="trialTag">Prova gratuita</span><strong className="trialClock">{hours}h</strong></div>
-      {todo.length ? (
+      <div className="trialTop">
+        <span className="trialTag">{closing ? "⏳ Ultimi giorni" : "🎁 La tua settimana gratis"}</span>
+        <strong className="trialClock">{days} {days === 1 ? "giorno" : "giorni"}</strong>
+      </div>
+      {closing ? (
         <>
-          <p className="trialLine">Ti restano <strong>{hours} ore</strong> con tutto aperto. Per averne <strong>altre 24 gratis</strong>: {todo.join(" e ")}.</p>
-          <div className="pathBar" aria-hidden><span style={{ width: `${Math.round((Math.min(minutes, 10) / 10) * 100)}%` }} /></div>
+          <p className="trialLine">
+            La settimana gratis finisce il <strong>{DAY.format(trial.endsAt)}</strong>.{" "}
+            <strong>I tuoi progressi restano dove sono</strong>: livello, frasario ed errori su cui stai lavorando
+            ti aspettano, e riprendi da lì quando vuoi.
+          </p>
+          <p className="trialNote">
+            Nessun addebito automatico: quando scade, l&rsquo;accesso si chiude e basta.{" "}
+            <Link href="/abbonamento" style={{ fontWeight: 700 }}>Guarda i piani →</Link>
+          </p>
         </>
       ) : (
-        <p className="trialLine">✅ Percorso completato: le tue <strong>24 ore extra</strong> stanno arrivando.</p>
+        <>
+          <p className="trialLine">
+            Hai <strong>tutto aperto</strong> fino al <strong>{DAY.format(trial.endsAt)}</strong>: chat e voce con Sam,
+            riunioni simulate, mail, documenti, agenda.
+          </p>
+          <p className="trialNote">Nessuna carta inserita, nessun rinnovo automatico.</p>
+        </>
       )}
     </section>
   );

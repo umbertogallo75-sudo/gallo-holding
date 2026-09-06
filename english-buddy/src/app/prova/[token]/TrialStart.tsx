@@ -6,13 +6,11 @@ import { useState } from "react";
 export function TrialStart({
   token,
   alreadyStarted,
-  extended,
   active,
   signedIn,
 }: {
   token: string;
   alreadyStarted: boolean;
-  extended: boolean;
   active: boolean;
   signedIn: boolean;
 }) {
@@ -37,7 +35,7 @@ export function TrialStart({
     return (
       <>
         <h2 style={{ marginTop: 0 }}>Il tuo periodo gratuito è finito</h2>
-        <p>{extended ? "Hai avuto le tue 48 ore — il percorso l'hai fatto davvero." : "Le tue 24 ore sono passate."} Se vuoi continuare con Sam, i piani sono qui.</p>
+        <p>La tua settimana gratis è finita. <strong>I tuoi progressi restano dove sono</strong> — livello, frasario ed errori su cui stavi lavorando ti aspettano. Se vuoi riprendere con Sam, i piani sono qui.</p>
         <a className="primary full" style={{ marginTop: 10, minHeight: 54, display: "block", textAlign: "center", lineHeight: "54px", textDecoration: "none" }} href="/abbonamento">Scegli il tuo piano</a>
       </>
     );
@@ -47,7 +45,7 @@ export function TrialStart({
     return (
       <>
         <h2 style={{ marginTop: 0 }}>È già attivo ✅</h2>
-        <p>{extended ? "Hai completato il percorso: sei nelle 24 ore extra." : "Sei dentro le tue 24 ore. Non serve fare altro."}</p>
+        <p>Sei dentro la tua settimana gratis. Non serve fare altro: hai già tutto aperto.</p>
         <a className="primary full" style={{ marginTop: 10, minHeight: 54, display: "block", textAlign: "center", lineHeight: "54px", textDecoration: "none" }} href="/home">Vai da Sam</a>
       </>
     );
@@ -56,10 +54,10 @@ export function TrialStart({
   return (
     <>
       <h2 style={{ marginTop: 0 }}>Pronto quando lo sei tu</h2>
-      <p>Il conto alla rovescia parte da questo pulsante, non da prima.</p>
+      <p>Il tuo account è nato prima che la settimana gratis diventasse automatica. Puoi attivarla da qui.</p>
       {state === "error" ? <div className="notice">Non è partito. Riprova tra un momento.</div> : null}
       <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} disabled={state === "busy"} onClick={start}>
-        {state === "busy" ? "…" : "🎁 Attiva le mie 24 ore"}
+        {state === "busy" ? "…" : "🎁 Attiva la mia settimana gratis"}
       </button>
     </>
   );

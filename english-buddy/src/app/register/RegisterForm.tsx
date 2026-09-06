@@ -46,11 +46,12 @@ export function RegisterForm({ oauth }: { oauth: React.ReactNode }) {
       <section className="authCard">
         <div className="brand">ExecLingo</div>
         <div className="hero">
-          <div className="kicker">Test iniziale gratuito · circa 3 minuti</div>
+          <div className="kicker">🎁 La prima settimana è gratis</div>
           <h1>Quanto sei operativo in inglese quando il lavoro conta?</h1>
           <p className="muted">
-            Crea il tuo accesso gratuito e scopri il tuo punto di partenza su
-            riunioni, call, negoziazioni e trasferte.
+            Crea il tuo accesso e hai <strong>7 giorni con tutto aperto</strong>, da subito:
+            chat e voce con Sam, riunioni simulate, le tue mail e i tuoi documenti.
+            Senza carta e senza rinnovo automatico.
             {oauth
               ? " Puoi usare l’accesso rapido oppure nome, email e password."
               : " Inserisci nome, email e una password di almeno 8 caratteri."}

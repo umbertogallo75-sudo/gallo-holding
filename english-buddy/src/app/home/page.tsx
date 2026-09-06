@@ -107,7 +107,7 @@ export default async function HomePage() {
     <div className="topbar"><div className="brand">ExecLingo</div><a href="/profile" className="chip chipBrand">👤 {name}</a></div>
     <AppTracker />
     <NotificationReminder />
-    {shownTrial?.active ? <TrialBanner trial={shownTrial} onboarded={Boolean(profile.onboarding_done_at)} minutes={Number(metric?.minutes_practiced || 0)} /> : null}
+    {shownTrial?.active ? <TrialBanner trial={shownTrial} /> : null}
     {canClaimTrial ? <TrialOffer /> : null}
     {!profile.onboarding_done_at ? <PersonalizeBanner /> : null}
     <section className="pathHeader">
@@ -118,8 +118,8 @@ export default async function HomePage() {
       <a href="/abbonamento" className="mode wide" style={{ display: "flex", marginBottom: 10, borderColor: "color-mix(in srgb, var(--amber) 55%, var(--line))" }}>
         <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 22%, var(--surface))" }}>🔓</span>
         <div>
-          <div className="modeTitle">Sblocca il tuo coach</div>
-          <div className="modeMeta">{embedded ? "Il test del livello (3 minuti) è gratis. Hai un codice aziendale? Inseriscilo qui" : "Il test del livello (3 minuti) è gratis. Per allenarti con Sam attiva un piano o inserisci il codice aziendale"}</div>
+          <div className="modeTitle">Riprendi da dove eri</div>
+          <div className="modeMeta">{embedded ? "La settimana gratis è finita. I tuoi progressi restano tuoi: attiva un piano o inserisci il codice aziendale" : "La settimana gratis è finita. I tuoi progressi restano tuoi — livello, frasario ed errori ti aspettano: attiva un piano o inserisci il codice aziendale"}</div>
         </div>
       </a>
     ) : null}

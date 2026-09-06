@@ -1,3 +1,4 @@
+import { ensureTrial } from "@/lib/marketing/trial";
 import { NextResponse } from "next/server";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
 import { oauthSuccessPath } from "@/lib/auth-destinations";
@@ -61,6 +62,13 @@ export async function POST(request: Request) {
   } catch { /* optional field */ }
 
   const { userId, created } = await findOrCreateOAuthUser("apple", claims.sub, claims.email?.toLowerCase() ?? null, name);
+  // The free week starts with the account, not with a button somebody has to
+  // find. It used to wait for a link in an email or a tap on the home screen,
+  // and most people met neither — so the offer existed and was not received.
+  // Never fatal: an account that exists without a trial row still gets one the
+  // first time it talks to the coach.
+  if (created) await ensureTrial(userId).catch((error) => console.error("trial grant failed:", error));
+
   if (created) await recordRegistration(request, userId).catch((error) => console.error("signup tracking failed:", error));
   // Same greeting the email-and-password route sends, with the same free-trial
   // offer inside it. Without this, signing in with a provider meant the first

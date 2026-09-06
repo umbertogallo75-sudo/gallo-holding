@@ -30,62 +30,44 @@ export function welcomeTrial(userId: string, name: string | null): Message {
   return {
     subject: first ? `${first}, il tuo accesso a ExecLingo è pronto` : "Il tuo accesso a ExecLingo è pronto",
     html: renderEmail({
-      preheader: "Attiva 24 ore di ExecLingo completo. E se completi il percorso del primo giorno, te ne regaliamo altre 24.",
-      heading: `Benvenuto${first ? " " + first : ""}. Il tuo coach è già pronto.`,
+      preheader: "La tua settimana gratis è già attiva: sette giorni con tutto aperto, senza carta.",
+      heading: `Benvenuto${first ? " " + first : ""}. La tua settimana è già partita.`,
       bodyHtml: `<p style="${P}">Hai creato il tuo account <strong>ExecLingo</strong>. Sam — il tuo coach — sa già parlare con te: chat, voce, riunioni simulate, English Rescue quando ti blocchi davanti a un cliente.</p>
-        <p style="${P}"><strong>Ti apriamo tutto per 24 ore, senza costi.</strong> Nessuna carta, nessun impegno: un clic qui sotto e il tuo assaggio parte.</p>
-        <p style="${P}">E c'è dell'altro: se <strong>entro quelle 24 ore</strong> rispondi alle tre domande del percorso e fai <strong>almeno 10 minuti</strong> di pratica, ti regaliamo <strong>altre 24 ore</strong>. Due giorni interi per capire se l'inglese può davvero smettere di essere un problema. Dopo, se vorrai continuare, si passa all'abbonamento.</p>
+        <p style="${P}"><strong>La prima settimana è gratis, e non devi attivare niente:</strong> sette giorni con tutto aperto sono già partiti nel momento in cui ti sei registrato. Nessuna carta, nessun impegno.</p>
+        <p style="${P}">Quando la settimana finisce, l'accesso si chiude — <strong>ma quello che hai fatto resta tuo</strong>: il tuo livello, il frasario e gli errori su cui stavi lavorando ti aspettano. Se deciderai di continuare, riprendi esattamente da lì.</p>
         <p style="${SMALL}">La tua azienda ti ha dato un codice? Inseriscilo in Profilo → Abbonamento e non serve altro.</p>`,
-      ctaLabel: "Attiva il tuo accesso",
+      ctaLabel: "Comincia adesso",
       ctaUrl: url,
       footerNote: "Hai ricevuto questa email perché ti sei appena registrato a ExecLingo.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `Benvenuto${first ? " " + first : ""}.\n\nTi apriamo ExecLingo per 24 ore, gratis. Nessuna carta, nessun impegno:\n${url}\n\nE se entro quelle 24 ore rispondi alle tre domande del percorso e fai almeno 10 minuti di pratica, ti regaliamo altre 24 ore. Dopo, se vorrai continuare, si passa all'abbonamento.\n\nHai un codice aziendale? Profilo → Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `Benvenuto${first ? " " + first : ""}.\n\nLa prima settimana è gratis e non devi attivare niente: sette giorni con tutto aperto sono gia' partiti.\n${url}\n\nQuando finisce, l'accesso si chiude ma i tuoi progressi restano: livello, frasario ed errori su cui stavi lavorando ti aspettano.\n\nHai un codice aziendale? Profilo -> Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
-/** 2 — Trial running out and the modules not done. One reminder, not three. */
-export function trialReminder(userId: string, name: string | null, hours: number): Message {
+/** 2 — The week is nearly over. One reminder, not three. */
+export function trialReminder(userId: string, name: string | null, days: number): Message {
   const url = `${appBase()}/home`;
+  const left = days === 1 ? "un giorno" : `${days} giorni`;
   return {
-    subject: `Ti restano ${hours} ore di accesso completo`,
+    subject: `Ti ${days === 1 ? "resta" : "restano"} ${left} di accesso completo`,
     html: renderEmail({
-      preheader: "Tre domande e dieci minuti: bastano a raddoppiare il tuo tempo gratis.",
-      heading: `${hello(name)}mancano ${hours} ore.`,
+      preheader: "La settimana gratis sta per finire. I tuoi progressi restano comunque tuoi.",
+      heading: `${hello(name)}${days === 1 ? "manca un giorno" : `mancano ${days} giorni`}.`,
       bodyHtml: `<p style="${P}">Il tuo accesso completo a Sam è ancora aperto, ma non per molto.</p>
-        <p style="${P}">Rispondi alle <strong>tre domande</strong> del percorso (30 secondi) e fai <strong>10 minuti</strong> di pratica: il tuo tempo gratis <strong>raddoppia</strong>, altre 24 ore, senza pagare nulla.</p>
-        <p style="${SMALL}">Dieci minuti sono una call in metropolitana, o la coda alla cassa. È esattamente così che si impara: poco, ma tutti i giorni.</p>`,
+        <p style="${P}">Se c'è una cosa da provare prima che finisca, è <strong>parlare a voce con Sam</strong>: è il pezzo che quasi nessuno prova, ed è quello che rompe il blocco davanti a una call vera.</p>
+        <p style="${SMALL}">Quando la settimana finisce non ti viene addebitato nulla: l'accesso si chiude e basta. Il tuo livello, il frasario e gli errori su cui stai lavorando restano dove sono.</p>`,
       ctaLabel: "Continua da dove eri",
       ctaUrl: url,
-      footerNote: "Ricevi questa email perché hai attivato le tue 24 ore gratuite di ExecLingo.",
+      footerNote: "Ricevi questa email perché la tua settimana gratuita di ExecLingo sta per finire.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${hello(name)}mancano ${hours} ore del tuo accesso completo.\n\nRispondi alle tre domande del percorso e fai 10 minuti di pratica: il tuo tempo gratis raddoppia, altre 24 ore.\n\n${url}\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${hello(name)}${days === 1 ? "manca un giorno" : `mancano ${days} giorni`} del tuo accesso completo.\n\nSe c'è una cosa da provare prima che finisca, è parlare a voce con Sam.\n\n${url}\n\nQuando finisce non ti viene addebitato nulla, e i tuoi progressi restano.\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
-/** 3 — Earned. Say plainly what happens after, so nobody feels tricked. */
-export function trialExtended(userId: string, name: string | null): Message {
-  const url = `${appBase()}/home`;
-  return {
-    subject: "Hai completato il primo giorno: altre 24 ore per te",
-    html: renderEmail({
-      preheader: "Hai completato il percorso del primo giorno. Il tuo accesso continua per altre 24 ore.",
-      heading: `${hello(name)}te le sei guadagnate.`,
-      bodyHtml: `<p style="${P}">Hai risposto alle domande e ti sei allenato davvero. Come promesso: <strong>altre 24 ore</strong> di ExecLingo completo, da adesso.</p>
-        <p style="${P}">Usale bene — e già che ci sei, prova la cosa che quasi nessuno prova il primo giorno: <strong>parlare a voce con Sam</strong>. È lì che si rompe il blocco.</p>
-        <p style="${SMALL}">Poi? Alla fine di queste 24 ore l'accesso si chiude e si passa all'abbonamento. Nessuna sorpresa, nessun addebito automatico: sarai tu a decidere se continuare.</p>`,
-      ctaLabel: "Vai da Sam",
-      ctaUrl: url,
-      footerNote: "Ricevi questa email perché hai completato il percorso del primo giorno.",
-      unsubscribeUrl: unsubscribeUrl(userId),
-    }),
-    text: `${hello(name)}te le sei guadagnate.\n\nAltre 24 ore di ExecLingo completo, da adesso. Prova a parlare a voce con Sam: è lì che si rompe il blocco.\n\n${url}\n\nAlla fine di queste 24 ore l'accesso si chiude e si passa all'abbonamento: nessun addebito automatico, decidi tu.\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
-  };
-}
-
-/** 4 — Trial over. The only email in the set whose job is to sell. */
+/** 3 — The week is over. The only email in the set whose job is to sell. */
+/* (was 4) The only email in the set whose job is to sell. */
 export function trialEnded(userId: string, name: string | null): Message {
   const url = `${appBase()}/abbonamento`;
   return {
@@ -95,6 +77,7 @@ export function trialEnded(userId: string, name: string | null): Message {
       heading: `${hello(name)}il tuo assaggio finisce qui.`,
       bodyHtml: `<p style="${P}">Hai visto come lavora Sam. Adesso la domanda vera: tra tre mesi vuoi ancora rimandare quella call in inglese, o vuoi condurla tu?</p>
         <p style="${P}">Il <strong>Programma 3 mesi (99,90 € una volta, IVA inclusa)</strong> è il percorso completo: da dove sei oggi a operativo, con i progressi misurati su capacità reali — riunioni, numeri, trattativa, trasferte. Per dodici mesi con Sam c&rsquo;è l&rsquo;<strong>Annuale a 199,00 €</strong>; resta disponibile anche il mensile senza vincoli.</p>
+        <p style="${P}"><strong>Quello che hai costruito è ancora lì.</strong> Il tuo livello, il frasario che ti sei fatto e gli errori su cui stavi lavorando non sono stati cancellati: nel momento in cui riattivi, riprendi da quel punto e non da capo.</p>
         <p style="${SMALL}">Si attiva dal sito in due minuti e l'app sul telefono si sblocca da sola, con lo stesso account.</p>`,
       ctaLabel: "Scegli il tuo piano",
       ctaUrl: url,

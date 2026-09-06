@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { TRIAL_MS, grantTrial, hasCompletedModules, hoursLeft, readTrial } from "@/lib/marketing/trial";
+import { readFileSync } from "node:fs";
+import { TRIAL_DAYS, TRIAL_MS, daysLeft, grantTrial, hoursLeft, readTrial } from "@/lib/marketing/trial";
 import { streakFrom } from "@/lib/marketing/lifecycle";
 
 let client: Client;
@@ -17,68 +18,58 @@ beforeEach(async () => {
 });
 afterEach(() => client.close());
 
-const practise = (minutes: number, day = "2026-09-01") =>
-  client.execute({ sql: "INSERT INTO daily_metrics (user_id, day, minutes_practiced) VALUES ('u1', ?, ?)", args: [day, minutes] });
-const finishOnboarding = () =>
-  client.execute("UPDATE profiles SET onboarding_done_at = '2026-09-01T10:05:00Z' WHERE id = 'u1'");
 
-describe("the free trial", () => {
-  it("opens 24 hours from the moment it is claimed", async () => {
+describe("the free week", () => {
+  it("opens seven days from the moment the account exists", async () => {
     const trial = await grantTrial("u1", client, START);
-    expect(trial?.active).toBe(true);
+    expect(TRIAL_DAYS).toBe(7);
     expect(trial?.endsAt.toISOString()).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
-    expect(hoursLeft(trial!)).toBe(24);
+    expect(daysLeft(trial!)).toBe(7);
+    expect(hoursLeft(trial!)).toBe(168);
+    expect(trial?.active).toBe(true);
   });
 
-  it("is one trial however many times the link is opened", async () => {
-    // Otherwise the welcome email would be a renewable subscription to free
-    // access: click, run out, click again.
+  it("is one week however many times it is granted", async () => {
     await grantTrial("u1", client, START);
-    const later = new Date(START.getTime() + 20 * 3_600_000);
+    const later = new Date(START.getTime() + 3 * 24 * 3_600_000);
     const second = await grantTrial("u1", client, later);
     expect(second?.endsAt.toISOString()).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
   });
 
-  it("expires on its own, with no job to run", async () => {
+  it("is over when the week is over", async () => {
     await grantTrial("u1", client, START);
-    const after = await readTrial("u1", client, new Date(START.getTime() + 25 * 3_600_000));
+    const after = await readTrial("u1", client, new Date(START.getTime() + TRIAL_MS + 60_000));
     expect(after?.active).toBe(false);
-    expect(after?.msLeft).toBe(0);
+    expect(daysLeft(after!)).toBe(0);
   });
 
-  it("adds a second day once the path is actually walked", async () => {
-    await grantTrial("u1", client, START);
-    await finishOnboarding();
-    await practise(10);
-    const trial = await readTrial("u1", client, new Date(START.getTime() + 3_600_000));
-    expect(trial?.extended).toBe(true);
-    // Measured from the end of the first day, so finishing early is not
-    // quietly punished by losing the hours in between.
-    expect(trial?.endsAt.toISOString()).toBe(new Date(START.getTime() + 2 * TRIAL_MS).toISOString());
+  /**
+   * The old trial was twenty-four hours. Somebody who started one yesterday
+   * must not expire under the old promise while the site advertises the new
+   * one — so a short trial is lengthened where it is read, not migrated.
+   */
+  it("lengthens a trial from the twenty-four hour era to the full week", async () => {
+    await client.execute({
+      sql: "INSERT INTO trials (user_id, started_at, ends_at) VALUES ('old', ?, ?)",
+      args: [START.toISOString(), new Date(START.getTime() + 24 * 3_600_000).toISOString()],
+    });
+    const trial = await readTrial("old", client, new Date(START.getTime() + 48 * 3_600_000));
+    expect(trial?.active).toBe(true);
+    expect(trial?.endsAt.toISOString()).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
+
+    // Written down, not recomputed on every read.
+    const row = await client.execute("SELECT ends_at FROM trials WHERE user_id = 'old'");
+    expect(String(row.rows[0].ends_at)).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
   });
 
-  it("adds that day exactly once, however often it is read", async () => {
-    await grantTrial("u1", client, START);
-    await finishOnboarding();
-    await practise(10);
-    const first = await readTrial("u1", client, new Date(START.getTime() + 3_600_000));
-    const second = await readTrial("u1", client, new Date(START.getTime() + 7_200_000));
-    expect(second?.endsAt.toISOString()).toBe(first?.endsAt.toISOString());
-  });
-
-  it("holds the bar at both halves of the promise", async () => {
-    await grantTrial("u1", client, START);
-
-    await practise(30);
-    expect(await hasCompletedModules("u1", client)).toBe(false); // no onboarding
-
-    await client.execute("DELETE FROM daily_metrics");
-    await finishOnboarding();
-    await practise(9);
-    expect(await hasCompletedModules("u1", client)).toBe(false); // one minute short
-
-    await practise(1, "2026-09-02");
-    expect(await hasCompletedModules("u1", client)).toBe(true); // ten across days
+  it("never shortens one that is already longer", async () => {
+    const generous = new Date(START.getTime() + 30 * 24 * 3_600_000).toISOString();
+    await client.execute({
+      sql: "INSERT INTO trials (user_id, started_at, ends_at) VALUES ('vip', ?, ?)",
+      args: [START.toISOString(), generous],
+    });
+    const trial = await readTrial("vip", client, new Date(START.getTime() + 8 * 24 * 3_600_000));
+    expect(trial?.endsAt.toISOString()).toBe(generous);
   });
 
   it("says nothing about someone who never claimed one", async () => {
@@ -116,8 +107,43 @@ describe("free access requires an account", () => {
     // The emailed link and the in-app button both land here; two doors must
     // not become two trials.
     await grantTrial("u1", client, START);
-    const viaApp = await grantTrial("u1", client, new Date(START.getTime() + 30 * 3_600_000));
+    const viaApp = await grantTrial("u1", client, new Date(START.getTime() + 8 * 24 * 3_600_000));
     expect(viaApp?.endsAt.toISOString()).toBe(new Date(START.getTime() + TRIAL_MS).toISOString());
     expect(viaApp?.active).toBe(false);
+  });
+});
+
+
+/**
+ * The promise is made in four places and kept in one. When they disagree the
+ * user is the one who finds out, so they are held together here.
+ */
+describe("the week is promised where it is granted", () => {
+  const read = (path: string) => readFileSync(path, "utf8");
+
+  it("starts with the account, on all three ways in", () => {
+    for (const path of [
+      "src/app/api/auth/register/route.ts",
+      "src/app/api/auth/google/callback/route.ts",
+      "src/app/api/auth/apple/callback/route.ts",
+    ]) {
+      expect(read(path), `${path} non fa partire la settimana`).toContain("ensureTrial");
+    }
+  });
+
+  it("says seven days where somebody is deciding whether to register", () => {
+    expect(read("src/app/register/RegisterForm.tsx")).toContain("7 giorni");
+    expect(read("src/lib/marketing/templates.ts")).toContain("La prima settimana è gratis");
+  });
+
+  it("promises the progress survives, in every place the access ends", () => {
+    for (const path of [
+      "src/app/abbonamento/page.tsx",
+      "src/app/home/page.tsx",
+      "src/components/TrialBanner.tsx",
+      "src/lib/marketing/templates.ts",
+    ]) {
+      expect(read(path).toLowerCase(), `${path} non dice che i progressi restano`).toContain("progressi");
+    }
   });
 });
