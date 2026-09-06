@@ -65,8 +65,15 @@ describe("Google Ads Android App campaign preflight", () => {
       responseContentType: "RESOURCE_NAME_ONLY",
     });
     expect(payload.mutateOperations).toHaveLength(6);
-    expect(serialized.match(/"status":"PAUSED"/g)).toHaveLength(3);
-    expect(serialized.match(/"status":"ENABLED"/g)).toHaveLength(2);
+    // Two brakes, not three. This test used to demand a third — a paused App
+    // ad — and that is exactly what Google Ads refuses:
+    //   adGroupAdError:AD_TYPE_CANNOT_BE_PAUSED
+    // The count was written from the code rather than from the API, so it
+    // locked the fault in place instead of catching it. What must stay paused
+    // is the campaign and the ad group; the two criteria and the ad are
+    // enabled, and nothing serves because the campaign above them does not.
+    expect(serialized.match(/"status":"PAUSED"/g)).toHaveLength(2);
+    expect(serialized.match(/"status":"ENABLED"/g)).toHaveLength(3);
     expect(serialized).not.toContain("campaignCriteria/");
     expect(serialized).not.toContain("adGroupAds/");
     expect(serialized).not.toContain("selectiveOptimization");
@@ -126,7 +133,7 @@ describe("Google Ads Android App campaign preflight", () => {
     expect(payload.mutateOperations[5]).toMatchObject({
       adGroupAdOperation: {
         create: {
-          status: "PAUSED",
+          status: "ENABLED",
           ad: { appAd: { headlines: expect.any(Array), descriptions: expect.any(Array) } },
         },
       },

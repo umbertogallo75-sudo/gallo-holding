@@ -657,7 +657,11 @@ describe("additional marketing reporting adapters", () => {
     expect(metrics[0]).toMatchObject({ period: "today", status: "ok", resultCount: null });
     expect(metrics[1]).toMatchObject({ period: "last7", status: "ok", resultCount: null });
     expect(metrics[1].detail).toContain("HTTP 404");
-    expect(metrics[1].detail).toContain("ritardo di pubblicazione");
+    // The report says the file is not there yet and that access is verified.
+    // It no longer promises "3-7 days": nobody had a source for that number,
+    // and a deadline invented by the reporter is worse than no deadline.
+    expect(metrics[1].detail).toContain("in attesa che Google lo pubblichi");
+    expect(metrics[1].detail).not.toMatch(/\d+\s*[–-]\s*\d+\s*giorni/);
   });
 
   it("surfaces Google Play GCS network failures as an error", async () => {

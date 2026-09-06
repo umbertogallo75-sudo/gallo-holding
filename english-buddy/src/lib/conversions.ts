@@ -18,6 +18,9 @@ type Lintrk = (command: "track", params: { conversion_id: number }) => void;
 type Ttq = { track: (eventName: string, params?: Record<string, unknown>) => void };
 type TrackingWindow = Window & { gtag?: Gtag; fbq?: Fbq; lintrk?: Lintrk; ttq?: Ttq };
 
+/** The account, the campaigns and the prices are all in euro. */
+export const META_CURRENCY = "EUR";
+
 /** Once per platform and page load: a re-render must never double count. */
 let googleReported = false;
 let ga4Reported = false;
@@ -71,7 +74,14 @@ export function reportSignupConversion(): void {
   const fbq = trackingWindow.fbq;
   if (!metaReported && metaPixelId && typeof fbq === "function") {
     try {
-      fbq("track", "CompleteRegistration");
+      // The currency, and deliberately not a value. Events Manager warns that
+      // "Currency field is missing" on every one of these, which is a real
+      // fault: without it Meta cannot place the event in a currency at all.
+      // A value is a different question and is left unanswered on purpose —
+      // a free registration has produced no revenue, and inventing one to
+      // silence a warning would corrupt the only number in the account that
+      // is supposed to mean money.
+      fbq("track", "CompleteRegistration", { currency: META_CURRENCY });
       metaReported = true;
     } catch {
       // A campaign counter is never worth interrupting a registration for.

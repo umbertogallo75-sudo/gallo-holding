@@ -860,7 +860,7 @@ function playHttpError(month: string, status: number): string {
 }
 
 function playUnavailableDetail(month: string): string {
-  return `Google Play GCS: report mensile ${month} non ancora disponibile (HTTP 404); app e accesso report verificati, normale ritardo di pubblicazione di 3–7 giorni.`;
+  return `Google Play GCS: report mensile ${month} non ancora disponibile (HTTP 404); app e accesso report verificati; in attesa che Google lo pubblichi.`;
 }
 
 async function fetchPlayMonth(
@@ -985,7 +985,7 @@ export async function collectGooglePlayReporting(
   const diagnostics = [...unavailable, ...transientFailures];
   const diagnostic = diagnostics.length > 0 ? diagnostics.join(" ") : null;
   return [
-    delayedTodayMetric("google_play", "android", "Il report Google Play del giorno corrente può arrivare con 3–7 giorni di ritardo; valore oggi N/D."),
+    delayedTodayMetric("google_play", "android", "Il report Google Play del giorno corrente non è ancora pubblicato; valore oggi N/D."),
     playCompleteWindowMetric(completeDates, daily, diagnostic),
   ];
 }

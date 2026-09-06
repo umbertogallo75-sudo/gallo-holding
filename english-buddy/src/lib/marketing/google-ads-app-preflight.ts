@@ -231,7 +231,13 @@ export function buildGoogleAdsAppPreflightRequest(customerId: string) {
         adGroupAdOperation: {
           create: {
             adGroup,
-            status: "PAUSED",
+            // An App ad cannot be paused. Google Ads answers
+            // AD_TYPE_CANNOT_BE_PAUSED, and the whole preflight fails on that
+            // one field — which is what it has been doing. The brake belongs
+            // one level up and is still on: the campaign is PAUSED, the ad
+            // group is PAUSED, and validateOnly means none of this is created
+            // at all. An enabled ad inside a paused campaign serves nothing.
+            status: "ENABLED",
             ad: {
               appAd: {
                 headlines: [
