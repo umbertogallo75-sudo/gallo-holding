@@ -304,43 +304,22 @@ function dataStatus(metric: ReportingMetric): MarketingKpiInput["dataStatus"] {
   return metric.resultCount !== null ? "available" : "partial";
 }
 
-/**
- * Whether this source has a budget at all.
- *
- * Meta and LinkedIn do. An app store does not, and its placeholder
- * "not applicable" must not be carried into the report as if it were a
- * finding.
- */
-function hasBudgetConcept(metric: ReportingMetric): boolean {
-  return metric.budgetStatus !== "not_configured";
-}
-
-function budgetState(metric: ReportingMetric): MarketingKpiInput["budgetStatus"] {
-  if (!hasBudgetConcept(metric)) return null;
-  if (metric.budgetStatus === "ok") return "available";
-  return metric.budgetStatus === "error" ? "error" : "unavailable";
-}
-
 function metricToKpi(metric: ReportingMetric, day: string): MarketingKpiInput {
   return {
     day,
     source: metric.source,
     window: metric.period,
-    campaignStatus: hasBudgetConcept(metric) ? campaignSummary(metric.campaignBudgets) : null,
+    campaignStatus: metric.source === "meta" ? campaignSummary(metric.campaignBudgets) : null,
     spendMicros: micros(metric.spendEur),
     registrations: metric.resultLabel === "registrazioni" ? metric.resultCount : null,
     leads: metric.resultLabel === "lead aziendali" ? metric.resultCount : null,
     costPerRegistrationMicros: metric.resultLabel === "registrazioni" ? micros(metric.costPerResult) : null,
     costPerLeadMicros: metric.resultLabel === "lead aziendali" ? micros(metric.costPerResult) : null,
-    // These were carried for Meta only, so LinkedIn's budget arrived at the
-    // report as an unexplained N/D — while the reason for it had been
-    // computed, stored, and then discarded one layer above. A missing number
-    // that says why is worth ten that do not.
-    configuredMonthlyBudgetMicros: hasBudgetConcept(metric) ? micros(metric.configuredMonthlyBudgetEur) : null,
-    activeMonthlyBudgetMicros: hasBudgetConcept(metric) ? micros(metric.activeMonthlyBudgetEur) : null,
-    budgetStatus: budgetState(metric),
-    budgetDetail: hasBudgetConcept(metric) ? metric.budgetDetail : null,
-    campaignBudgets: hasBudgetConcept(metric) ? metric.campaignBudgets : [],
+    configuredMonthlyBudgetMicros: metric.source === "meta" ? micros(metric.configuredMonthlyBudgetEur) : null,
+    activeMonthlyBudgetMicros: metric.source === "meta" ? micros(metric.activeMonthlyBudgetEur) : null,
+    budgetStatus: metric.source === "meta" ? metric.budgetStatus === "ok" ? "available" : metric.budgetStatus === "error" ? "error" : "unavailable" : null,
+    budgetDetail: metric.source === "meta" ? metric.budgetDetail : null,
+    campaignBudgets: metric.source === "meta" ? metric.campaignBudgets : [],
     dataStatus: dataStatus(metric),
   };
 }
