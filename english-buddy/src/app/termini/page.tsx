@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SitePage } from "@/components/SitePage";
 
-export const metadata = { title: "Termini di servizio · ExecLingo" };
+export const metadata = { title: "Termini di servizio · ExecLingo", alternates: { canonical: "/termini" } };
 
 /** Termini di servizio — public page, linked from landing and register. */
 export default function TerminiPage() {

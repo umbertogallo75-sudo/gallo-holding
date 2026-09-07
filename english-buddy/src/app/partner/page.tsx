@@ -5,6 +5,7 @@ import { isEmbeddedApp } from "@/lib/appclient";
 export const metadata = {
   title: "Diventa Partner ExecLingo — guadagna il 5% sulle vendite",
   description: "Programma partner self-service: link personale, QR, kit marketing pronto e 5% di provvigione sul venduto. Attivazione in 2 minuti.",
+  alternates: { canonical: "/partner" },
 };
 
 /** Public page: become an ExecLingo partner (self-service, no approval). */

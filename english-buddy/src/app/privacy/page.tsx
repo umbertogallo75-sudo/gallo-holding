@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SitePage } from "@/components/SitePage";
 
-export const metadata = { title: "Privacy · ExecLingo" };
+export const metadata = { title: "Privacy · ExecLingo", alternates: { canonical: "/privacy" } };
 
 /**
  * Informativa privacy (artt. 13-14 GDPR).

@@ -7,6 +7,7 @@ import { CompanyForm } from "./CompanyForm";
 export const metadata = {
   title: "ExecLingo per aziende — inglese operativo per il tuo team",
   description: "Licenze team del programma 3 mesi con sconti volume: 10+ −5%, 50+ −10%, 150+ −15%. Codici subito via email, attivazione self-service.",
+  alternates: { canonical: "/aziende" },
 };
 
 /** Public self-service B2B page: buy N seats, get license codes by email. */

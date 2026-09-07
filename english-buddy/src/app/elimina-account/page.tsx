@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SitePage } from "@/components/SitePage";
 
-export const metadata = { title: "Elimina account · ExecLingo" };
+export const metadata = { title: "Elimina account · ExecLingo", alternates: { canonical: "/elimina-account" } };
 
 /**
  * Account-deletion page required by Google Play's data-safety form (and

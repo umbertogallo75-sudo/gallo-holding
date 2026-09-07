@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ConsentReset } from "@/components/ConsentReset";
 import { SitePage } from "@/components/SitePage";
 
-export const metadata = { title: "Cookie policy · ExecLingo" };
+export const metadata = { title: "Cookie policy · ExecLingo", alternates: { canonical: "/cookie" } };
 
 /**
  * Cookie policy — the extended notice the banner links to.
