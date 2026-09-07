@@ -6,38 +6,41 @@ const swift = readFileSync("ios/ExecLingo/ExecLingo/ContentView.swift", "utf8");
 const session = readFileSync("src/app/api/voice/session/route.ts", "utf8");
 
 /**
- * On speakerphone the coach kept hearing speech in a silent room and cutting
- * itself off; with headphones it never did. That difference is the whole
- * diagnosis: there is an acoustic path from the loudspeaker back to the
- * microphone, and nothing was cancelling it.
+ * On speakerphone the coach kept hearing itself and cutting off. The fix was
+ * to have the native shell put the phone into a voice-chat audio session, so
+ * the hardware echo canceller would run.
+ *
+ * It ran. It also took the audio session out from under the WebView that was
+ * already recording through it: the call reached "live" and went straight to
+ * "In pausa" at 0:00 — on headphones too, where there was no echo to cancel.
+ *
+ * A conversation that will not start is worse than one that echoes, so the
+ * shell is not told about calls any more. These tests hold that line: it must
+ * not come back without somebody testing it on a real phone first.
  */
-describe("l'eco a vivavoce", () => {
-  it("expects a microphone across the room, not against a mouth", () => {
+describe("the phone's audio session belongs to WebKit", () => {
+  it("does not reach for the native audio bridge from the page", () => {
+    expect(voice).not.toContain("messageHandlers?.audio");
+    expect(voice).not.toContain("tellPhoneAboutCall");
+  });
+
+  it("leaves no handler in the shell for it to reach", () => {
+    expect(swift).not.toContain('name: "audio"');
+    expect(swift).not.toContain("setVoiceCallAudio");
+    expect(swift).not.toContain("AVAudioSession");
+  });
+
+  it("keeps the one part of the echo fix that never broke anything", () => {
+    // The model's own noise handling is server-side and touches no session:
+    // a microphone across a room, not held against a mouth.
     expect(session).toContain('noise_reduction: { type: "far_field" }');
     expect(session).not.toContain("near_field");
   });
 
-  it("puts the phone into call mode for the length of the call", () => {
-    // .voiceChat is what turns on the echo canceller in the phone itself;
-    // asking the browser for echoCancellation does not reach it.
-    expect(swift).toContain("AVFoundation");
-    expect(swift).toContain(".playAndRecord, mode: .voiceChat");
-    // Play-and-record comes out of the earpiece otherwise, which reads as a
-    // broken volume control.
-    expect(swift).toContain(".defaultToSpeaker");
-    expect(swift).toContain('name: "audio"');
-  });
-
-  it("hands it back afterwards, however the call ended", () => {
-    // Through cleanup, which every exit goes through: stopped, cap reached,
-    // connection lost, page closed.
-    expect(voice).toContain("function cleanup(report: boolean) {\n    tellPhoneAboutCall(false);");
-    expect(voice).toContain("tellPhoneAboutCall(true)");
-    expect(swift).toContain("setActive(false, options: [.notifyOthersOnDeactivation])");
-  });
-
-  it("does nothing at all outside the app, or in an older build of it", () => {
-    expect(voice).toContain("webkit?.messageHandlers?.audio");
-    expect(voice).toContain("bridge?.postMessage");
+  it("still stops the clock when something really does take the call away", () => {
+    // The pause exists for phone calls and lock screens, and that behaviour is
+    // unchanged — it was being triggered by our own doing, not by a caller.
+    expect(voice).toContain('setInterrupted("paused")');
+    expect(voice).toContain("visibilitychange");
   });
 });

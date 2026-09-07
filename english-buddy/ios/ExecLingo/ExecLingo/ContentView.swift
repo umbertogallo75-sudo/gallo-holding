@@ -1,6 +1,5 @@
 import SwiftUI
 import WebKit
-import AVFoundation
 import StoreKit
 import UserNotifications
 
@@ -73,7 +72,6 @@ struct WebView: UIViewRepresentable {
         config.websiteDataStore = .default()
         config.userContentController.add(context.coordinator, name: "iap")
         config.userContentController.add(context.coordinator, name: "push")
-        config.userContentController.add(context.coordinator, name: "audio")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
@@ -98,43 +96,6 @@ struct WebView: UIViewRepresentable {
 
         // ---- Audio, for the spoken conversation ----
 
-        /**
-         Puts the phone into a call, and takes it out again.
-
-         A page asking for the microphone gets one; what it does not get, by
-         default, is the hardware that stops a loudspeaker being heard by the
-         microphone next to it. That belongs to the audio session, and this app
-         never set one — so on speakerphone the coach heard its own voice come
-         back, decided somebody had started talking, and stopped mid-sentence
-         in a silent room. With headphones there was no acoustic path, which is
-         exactly why headphones were the configuration that worked.
-
-         `.voiceChat` is the mode that turns on the echo canceller built into
-         the phone. `.defaultToSpeaker` is needed because play-and-record
-         otherwise comes out of the earpiece, quietly, as though the volume
-         were broken.
-
-         Set only while a call is running: holding a recording session for the
-         life of the app would show the microphone indicator all day and change
-         how every other sound behaves.
-         */
-        func setVoiceCallAudio(_ active: Bool) {
-            let session = AVAudioSession.sharedInstance()
-            do {
-                if active {
-                    try session.setCategory(.playAndRecord, mode: .voiceChat,
-                                            options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
-                    try session.setActive(true)
-                } else {
-                    try session.setActive(false, options: [.notifyOthersOnDeactivation])
-                }
-            } catch {
-                // A phone that will not grant the category still makes the call,
-                // just without the canceller: worse audio beats no conversation.
-                NSLog("audio session: \(error.localizedDescription)")
-            }
-        }
-
         // ---- In-app purchases (StoreKit 2) ----
 
         private func isExecLingoURL(_ url: URL?) -> Bool {
@@ -153,10 +114,6 @@ struct WebView: UIViewRepresentable {
                   let action = body["action"] as? String else { return }
             if message.name == "push" {
                 if action == "request" { requestPushPermission() }
-                return
-            }
-            if message.name == "audio" {
-                setVoiceCallAudio(action == "start")
                 return
             }
             guard message.name == "iap" else { return }

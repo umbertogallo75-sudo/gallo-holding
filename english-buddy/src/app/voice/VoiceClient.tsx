@@ -60,24 +60,19 @@ const HANDOFF_HREF = "/buddy?mode=buddy";
 const RESUME_GRACE_MS = 45_000;
 
 /**
- * Tells the iPhone app that a call is starting, or has ended.
+ * The phone's audio session is WebKit's business, not ours.
  *
- * Inside the native shell this switches the phone into its voice-call audio
- * mode, which is what turns on the echo canceller that stops the loudspeaker
- * being heard by the microphone beside it. On the web, and on any build that
- * predates the handler, it does nothing at all — the guard is the whole
- * compatibility story.
+ * This used to hand the call to the native shell so it could switch to
+ * play-and-record in voice-chat mode and turn on the hardware echo canceller.
+ * It did turn it on. It also took the session out from under the WebView that
+ * was already recording through it, and the call went to "In pausa" at 0:00 —
+ * with headphones too, where there was no echo to cancel in the first place.
+ *
+ * A conversation that will not start is worse than one that echoes, so the
+ * shell is no longer told anything and WebKit keeps the session it manages
+ * for getUserMedia. The echo is back, unsolved, and it stays open until
+ * somebody can test a fix on a real phone rather than reason about it.
  */
-function tellPhoneAboutCall(active: boolean): void {
-  try {
-    const bridge = (window as unknown as {
-      webkit?: { messageHandlers?: { audio?: { postMessage: (body: unknown) => void } } };
-    }).webkit?.messageHandlers?.audio;
-    bridge?.postMessage({ action: active ? "start" : "stop" });
-  } catch {
-    /* not inside the app, or an older one */
-  }
-}
 
 export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
@@ -258,7 +253,6 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   }
 
   function cleanup(report: boolean) {
-    tellPhoneAboutCall(false);
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     pcRef.current?.close(); pcRef.current = null;
@@ -349,7 +343,6 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
 
       setStatus("live"); statusRef.current = "live";
-      tellPhoneAboutCall(true);
       startClock();
       // The chat stops introducing the microphone once it has been used for
       // real: the invitation is for people who have never seen this screen.
