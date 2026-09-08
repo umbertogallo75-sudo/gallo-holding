@@ -159,13 +159,13 @@ export function verifyStripeSignature(payload: string, header: string | null, se
  * webhook turns the completed order into license codes.
  */
 export async function createTeamCheckout(
-  order: { companyName: string; buyerEmail: string; quantity: number; unitAmount: number },
+  order: { companyName: string; buyerEmail: string; quantity: number; unitAmount: number; plan: string; planLabel: string },
   baseUrl: string
 ): Promise<string> {
   const params: Record<string, string> = {
     mode: "payment",
     "line_items[0][price_data][currency]": "eur",
-    "line_items[0][price_data][product_data][name]": "ExecLingo — Programma 3 mesi · licenza team",
+    "line_items[0][price_data][product_data][name]": `ExecLingo — ${order.planLabel} · licenza team`,
     "line_items[0][price_data][product_data][tax_code]": "txcd_10000000",
     "line_items[0][price_data][tax_behavior]": "inclusive",
     "line_items[0][price_data][unit_amount]": String(order.unitAmount),
@@ -176,6 +176,9 @@ export async function createTeamCheckout(
     "metadata[b2b]": "1",
     "metadata[company]": order.companyName.slice(0, 200),
     "metadata[qty]": String(order.quantity),
+    // Which package the seats were sold as: the webhook stamps it onto every
+    // code, and redemption reads it back months later.
+    "metadata[plan]": order.plan,
     success_url: `${baseUrl}/aziende?esito=ok`,
     cancel_url: `${baseUrl}/aziende?esito=annullato`,
     locale: "it",

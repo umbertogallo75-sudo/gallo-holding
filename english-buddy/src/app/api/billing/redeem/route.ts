@@ -6,7 +6,7 @@ import { redeemLicense } from "@/lib/licenses";
 
 const bodySchema = z.object({ code: z.string().trim().min(6).max(40) });
 
-/** Redeems a team license code and activates the 3-month program. */
+/** Redeems a team license code and activates the package it was sold as. */
 export async function POST(request: Request) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,5 +22,5 @@ export async function POST(request: Request) {
     const message = result.reason === "already_used" ? "Questo codice è già stato utilizzato." : "Codice non trovato: controlla di averlo copiato per intero.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, companyName: result.companyName });
+  return NextResponse.json({ ok: true, companyName: result.companyName, plan: result.plan });
 }

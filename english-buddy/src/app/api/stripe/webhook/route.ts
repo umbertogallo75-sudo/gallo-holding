@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
-import { generateLicenses } from "@/lib/licenses";
+import { generateLicenses, isTeamPlan, TEAM_PLANS } from "@/lib/licenses";
 import { renderEmail, sendEmail } from "@/lib/email";
 import { recordCommission, reverseCommission } from "@/lib/partners";
 import { saveBilling, userIdByCustomer, verifyStripeSignature } from "@/lib/stripe";
@@ -31,29 +31,32 @@ async function fulfillTeamOrder(object: StripeObject): Promise<void> {
   const orderId = String(object.id ?? "");
   if (!quantity || !orderId || !buyerEmail) return;
 
-  const codes = await generateLicenses({ orderId, companyName, buyerEmail, quantity });
+  // Orders placed before the annual package existed carry no plan metadata.
+  const plan = isTeamPlan(object.metadata?.plan) ? object.metadata.plan : "program";
+  const planLabel = TEAM_PLANS[plan].label;
+  const codes = await generateLicenses({ orderId, companyName, buyerEmail, quantity, plan });
   const codeBlock = codes.map((c) => `<div style="font-family:ui-monospace,Menlo,monospace;font-size:15px;padding:7px 12px;background:#f2f4ef;border-radius:8px;margin:4px 0;letter-spacing:.06em;">${c}</div>`).join("");
   await sendEmail(
     buyerEmail,
     `Le tue ${quantity} licenze ExecLingo sono pronte`,
     renderEmail({
-      preheader: `${quantity} codici licenza per il team di ${companyName || "la tua azienda"} — pronti da distribuire.`,
+      preheader: `${quantity} codici licenza (${planLabel}) per il team di ${companyName || "la tua azienda"} — pronti da distribuire.`,
       heading: `Benvenuti a bordo${companyName ? `, ${companyName}` : ""}!`,
-      bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Il pagamento è andato a buon fine. Qui sotto trovi <strong>${quantity} codici licenza</strong>, uno per ogni persona del team. Ogni codice attiva il <strong>Programma 3 mesi</strong> completo.</p>
+      bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Il pagamento è andato a buon fine. Qui sotto trovi <strong>${quantity} codici licenza</strong>, uno per ogni persona del team. Ogni codice attiva il <strong>${planLabel}</strong> completo.</p>
         <p style="margin:0 0 8px;font-size:14.5px;line-height:1.6;color:#3a423b;"><strong>Come attivarle</strong> — inoltra a ogni collega queste 3 righe insieme al suo codice:</p>
         <p style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#6b736a;">1. Vai su <a href="https://www.execlingo.it/register" style="color:#2f8f63;">execlingo.it/register</a> e crea il tuo accesso<br>2. Apri <strong>Profilo → 💳 Abbonamento e piani</strong><br>3. Inserisci il codice licenza nella casella &ldquo;Codice aziendale&rdquo; — e inizia con Sam</p>
         ${codeBlock}
         <p style="margin:14px 0 0;font-size:13px;line-height:1.6;color:#8a917f;">Conserva questa email: è l&rsquo;elenco delle tue licenze. Per fatturazione o assistenza: ug@vaspitalia.com</p>`,
       footerNote: "Hai ricevuto questa email perché hai acquistato licenze team su execlingo.it.",
     }),
-    `Pagamento ricevuto: ${quantity} licenze ExecLingo per ${companyName}.\n\nCodici:\n${codes.join("\n")}\n\nOgni collega: 1) registrazione su https://www.execlingo.it/register 2) Profilo -> Abbonamento 3) inserire il codice.\n\nAssistenza: ug@vaspitalia.com`
+    `Pagamento ricevuto: ${quantity} licenze ExecLingo (${planLabel}) per ${companyName}.\n\nCodici:\n${codes.join("\n")}\n\nOgni collega: 1) registrazione su https://www.execlingo.it/register 2) Profilo -> Abbonamento 3) inserire il codice.\n\nAssistenza: ug@vaspitalia.com`
   );
   // Heads-up to the owner so no corporate order goes unnoticed.
   await sendEmail(
     "ug@vaspitalia.com",
-    `🏢 Nuovo ordine team: ${quantity} licenze — ${companyName}`,
+    `🏢 Nuovo ordine team: ${quantity} licenze ${planLabel} — ${companyName}`,
     renderEmail({
-      preheader: `${companyName} ha acquistato ${quantity} licenze.`,
+      preheader: `${companyName} ha acquistato ${quantity} licenze ${planLabel}.`,
       heading: "Nuovo ordine aziendale",
       bodyHtml: `<p style="margin:0;font-size:15px;line-height:1.7;color:#3a423b;">Azienda: <strong>${companyName}</strong><br>Referente: ${buyerEmail}<br>Licenze: <strong>${quantity}</strong><br>Ordine Stripe: ${orderId}</p>`,
       footerNote: "Notifica automatica ordini team.",

@@ -6,7 +6,7 @@ import { CompanyForm } from "./CompanyForm";
 
 export const metadata = {
   title: "ExecLingo per aziende — inglese operativo per il tuo team",
-  description: "Licenze team del programma 3 mesi con sconti volume: 10+ −5%, 50+ −10%, 150+ −15%. Codici subito via email, attivazione self-service.",
+  description: "Licenze team, programma 3 mesi o annuale, con sconti volume: 10+ −5%, 50+ −10%, 150+ −15%. Codici subito via email, attivazione self-service.",
   alternates: { canonical: "/aziende" },
 };
 
@@ -22,7 +22,7 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
         <section className="hero">
           <div className="kicker">ExecLingo per aziende</div>
           <h1>Il tuo team operativo in inglese.</h1>
-          <p className="muted">Le aziende attivano licenze team per i propri dipendenti: ogni collega riceve un codice e attiva il percorso in un minuto dal proprio profilo.</p>
+          <p className="muted">Le aziende attivano licenze team per i propri dipendenti — programma di 3 mesi o annuale: ogni collega riceve un codice e attiva il percorso in un minuto dal proprio profilo.</p>
           <p className="itHint">Hai ricevuto un codice dalla tua azienda? Vai su Profilo → 💳 Abbonamento e inseriscilo lì.</p>
         </section>
       </main>
@@ -43,23 +43,24 @@ export default async function AziendePage({ searchParams }: { searchParams: Prom
 
       <section className="hero">
         <div className="kicker">ExecLingo per aziende</div>
-        <h1>Il tuo team operativo in inglese. In 3 mesi.</h1>
-        <p className="muted">Il 3-Month Executive Path per manager e team: pochi minuti al giorno, business reale, progressi misurabili. Compri le licenze ora, i codici arrivano subito via email, ogni persona attiva il suo percorso in autonomia.</p>
+        <h1>Il tuo team operativo in inglese.</h1>
+        <p className="muted">Il 3-Month Executive Path per manager e team: pochi minuti al giorno, business reale, progressi misurabili. Se vuoi che il team resti allenato tutto l&rsquo;anno c&rsquo;è la licenza annuale. Compri le licenze ora, i codici arrivano subito via email, ogni persona attiva il suo percorso in autonomia.</p>
       </section>
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Sconti volume</h2>
+        <p className="muted" style={{ marginTop: 0 }}>Lo stesso sconto su entrambi i pacchetti: cresce con il numero di licenze, e si applica da solo al totale.</p>
         <div style={{ overflowX: "auto" }}>
           <table className="adminTable" style={{ fontSize: 15 }}>
-            <thead><tr><th>Licenze</th><th>Sconto</th><th>Prezzo/licenza</th></tr></thead>
+            <thead><tr><th>Licenze</th><th>Sconto</th><th>3 mesi<br /><span className="muted" style={{ fontWeight: 400 }}>pieno 99,90 €</span></th><th>Annuale<br /><span className="muted" style={{ fontWeight: 400 }}>pieno 199,00 €</span></th></tr></thead>
             <tbody>
-              <tr><td>10 – 49</td><td>−5%</td><td><strong>94,90 €</strong></td></tr>
-              <tr><td>50 – 149</td><td>−10%</td><td><strong>89,90 €</strong></td></tr>
-              <tr><td>150+</td><td>−15%</td><td><strong>84,90 €</strong></td></tr>
+              <tr><td>10 – 49</td><td>−5%</td><td><strong>94,90 €</strong></td><td><strong>189,00 €</strong></td></tr>
+              <tr><td>50 – 149</td><td>−10%</td><td><strong>89,90 €</strong></td><td><strong>179,00 €</strong></td></tr>
+              <tr><td>150+</td><td>−15%</td><td><strong>84,90 €</strong></td><td><strong>169,00 €</strong></td></tr>
             </tbody>
           </table>
         </div>
-        <p className="itHint" style={{ marginBottom: 0 }}>Prezzi <strong>IVA inclusa</strong>: il totale che vedi è quello che paghi. Prezzo pieno 99,90 € a persona, una tantum, programma completo di 3 mesi. Sconto applicato automaticamente al totale.</p>
+        <p className="itHint" style={{ marginBottom: 0 }}>Prezzi <strong>IVA inclusa</strong>, per licenza, una tantum: il totale che vedi è quello che paghi. Il <strong>3 mesi</strong> è il percorso completo da zero a operativo; l&rsquo;<strong>annuale</strong> tiene il team con Sam per dodici mesi.</p>
       </section>
 
       <CompanyForm />
