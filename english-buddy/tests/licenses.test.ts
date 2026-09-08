@@ -69,16 +69,18 @@ describe("team pricing tiers", () => {
     // CompanyForm is a client component and cannot import the pricing lib, so
     // it holds a copy. This is the guard that the copy still matches.
     const form = readFileSync(join(__dirname, "..", "src", "app", "aziende", "CompanyForm.tsx"), "utf8");
-    const page = readFileSync(join(__dirname, "..", "src", "app", "aziende", "page.tsx"), "utf8");
-    const money = (cents: number) => (cents / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 });
     for (const plan of Object.keys(TEAM_PLANS) as TeamPlan[]) {
       const { full, tiers, label } = TEAM_PLANS[plan];
       expect(form).toContain(`tiers: [${tiers.join(", ")}]`);
       expect(form).toContain(`full: ${full}`);
       expect(form).toContain(label);
-      // The public table quotes the same numbers the checkout will charge.
-      for (const cents of [...tiers, full]) expect(page).toContain(`${money(cents)} €`);
     }
+    // The public table is a server component: it renders TEAM_PLANS itself, so
+    // it cannot drift. Assert that it still does, rather than that it happens
+    // to spell today's prices.
+    const page = readFileSync(join(__dirname, "..", "src", "app", "aziende", "page.tsx"), "utf8");
+    expect(page).toMatch(/import \{[^}]*TEAM_PLANS[^}]*\} from "@\/lib\/licenses"/);
+    expect(page).not.toMatch(/\d{2},\d{2}\s*€/);
   });
 });
 
