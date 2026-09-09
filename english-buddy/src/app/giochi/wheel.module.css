@@ -1,0 +1,104 @@
+/* ============================================================
+   The letter wheel. Tiles sit on a ring, the clock is the ring,
+   and the whole run is legible in one glance: how much time is
+   left is the circle around your hands, not a number you have
+   to go and read.
+   ============================================================ */
+
+.stage {
+  /* Local to the wheel: the dish it sits in, and the colour its shadows are
+     cast in. Redefined for dark below, like every other surface in the app. */
+  --w-edge:16 34 26;
+  --w-dish:255 255 255;
+  display:grid; gap:18px; justify-items:center; padding:6px 0 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stage:not([data-theme="light"]) { --w-edge:0 0 0; --w-dish:255 255 255; }
+  .stage:not([data-theme="light"]) .dish { background:rgb(var(--w-dish) / .06); }
+  .stage:not([data-theme="light"]) .slot { box-shadow:inset 0 0 0 2px rgb(255 255 255 / .2); }
+}
+
+/* The empty slots read as outlines on any ground, so they carry their own
+   colour rather than inheriting one. */
+.slots .slot { color:var(--g-ink, #123); }
+
+/* ---- the slots being filled ---- */
+.slots { display:flex; gap:10px; justify-content:center; }
+.slot {
+  display:grid; place-items:center;
+  height:60px; width:60px; border-radius:50%;
+  font-size:1.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.01em;
+  background:rgb(var(--w-dish) / .5);
+  box-shadow:inset 0 0 0 2px rgb(var(--w-edge) / .16);
+  transition:transform .28s cubic-bezier(.22,1.5,.4,1), background .18s ease, box-shadow .18s ease;
+}
+.slotFull { animation:drop .3s cubic-bezier(.22,1.5,.4,1); }
+@keyframes drop { from { transform:scale(.6) translateY(-10px); } to { transform:scale(1) translateY(0); } }
+
+/* ---- the wheel ---- */
+.wheel { position:relative; width:min(84vw, 340px); aspect-ratio:1; display:grid; place-items:center; touch-action:none; }
+.ring { position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg); pointer-events:none; }
+.ringTrack { fill:none; stroke:rgb(var(--w-edge) / .1); }
+.ringLive { fill:none; stroke-linecap:round; transition:stroke .4s ease; }
+.wheel[data-low="true"] .ringLive { animation:throb .7s ease-in-out infinite; }
+@keyframes throb { 50% { opacity:.45; } }
+
+.dish {
+  position:absolute; inset:9%;
+  border-radius:50%;
+  background:rgb(var(--w-dish) / .5);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / .3);
+}
+
+/* Tiles are placed by the component with CSS custom properties for the angle,
+   so the same rule serves any number of letters. */
+.tile {
+  position:absolute;
+  left:50%; top:50%;
+  height:78px; width:78px; border:0; padding:0; border-radius:50%;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1));
+  font-family:inherit; font-size:2.125rem; font-weight:800; color:#fff; text-transform:uppercase;
+  cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent;
+  background:radial-gradient(120% 120% at 34% 26%, color-mix(in srgb, var(--tile) 78%, white), var(--tile));
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / .42),
+    0 6px 0 color-mix(in srgb, var(--tile) 62%, black),
+    0 12px 22px rgb(var(--w-edge) / .28);
+  transition:filter .16s ease, opacity .2s ease;
+}
+.tile span {
+  display:block;
+  transform:rotate(var(--a)) rotate(calc(var(--a) * -1));
+  text-shadow:0 2px 3px rgb(0 0 0 / .22);
+}
+.tile:focus-visible { outline:4px solid #fff; outline-offset:4px; }
+
+/* Pressed, or dragged through: the tile sinks onto its own shadow. */
+.tileOn {
+  filter:brightness(1.14);
+  box-shadow:inset 0 2px 0 rgb(255 255 255 / .5), 0 2px 0 color-mix(in srgb, var(--tile) 62%, black), 0 5px 10px rgb(var(--w-edge) / .26);
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(var(--r) * -1 + 4px)) rotate(calc(var(--a) * -1));
+}
+.tileUsed { opacity:.26; }
+
+/* The line drawn between letters as a finger connects them. */
+.trail { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.trailLine { fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-width:9; opacity:.5; }
+
+/* ---- state colouring of the whole stage ---- */
+.stage[data-state="right"] .slot { box-shadow:inset 0 0 0 2px #7bbf3a; }
+.stage[data-state="wrong"] .slot { box-shadow:inset 0 0 0 2px #e0562f; }
+.stage[data-state="wrong"] .slots { animation:shake .34s ease; }
+@keyframes shake { 25% { transform:translateX(-7px); } 60% { transform:translateX(6px); } 100% { transform:translateX(0); } }
+
+.word { min-height:1.6em; margin:0; text-align:center; font-size:.9375rem; font-weight:600; line-height:1.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage *, .stage *::before, .stage *::after { animation:none !important; transition-duration:.01ms !important; }
+}
+
+@media (max-width:380px) {
+  .tile { height:68px; width:68px; font-size:1.875rem; }
+  .slot { height:52px; width:52px; font-size:1.5rem; }
+}

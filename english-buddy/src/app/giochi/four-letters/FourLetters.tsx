@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { track } from "@/lib/track-client";
 import {
@@ -18,17 +18,21 @@ import {
   type Made,
   type Tray,
 } from "@/lib/games/four-letters";
+import * as sound from "@/lib/games/sound";
+import { Wheel } from "./Wheel";
 import styles from "../games.module.css";
+import wheel from "../wheel.module.css";
 
 type Phase = "ready" | "playing" | "over";
+type Flash = "idle" | "right" | "wrong";
 
 const BEST_KEY = "execlingo:four-letters:best";
 const TICK_MS = 100;
+/** Seconds left below which the run is visibly and audibly in trouble. */
+const LOW_AT = 10;
 
-/** The personal best is an external store, not React state. */
 const listeners = new Set<() => void>();
 let cache: number | null = null;
-
 function bestSnapshot(): number {
   if (cache === null) {
     try {
@@ -49,7 +53,7 @@ function saveBest(value: number): void {
   try {
     window.localStorage.setItem(BEST_KEY, String(value));
   } catch {
-    // Private browsing: the record simply is not remembered.
+    /* private browsing */
   }
   for (const listener of listeners) listener();
 }
@@ -61,21 +65,24 @@ export function FourLetters({ opening }: { opening: Tray }) {
   const [score, setScore] = useState(0);
   const [made, setMade] = useState<Made[]>([]);
   const [left, setLeft] = useState(START_SECONDS);
-  const [shake, setShake] = useState(0);
+  const [flash, setFlash] = useState<Flash>("idle");
+  const [note, setNote] = useState("");
+  const [muted, setMutedState] = useState(false);
   const best = useSyncExternalStore(subscribeBest, bestSnapshot, () => 0);
   const seen = useRef<Set<string>>(new Set());
   const posted = useRef(false);
+  const lastTick = useRef(0);
+  /**
+   * The letters chosen so far, kept alongside the state rather than inside it.
+   * A tap picks a letter and submits in the same breath, before React has
+   * re-rendered, so the submit has to read something that is already up to
+   * date — and scoring must never live inside a state updater, which React is
+   * free to run twice.
+   */
+  const pickedRef = useRef<number[]>([]);
 
-  const nextTray = useCallback((atScore: number) => {
-    setTray((current) => {
-      seen.current.add(trayKey(current));
-      return dealTray(atScore, Math.random, seen.current);
-    });
-    setPicked([]);
-  }, []);
-
-  // The clock. One countdown for the whole game, running faster the longer it
-  // has been going — this is the difficulty curve, and it is what ends a run.
+  // The clock: one countdown for the whole run, spending faster the longer it
+  // lasts. It also drives the ticking, which is why the two never disagree.
   useEffect(() => {
     if (phase !== "playing") return;
     const timer = window.setInterval(() => {
@@ -83,8 +90,16 @@ export function FourLetters({ opening }: { opening: Tray }) {
         const next = value - (TICK_MS / 1000) * drainRate(score);
         if (next <= 0) {
           window.clearInterval(timer);
+          sound.timeUp();
           setPhase("over");
           return 0;
+        }
+        // One tick per beat, and the beat quickens as the clock runs down.
+        const urgency = 1 - Math.min(next / START_SECONDS, 1);
+        const beat = next <= LOW_AT ? 0.35 : 1 - urgency * 0.45;
+        if (lastTick.current - next >= beat || lastTick.current === 0) {
+          lastTick.current = next;
+          sound.tick(next <= LOW_AT ? 1 : urgency);
         }
         return next;
       });
@@ -101,40 +116,86 @@ export function FourLetters({ opening }: { opening: Tray }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game: "four-letters", score, correct: score, total: score, items: [] }),
     }).catch(() => {
-      // The run is over either way.
+      /* the run is over either way */
     });
   }, [phase, score]);
 
-  function tapKey(position: number) {
-    if (phase !== "playing" || picked.includes(position)) return;
-    const next = [...picked, position];
-    setPicked(next);
-    if (next.length < LETTERS) return;
+  // Audio belongs to the page, not to the app: leaving must silence it.
+  useEffect(() => () => sound.releaseSound(), []);
 
-    const attempt = next.map((i) => tray.letters[i]).join("");
+  function clearPicked() {
+    pickedRef.current = [];
+    setPicked([]);
+  }
+
+  function pick(seat: number) {
+    if (phase !== "playing" || flash !== "idle") return;
+    const current = pickedRef.current;
+    if (current.includes(seat) || current.length >= LETTERS) return;
+    sound.letterTap(current.length);
+    pickedRef.current = [...current, seat];
+    setPicked(pickedRef.current);
+  }
+
+  function submit() {
+    if (phase !== "playing" || flash !== "idle") return;
+    const current = pickedRef.current;
+    if (current.length < LETTERS) return;
+
+    const attempt = current.map((i) => tray.letters[i]).join("");
     if (isAnswer(tray, attempt)) {
       const now = score + 1;
+      sound.correct();
       setScore(now);
       setMade((all) => [...all, { word: attempt, it: meaningOf(attempt) ?? "" }]);
       setLeft((value) => Math.min(value + BONUS_SECONDS, START_SECONDS));
-      nextTray(now);
+      setNote(`${attempt.toUpperCase()} · ${meaningOf(attempt) ?? ""} · +${BONUS_SECONDS}s`);
+      setFlash("right");
+      window.setTimeout(() => {
+        setTray((currentTray) => {
+          seen.current.add(trayKey(currentTray));
+          return dealTray(now, Math.random, seen.current);
+        });
+        clearPicked();
+        setFlash("idle");
+        setNote("");
+      }, 520);
     } else {
-      // No penalty beyond the seconds it cost: the clock is punishment enough.
-      setShake((n) => n + 1);
-      setPicked([]);
+      // No points lost: the seconds it cost are the whole penalty.
+      sound.wrong();
+      setFlash("wrong");
+      setNote("Non è una parola. Riprova.");
+      window.setTimeout(() => {
+        clearPicked();
+        setFlash("idle");
+        setNote("");
+      }, 420);
     }
   }
 
   function start() {
+    sound.armSound();
+    const startMuted = sound.readMuted();
+    sound.setMuted(startMuted);
+    setMutedState(startMuted);
     posted.current = false;
     seen.current = new Set();
+    lastTick.current = 0;
     setPhase("playing");
     setScore(0);
     setMade([]);
-    setPicked([]);
+    clearPicked();
+    setNote("");
+    setFlash("idle");
     setLeft(START_SECONDS);
     setTray(dealTray(0, Math.random, new Set()));
     track("game_started", { where: "four-letters" });
+  }
+
+  function toggleMute() {
+    const next = !muted;
+    sound.setMuted(next);
+    setMutedState(next);
   }
 
   if (phase === "ready") {
@@ -142,12 +203,13 @@ export function FourLetters({ opening }: { opening: Tray }) {
       <div className={styles.over}>
         <h2>Quattro lettere</h2>
         <p>
-          Quattro lettere, una parola vera. Vale qualsiasi parola inglese che quelle lettere compongono — spesso ce n&rsquo;è più d&rsquo;una.
-          Ogni parola ti ridà qualche secondo, ma l&rsquo;orologio accelera man mano che vai avanti. Alla fine ritrovi tutte le parole fatte, con il loro significato.
+          Quattro lettere, una parola vera. Trascina il dito da una lettera all&rsquo;altra, o toccale una per una.
+          Vale qualsiasi parola inglese che quelle lettere compongono — spesso ce n&rsquo;è più d&rsquo;una.
+          Ogni parola ti ridà {BONUS_SECONDS} secondi, ma l&rsquo;orologio accelera. Alla fine ritrovi tutte le parole fatte, tradotte.
         </p>
         <button type="button" className={styles.go} onClick={start}>Inizia →</button>
         <p className={styles.footnote} style={{ textAlign: "center" }}>
-          {START_SECONDS} secondi di partenza · +{BONUS_SECONDS}s a parola{best > 0 ? ` · record ${best}` : ""}
+          {START_SECONDS} secondi di partenza{best > 0 ? ` · record ${best}` : ""} · con audio
         </p>
       </div>
     );
@@ -180,7 +242,7 @@ export function FourLetters({ opening }: { opening: Tray }) {
   }
 
   const seconds = Math.ceil(left);
-  const low = seconds <= 10;
+  const low = seconds <= LOW_AT;
 
   return (
     <div className={styles.game}>
@@ -189,51 +251,52 @@ export function FourLetters({ opening }: { opening: Tray }) {
         <div className={`${styles.hudCell} ${low ? styles.low : ""}`}><strong>{seconds}</strong><span>secondi</span></div>
         <div className={styles.hudCell}><strong>{best}</strong><span>record</span></div>
       </div>
-      <div className={styles.clock} data-low={low} aria-hidden>
-        <i className={styles.live} style={{ width: `${Math.max(0, (left / START_SECONDS) * 100)}%` }} />
-      </div>
 
-      <div className={`${styles.prompt} ${shake ? styles.nudge : ""}`} key={shake}>
-        <p className={styles.hint}>Componi una parola con tutte e quattro le lettere</p>
-        <div className={styles.slots} aria-live="polite">
+      <div className={wheel.stage} data-state={flash}>
+        <div className={wheel.slots}>
           {Array.from({ length: LETTERS }, (_, i) => {
-            const position = picked[i];
-            const letter = position === undefined ? "" : tray.letters[position];
+            const seat = picked[i];
+            const letter = seat === undefined ? "" : tray.letters[seat];
             return (
-              <span key={i} className={letter ? `${styles.slot} ${styles.slotFilled}` : styles.slot}>{letter}</span>
+              <span key={i} className={letter ? `${wheel.slot} ${wheel.slotFull}` : wheel.slot}>{letter}</span>
             );
           })}
         </div>
-      </div>
 
-      <div className={styles.tray}>
-        {tray.letters.map((letter, position) => (
-          <button
-            key={position}
-            type="button"
-            className={styles.key}
-            disabled={picked.includes(position)}
-            onClick={() => tapKey(position)}
-            aria-label={`lettera ${letter}`}
-          >
-            {letter}
-          </button>
-        ))}
+        <Wheel
+          letters={tray.letters}
+          picked={picked}
+          remaining={left / START_SECONDS}
+          low={low}
+          state={flash}
+          onPick={pick}
+          onSubmit={submit}
+          onClear={clearPicked}
+        />
+
+        <p className={wheel.word} aria-live="polite">{note}</p>
       </div>
 
       <div className={styles.controls}>
-        <button type="button" className={styles.ghost} onClick={() => setPicked(picked.slice(0, -1))} disabled={picked.length === 0}>
+        <button type="button" className={styles.ghost} onClick={clearPicked} disabled={picked.length === 0}>
           ← Cancella
         </button>
-        <button type="button" className={styles.ghost} onClick={() => { setTray(reshuffle(tray, Math.random)); setPicked([]); }}>
+        <button type="button" className={styles.ghost} onClick={() => { setTray(reshuffle(tray, Math.random)); clearPicked(); }}>
           ⇄ Mescola
         </button>
         <button
           type="button"
           className={styles.ghost}
-          onClick={() => { setLeft((value) => Math.max(0.1, value - SKIP_PENALTY_SECONDS)); nextTray(score); }}
+          onClick={() => {
+            setLeft((value) => Math.max(0.1, value - SKIP_PENALTY_SECONDS));
+            setTray((current) => { seen.current.add(trayKey(current)); return dealTray(score, Math.random, seen.current); });
+            clearPicked();
+          }}
         >
           Salta −{SKIP_PENALTY_SECONDS}s
+        </button>
+        <button type="button" className={styles.ghost} onClick={toggleMute} aria-pressed={muted}>
+          {muted ? "🔇 Audio" : "🔊 Audio"}
         </button>
       </div>
     </div>
