@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { seatCentres } from "@/lib/games/wheel-layout";
 import styles from "../wheel.module.css";
 
 /** One hue per seat, so the same letter is not always the same colour. */
@@ -31,15 +32,9 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
   const dragging = useRef(false);
 
   const seats = letters.length;
-  const radius = 34; // % of the wheel, matched by --r below
-
-  // Where each tile sits, in the wheel's own 0–100 coordinate space, so the
-  // trail is drawn without measuring anything at paint time. Derived, not
-  // stored: it depends only on how many letters there are.
-  const centres = Array.from({ length: seats }, (_, index) => {
-    const angle = (index / seats) * 2 * Math.PI - Math.PI / 2;
-    return { x: 50 + radius * Math.cos(angle), y: 50 + radius * Math.sin(angle) };
-  });
+  // Percentages of the wheel, handed straight to left/top. Derived, not
+  // stored: they depend only on how many letters there are.
+  const centres = seatCentres(seats);
 
   function seatAt(clientX: number, clientY: number): number | null {
     const element = document.elementFromPoint(clientX, clientY);
@@ -125,8 +120,8 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
             className={`${styles.tile} ${used ? styles.tileOn : ""}`}
             style={
               {
-                "--a": `${(seat / seats) * 360}deg`,
-                "--r": `${radius}%`,
+                "--x": `${centres[seat].x}%`,
+                "--y": `${centres[seat].y}%`,
                 "--tile": TILE_COLOURS[seat % TILE_COLOURS.length],
               } as React.CSSProperties
             }

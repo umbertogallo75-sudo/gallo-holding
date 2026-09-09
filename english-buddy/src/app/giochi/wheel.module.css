@@ -51,34 +51,33 @@
   box-shadow:inset 0 1px 0 rgb(255 255 255 / .3);
 }
 
-/* Tiles are placed by the component with CSS custom properties for the angle,
-   so the same rule serves any number of letters. */
+/* Tiles are placed by the component, which sets --x and --y as percentages of
+   the wheel. They have to be left/top and not a translate: a percentage in
+   translate resolves against the element's own box, so every tile landed a
+   letter's width from the centre and they stacked on top of each other. */
 .tile {
   position:absolute;
-  left:50%; top:50%;
+  left:var(--x); top:var(--y);
   height:78px; width:78px; border:0; padding:0; border-radius:50%;
-  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1));
+  transform:translate(-50%,-50%);
   font-family:inherit; font-size:2.125rem; font-weight:800; color:#fff; text-transform:uppercase;
+  line-height:1; display:grid; place-items:center;
   cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent;
   background:radial-gradient(120% 120% at 34% 26%, color-mix(in srgb, var(--tile) 78%, white), var(--tile));
   box-shadow:
     inset 0 2px 0 rgb(255 255 255 / .42),
     0 6px 0 color-mix(in srgb, var(--tile) 62%, black),
     0 12px 22px rgb(var(--w-edge) / .28);
-  transition:filter .16s ease, opacity .2s ease;
+  transition:filter .16s ease, opacity .2s ease, transform .16s cubic-bezier(.22,1,.36,1), box-shadow .16s ease;
 }
-.tile span {
-  display:block;
-  transform:rotate(var(--a)) rotate(calc(var(--a) * -1));
-  text-shadow:0 2px 3px rgb(0 0 0 / .22);
-}
+.tile span { display:block; text-shadow:0 2px 3px rgb(0 0 0 / .22); pointer-events:none; }
 .tile:focus-visible { outline:4px solid #fff; outline-offset:4px; }
 
 /* Pressed, or dragged through: the tile sinks onto its own shadow. */
 .tileOn {
   filter:brightness(1.14);
+  transform:translate(-50%,-50%) translateY(4px) scale(.96);
   box-shadow:inset 0 2px 0 rgb(255 255 255 / .5), 0 2px 0 color-mix(in srgb, var(--tile) 62%, black), 0 5px 10px rgb(var(--w-edge) / .26);
-  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(var(--r) * -1 + 4px)) rotate(calc(var(--a) * -1));
 }
 .tileUsed { opacity:.26; }
 
