@@ -30,3 +30,40 @@
 @media (prefers-reduced-motion: reduce) {
   .speaker, .option { transition-duration:.01ms !important; }
 }
+
+/* The typed answer, for the games where choosing from three would give it away. */
+.typing { display:grid; gap:10px; }
+.field {
+  width:100%; border:0; border-radius:18px; padding:18px 20px; min-height:64px;
+  font-family:inherit; font-size:1.75rem; font-weight:700; text-align:center; letter-spacing:.02em;
+  font-variant-numeric:tabular-nums; color:var(--g-ink);
+  background:rgb(var(--g-glass) / calc(var(--g-glass-a) + .22));
+  box-shadow:inset 0 1.5px 0 rgb(var(--g-stroke) / .55), inset 0 0 0 1.5px rgb(var(--g-stroke) / .26);
+  transition:box-shadow .2s ease;
+}
+.field::placeholder { font-size:1rem; font-weight:500; color:var(--g-dim); letter-spacing:0; }
+.field:focus { outline:none; box-shadow:inset 0 0 0 2.5px var(--g-accent); }
+.field.right { box-shadow:inset 0 0 0 2.5px #2f9b5f; }
+.field.wrong { box-shadow:inset 0 0 0 2.5px #d1503a; }
+
+/* The prompt card, for games that show a word rather than speak it. */
+.card { display:grid; gap:8px; justify-items:center; padding:26px 18px 22px; text-align:center; }
+.way { font-size:.6875rem; letter-spacing:.12em; text-transform:uppercase; font-weight:700; color:var(--g-dim); }
+.big { margin:0; font-size:clamp(1.75rem,7vw,2.5rem); font-weight:750; letter-spacing:-.035em; line-height:1.1; text-wrap:balance; }
+
+/* A sentence whose every word can be tapped. */
+.sentence { margin:0; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:baseline; }
+.word {
+  border:0; border-radius:11px; padding:8px 11px; min-height:44px; cursor:pointer;
+  font-family:inherit; font-size:1.1875rem; font-weight:600; color:var(--g-ink);
+  background:rgb(var(--g-stroke) / .2);
+  box-shadow:inset 0 0 0 1px rgb(var(--g-stroke) / .2);
+  transition:transform .18s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, color .2s ease;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.word:active:not(:disabled) { transform:scale(.94); }
+.badWord { box-shadow:inset 0 0 0 2.5px #2f9b5f; color:var(--g-accent); }
+.missWord { box-shadow:inset 0 0 0 2.5px #d1503a; color:#d1503a; }
+.explain { display:grid; gap:5px; text-align:center; padding:4px 8px; }
+.fix { margin:0; font-size:1.25rem; font-weight:700; letter-spacing:-.02em; }
+.why { margin:0; font-size:.9375rem; line-height:1.5; color:var(--g-dim); }

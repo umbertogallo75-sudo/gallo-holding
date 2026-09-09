@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { GAMES, findGame, LIVE_GAMES } from "@/lib/games/catalog";
 import { bankWords, BANK_SIZE } from "@/lib/games/bank";
@@ -195,5 +197,24 @@ describe("ascolta e scegli", () => {
   it("says something different about ten out of ten and two out of ten", () => {
     expect(listenVerdict(10, 10)).not.toBe(listenVerdict(2, 10));
     expect(listenVerdict(0, 0)).toBeTruthy();
+  });
+});
+
+describe("every live game is actually reachable", () => {
+  it("has a page under /giochi and is accepted by the result API", () => {
+    const route = readFileSync(join(__dirname, "..", "src", "app", "api", "giochi", "result", "route.ts"), "utf8");
+    // The result route validates against the catalogue, so a game that is not
+    // in it cannot record a score.
+    expect(route).toContain("findGame(game)");
+    for (const game of LIVE_GAMES) {
+      const page = join(__dirname, "..", "src", "app", "giochi", game.slug, "page.tsx");
+      expect(existsSync(page), `manca la pagina di ${game.slug}`).toBe(true);
+      expect(findGame(game.slug)).not.toBeNull();
+    }
+  });
+
+  it("gives each game its own icon, so the list can be read at a glance", () => {
+    const icons = LIVE_GAMES.map((game) => game.icon);
+    expect(new Set(icons).size, `icone ripetute: ${icons.join(" ")}`).toBe(icons.length);
   });
 });

@@ -3,15 +3,21 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { track } from "@/lib/track-client";
-import { BONUS_SECONDS, buildRun, RUN_SECONDS, verdict, type Question } from "@/lib/games/listen";
-import type { Entry } from "@/lib/games/glossary";
+import {
+  BONUS_SECONDS,
+  buildRun,
+  isRight,
+  RUN_SECONDS,
+  verdict,
+  type NumberQuestion,
+} from "@/lib/games/numbers";
 import * as sound from "@/lib/games/sound";
 import { hush, say } from "@/lib/games/speak";
 import styles from "../games.module.css";
 import quiz from "../quiz.module.css";
 
 type Phase = "ready" | "playing" | "over";
-const BEST_KEY = "execlingo:ascolta:best";
+const BEST_KEY = "execlingo:numeri:best";
 const TICK_MS = 200;
 
 const listeners = new Set<() => void>();
@@ -41,18 +47,19 @@ function saveBest(value: number): void {
   for (const listener of listeners) listener();
 }
 
-export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[] }) {
+export function NumbersGame({ opening }: { opening: NumberQuestion[] }) {
   const [phase, setPhase] = useState<Phase>("ready");
-  const [run, setRun] = useState<Question[]>(opening);
+  const [run, setRun] = useState<NumberQuestion[]>(opening);
   const [index, setIndex] = useState(0);
-  const [chosen, setChosen] = useState<number | null>(null);
+  const [typed, setTyped] = useState("");
+  const [judged, setJudged] = useState<null | boolean>(null);
   const [correct, setCorrect] = useState(0);
   const [left, setLeft] = useState(RUN_SECONDS);
-  const [results, setResults] = useState<{ word: string; it: string; ok: boolean; itemText: string | null }[]>([]);
+  const [results, setResults] = useState<{ written: string; ok: boolean; spoken: string }[]>([]);
   const best = useSyncExternalStore(subscribeBest, bestSnapshot, () => 0);
   const posted = useRef(false);
-  /** The server dealt the first run; every replay is dealt here. */
   const serverRun = useRef(true);
+  const field = useRef<HTMLInputElement>(null);
 
   const question = run[index];
 
@@ -80,15 +87,9 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
     void fetch("/api/giochi/result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        game: "ascolta",
-        score: correct,
-        correct,
-        total: results.length,
-        items: results.filter((r) => r.itemText).map((r) => ({ itemText: r.itemText, success: r.ok })),
-      }),
+      body: JSON.stringify({ game: "numeri", score: correct, correct, total: results.length, items: [] }),
     }).catch(() => undefined);
-  }, [phase, correct, results]);
+  }, [phase, correct, results.length]);
 
   useEffect(
     () => () => {
@@ -98,10 +99,11 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
     []
   );
 
-  function choose(option: number) {
-    if (phase !== "playing" || chosen !== null || !question) return;
-    const ok = option === question.answer;
-    setChosen(option);
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (phase !== "playing" || judged !== null || !question) return;
+    const ok = isRight(typed, question.answer);
+    setJudged(ok);
     if (ok) {
       sound.correct();
       setCorrect((value) => value + 1);
@@ -109,39 +111,43 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
     } else {
       sound.wrong();
     }
-    setResults((all) => [...all, { word: question.word, it: question.options[question.answer], ok, itemText: question.itemText }]);
+    setResults((all) => [...all, { written: question.written, ok, spoken: question.spoken }]);
     window.setTimeout(() => {
-      setChosen(null);
+      setJudged(null);
+      setTyped("");
       if (index + 1 >= run.length) return setPhase("over");
       setIndex(index + 1);
-      say(run[index + 1].word);
-    }, 900);
+      say(run[index + 1].spoken);
+      field.current?.focus();
+    }, 1100);
   }
 
   function start() {
     sound.armSound();
     sound.setMuted(sound.readMuted());
     posted.current = false;
+    const next = serverRun.current ? opening : buildRun(Math.random);
+    serverRun.current = false;
+    setRun(next);
     setPhase("playing");
     setIndex(0);
-    setChosen(null);
+    setTyped("");
+    setJudged(null);
     setCorrect(0);
     setResults([]);
     setLeft(RUN_SECONDS);
-    const next = serverRun.current ? opening : buildRun(own, Math.random);
-    serverRun.current = false;
-    setRun(next);
-    say(next[0].word);
-    track("game_started", { where: "ascolta" });
+    say(next[0].spoken);
+    track("game_started", { where: "numeri" });
   }
 
   if (phase === "ready") {
     return (
       <div className={styles.over}>
-        <h2>Ascolta e scegli</h2>
+        <h2>Numeri e cifre</h2>
         <p>
-          Dieci parole, una dopo l&rsquo;altra. Sam le pronuncia in inglese, tu scegli il significato giusto fra tre.
-          Un solo cronometro per tutte: ogni risposta giusta te ne ridà {BONUS_SECONDS}. Puoi riascoltare quante volte vuoi, ma il tempo scorre.
+          Sam dice un numero in inglese — un prezzo, una percentuale, un anno — e tu lo scrivi in cifre.
+          È il punto in cui in riunione ci si blocca davvero: <strong>fifteen</strong> o <strong>fifty</strong>, uno zero in più o in meno.
+          Dieci numeri, un solo cronometro, {BONUS_SECONDS} secondi di premio per ogni risposta giusta.
         </p>
         <button type="button" className={styles.go} onClick={start}>Inizia →</button>
         <p className={styles.footnote} style={{ textAlign: "center" }}>
@@ -159,9 +165,9 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
         <p>{verdict(correct, results.length)}</p>
         <ul className={styles.review}>
           {results.map((result, i) => (
-            <li key={`${result.word}-${i}`}>
-              <b className={result.ok ? styles.ok : styles.ko}>{result.ok ? "✓" : "✗"} {result.word}</b>
-              <em>{result.it}</em>
+            <li key={i}>
+              <b className={result.ok ? styles.ok : styles.ko}>{result.ok ? "✓" : "✗"} {result.written}</b>
+              <em>{result.spoken}</em>
             </li>
           ))}
         </ul>
@@ -173,38 +179,50 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
 
   if (!question) return null;
   const seconds = Math.ceil(left);
-  const low = seconds <= 12;
+  const low = seconds <= 15;
 
   return (
     <div className={styles.game}>
       <div className={styles.hud}>
-        <div className={styles.hudCell}><strong>{index + 1}/{run.length}</strong><span>domanda</span></div>
+        <div className={styles.hudCell}><strong>{index + 1}/{run.length}</strong><span>numero</span></div>
         <div className={`${styles.hudCell} ${low ? styles.low : ""}`}><strong>{seconds}</strong><span>secondi</span></div>
-        <div className={styles.hudCell}><strong>{correct}</strong><span>giuste</span></div>
+        <div className={styles.hudCell}><strong>{correct}</strong><span>giusti</span></div>
       </div>
       <div className={styles.clock} data-low={low} aria-hidden>
         <i className={styles.live} style={{ width: `${Math.max(0, (left / RUN_SECONDS) * 100)}%` }} />
       </div>
 
       <div className={quiz.ear}>
-        <button type="button" className={quiz.speaker} onClick={() => say(question.word)} aria-label="Riascolta la parola">
+        <button type="button" className={quiz.speaker} onClick={() => say(question.spoken)} aria-label="Riascolta il numero">
           🔊
         </button>
-        <p className={quiz.prompt}>Che cosa hai sentito?</p>
+        <p className={quiz.prompt}>{question.context}</p>
       </div>
 
-      <div className={quiz.options}>
-        {question.options.map((option, i) => {
-          const state = chosen === null ? "" : i === question.answer ? quiz.right : i === chosen ? quiz.wrong : quiz.dim;
-          return (
-            <button key={option} type="button" className={`${quiz.option} ${state}`} onClick={() => choose(i)} disabled={chosen !== null}>
-              {option}
-            </button>
-          );
-        })}
-      </div>
+      <form onSubmit={submit} className={quiz.typing}>
+        <input
+          ref={field}
+          className={`${quiz.field} ${judged === true ? quiz.right : judged === false ? quiz.wrong : ""}`}
+          inputMode="decimal"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="scrivi in cifre"
+          value={typed}
+          onChange={(event) => setTyped(event.target.value)}
+          disabled={judged !== null}
+          aria-label="Il numero che hai sentito"
+        />
+        <button type="submit" className={styles.go} disabled={judged !== null || typed.trim() === ""}>
+          Conferma
+        </button>
+      </form>
 
-      {chosen !== null ? <p className={quiz.reveal}>{question.word}</p> : null}
+      {judged !== null ? (
+        <p className={quiz.reveal}>
+          {judged ? question.written : <>Era <strong>{question.written}</strong></>}
+        </p>
+      ) : null}
     </div>
   );
 }

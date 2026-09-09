@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { track } from "@/lib/track-client";
-import { BONUS_SECONDS, buildRun, RUN_SECONDS, verdict, type Question } from "@/lib/games/listen";
+import { buildDeck, RUN_SECONDS, verdict, WRONG_SECONDS, type Card } from "@/lib/games/flash";
 import type { Entry } from "@/lib/games/glossary";
 import * as sound from "@/lib/games/sound";
 import { hush, say } from "@/lib/games/speak";
@@ -11,7 +11,7 @@ import styles from "../games.module.css";
 import quiz from "../quiz.module.css";
 
 type Phase = "ready" | "playing" | "over";
-const BEST_KEY = "execlingo:ascolta:best";
+const BEST_KEY = "execlingo:flash:best";
 const TICK_MS = 200;
 
 const listeners = new Set<() => void>();
@@ -41,20 +41,20 @@ function saveBest(value: number): void {
   for (const listener of listeners) listener();
 }
 
-export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[] }) {
+export function FlashGame({ opening, own }: { opening: Card[]; own: Entry[] }) {
   const [phase, setPhase] = useState<Phase>("ready");
-  const [run, setRun] = useState<Question[]>(opening);
+  const [deck, setDeck] = useState<Card[]>(opening);
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
   const [left, setLeft] = useState(RUN_SECONDS);
-  const [results, setResults] = useState<{ word: string; it: string; ok: boolean; itemText: string | null }[]>([]);
+  const [missed, setMissed] = useState<Card[]>([]);
+  const [reviewed, setReviewed] = useState<{ itemText: string; success: boolean }[]>([]);
   const best = useSyncExternalStore(subscribeBest, bestSnapshot, () => 0);
   const posted = useRef(false);
-  /** The server dealt the first run; every replay is dealt here. */
-  const serverRun = useRef(true);
+  const serverDeck = useRef(true);
 
-  const question = run[index];
+  const card = deck[index];
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -81,14 +81,14 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        game: "ascolta",
+        game: "flash",
         score: correct,
         correct,
-        total: results.length,
-        items: results.filter((r) => r.itemText).map((r) => ({ itemText: r.itemText, success: r.ok })),
+        total: correct + missed.length,
+        items: reviewed.slice(0, 50),
       }),
     }).catch(() => undefined);
-  }, [phase, correct, results]);
+  }, [phase, correct, missed.length, reviewed]);
 
   useEffect(
     () => () => {
@@ -99,53 +99,57 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
   );
 
   function choose(option: number) {
-    if (phase !== "playing" || chosen !== null || !question) return;
-    const ok = option === question.answer;
+    if (phase !== "playing" || chosen !== null || !card) return;
+    const ok = option === card.answer;
     setChosen(option);
     if (ok) {
       sound.correct();
       setCorrect((value) => value + 1);
-      setLeft((value) => Math.min(value + BONUS_SECONDS, RUN_SECONDS));
     } else {
       sound.wrong();
+      setLeft((value) => Math.max(0.1, value - WRONG_SECONDS));
+      setMissed((all) => [...all, card]);
     }
-    setResults((all) => [...all, { word: question.word, it: question.options[question.answer], ok, itemText: question.itemText }]);
+    if (card.itemText) setReviewed((all) => [...all, { itemText: card.itemText as string, success: ok }]);
+    // Hearing the English is the reward for getting it right, and the
+    // correction for getting it wrong.
+    say(card.word, 0.95);
     window.setTimeout(() => {
       setChosen(null);
-      if (index + 1 >= run.length) return setPhase("over");
+      if (index + 1 >= deck.length) return setPhase("over");
       setIndex(index + 1);
-      say(run[index + 1].word);
-    }, 900);
+    }, ok ? 420 : 900);
   }
 
   function start() {
     sound.armSound();
     sound.setMuted(sound.readMuted());
     posted.current = false;
+    const next = serverDeck.current ? opening : buildDeck(own, Math.random);
+    serverDeck.current = false;
+    setDeck(next);
     setPhase("playing");
     setIndex(0);
     setChosen(null);
     setCorrect(0);
-    setResults([]);
+    setMissed([]);
+    setReviewed([]);
     setLeft(RUN_SECONDS);
-    const next = serverRun.current ? opening : buildRun(own, Math.random);
-    serverRun.current = false;
-    setRun(next);
-    say(next[0].word);
-    track("game_started", { where: "ascolta" });
+    track("game_started", { where: "flash" });
   }
 
   if (phase === "ready") {
     return (
       <div className={styles.over}>
-        <h2>Ascolta e scegli</h2>
+        <h2>Flash IT ↔ EN</h2>
         <p>
-          Dieci parole, una dopo l&rsquo;altra. Sam le pronuncia in inglese, tu scegli il significato giusto fra tre.
-          Un solo cronometro per tutte: ogni risposta giusta te ne ridà {BONUS_SECONDS}. Puoi riascoltare quante volte vuoi, ma il tempo scorre.
+          Un minuto, parole a raffica, e la direzione cambia in continuazione: una volta vedi l&rsquo;inglese e scegli l&rsquo;italiano,
+          quella dopo il contrario. Riconoscere una parola e tirarla fuori sono due cose diverse — qui le alleni tutte e due.
+          Ogni errore ti toglie {WRONG_SECONDS} secondi.
         </p>
         <button type="button" className={styles.go} onClick={start}>Inizia →</button>
         <p className={styles.footnote} style={{ textAlign: "center" }}>
-          {RUN_SECONDS} secondi in tutto{best > 0 ? ` · record ${best}/10` : ""} · alza il volume
+          {RUN_SECONDS} secondi{best > 0 ? ` · record ${best}` : ""}
         </p>
       </div>
     );
@@ -154,48 +158,51 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
   if (phase === "over") {
     return (
       <div className={styles.over}>
-        <h2>Fine</h2>
-        <div className={styles.finalScore}>{correct}/{results.length || run.length}</div>
-        <p>{verdict(correct, results.length)}</p>
-        <ul className={styles.review}>
-          {results.map((result, i) => (
-            <li key={`${result.word}-${i}`}>
-              <b className={result.ok ? styles.ok : styles.ko}>{result.ok ? "✓" : "✗"} {result.word}</b>
-              <em>{result.it}</em>
-            </li>
-          ))}
-        </ul>
+        <h2>Tempo scaduto</h2>
+        <div className={styles.finalScore}>{correct}</div>
+        <p>{correct === 1 ? "una parola" : `${correct} parole`}. {verdict(correct)}</p>
+        {missed.length > 0 ? (
+          <>
+            <p className={styles.footnote} style={{ textAlign: "left" }}>Quelle che ti sono sfuggite:</p>
+            <ul className={styles.review}>
+              {missed.map((card, i) => (
+                <li key={`${card.word}-${i}`}>
+                  <b className={styles.ko}>{card.word}</b>
+                  <em>{card.it}</em>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         <button type="button" className={styles.go} onClick={start}>Ancora →</button>
         <Link href="/giochi" className={styles.link}>Torna ai giochi</Link>
       </div>
     );
   }
 
-  if (!question) return null;
+  if (!card) return null;
   const seconds = Math.ceil(left);
-  const low = seconds <= 12;
+  const low = seconds <= 10;
 
   return (
     <div className={styles.game}>
       <div className={styles.hud}>
-        <div className={styles.hudCell}><strong>{index + 1}/{run.length}</strong><span>domanda</span></div>
+        <div className={styles.hudCell}><strong>{correct}</strong><span>parole</span></div>
         <div className={`${styles.hudCell} ${low ? styles.low : ""}`}><strong>{seconds}</strong><span>secondi</span></div>
-        <div className={styles.hudCell}><strong>{correct}</strong><span>giuste</span></div>
+        <div className={styles.hudCell}><strong>{best}</strong><span>record</span></div>
       </div>
       <div className={styles.clock} data-low={low} aria-hidden>
         <i className={styles.live} style={{ width: `${Math.max(0, (left / RUN_SECONDS) * 100)}%` }} />
       </div>
 
-      <div className={quiz.ear}>
-        <button type="button" className={quiz.speaker} onClick={() => say(question.word)} aria-label="Riascolta la parola">
-          🔊
-        </button>
-        <p className={quiz.prompt}>Che cosa hai sentito?</p>
+      <div className={quiz.card}>
+        <span className={quiz.way}>{card.direction === "en-it" ? "inglese → italiano" : "italiano → inglese"}</span>
+        <p className={quiz.big}>{card.prompt}</p>
       </div>
 
       <div className={quiz.options}>
-        {question.options.map((option, i) => {
-          const state = chosen === null ? "" : i === question.answer ? quiz.right : i === chosen ? quiz.wrong : quiz.dim;
+        {card.options.map((option, i) => {
+          const state = chosen === null ? "" : i === card.answer ? quiz.right : i === chosen ? quiz.wrong : quiz.dim;
           return (
             <button key={option} type="button" className={`${quiz.option} ${state}`} onClick={() => choose(i)} disabled={chosen !== null}>
               {option}
@@ -203,8 +210,6 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
           );
         })}
       </div>
-
-      {chosen !== null ? <p className={quiz.reveal}>{question.word}</p> : null}
     </div>
   );
 }
