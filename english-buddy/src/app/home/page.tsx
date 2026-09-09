@@ -210,6 +210,17 @@ export default async function HomePage() {
       </div>
     </Link>
 
+    {/* The games department. It sits under the trainings rather than above
+        them because it is the lighter door into the same work: the words it
+        plays on are the ones Sam has already corrected. */}
+    <Link href="/giochi" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="game_opened" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>🎮</span>
+      <div>
+        <div className="modeTitle">Giochi</div>
+        <div className="modeMeta">Partite brevi sulle parole che hai sbagliato. Cinque minuti che contano come ripasso</div>
+      </div>
+    </Link>
+
     <Link href="/guida" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="guide_open" data-where="home">
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>▶︎</span>
       <div>

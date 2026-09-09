@@ -23,6 +23,12 @@ export type FunnelEvent =
   | "onboarding_skipped"
   | "plan_shown"
   | "first_session_started"
+  // The games department. game_opened is the hub or a game page; game_started
+  // is a game actually begun; game_finished carries score and how many of the
+  // learner's own words were reviewed by playing.
+  | "game_opened"
+  | "game_started"
+  | "game_finished"
   | "first_session_done"
   | "home_session_start"
   | "home_shortcut"
