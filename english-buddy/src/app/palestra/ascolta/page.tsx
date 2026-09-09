@@ -30,7 +30,7 @@ export default async function AscoltaPage() {
     <main className="shell">
       <div className="topbar">
         <div className="brand">{game?.icon} {game?.title}</div>
-        <Link className="chip" href="/giochi">← Giochi</Link>
+        <Link className="chip" href="/palestra">← Palestra</Link>
       </div>
       <ListenGame opening={opening} own={own} />
     </main>

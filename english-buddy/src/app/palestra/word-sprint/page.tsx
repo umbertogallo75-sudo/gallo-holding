@@ -15,7 +15,7 @@ export default async function WordSprintPage() {
     <main className="shell">
       <div className="topbar">
         <div className="brand">{game?.icon} {game?.title}</div>
-        <Link className="chip" href="/giochi">← Giochi</Link>
+        <Link className="chip" href="/palestra">← Palestra</Link>
       </div>
       <WordSprint initial={initial} />
     </main>

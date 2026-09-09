@@ -27,7 +27,7 @@ export default async function FlashPage() {
     <main className="shell">
       <div className="topbar">
         <div className="brand">{game?.icon} {game?.title}</div>
-        <Link className="chip" href="/giochi">← Giochi</Link>
+        <Link className="chip" href="/palestra">← Palestra</Link>
       </div>
       <FlashGame opening={buildDeck(own, Math.random)} own={own} />
     </main>

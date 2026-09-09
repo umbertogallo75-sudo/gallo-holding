@@ -66,7 +66,7 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
   // a prop, so opening the page costs no round trip and shows no spinner.
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/giochi/round", { cache: "no-store" });
+      const response = await fetch("/api/palestra/round", { cache: "no-store" });
       const data = (await response.json().catch(() => ({}))) as { rounds?: Round[]; ownWords?: number };
       if (!response.ok || !data.rounds?.length) return setPhase("error");
       setRounds(data.rounds);
@@ -156,7 +156,7 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
     posted.current = true;
     const correct = results.filter((r) => r.success).length;
     saveBest(score);
-    void fetch("/api/giochi/result", {
+    void fetch("/api/palestra/result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -218,7 +218,7 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
           ))}
         </ul>
         <button type="button" className={styles.go} onClick={restart}>Un&rsquo;altra partita</button>
-        <Link href="/giochi" className={styles.link}>Torna ai giochi</Link>
+        <Link href="/palestra" className={styles.link}>Torna alla palestra</Link>
         {best > 0 ? <p className={styles.footnote} style={{ textAlign: "center" }}>Record personale: {best}</p> : null}
       </div>
     );

@@ -4,23 +4,23 @@ import { requireUserId } from "@/lib/auth";
 import { GAMES } from "@/lib/games/catalog";
 import styles from "./games.module.css";
 
-export const metadata = { title: "Giochi · ExecLingo" };
+export const metadata = { title: "Palestra · ExecLingo" };
 
-/** The games department: exercise that does not feel like exercise. */
-export default async function GiochiPage() {
+/** The gym: exercise short enough that nobody puts it off. */
+export default async function PalestraPage() {
   await requireUserId();
   return (
     <main className="shell">
       <div className="topbar">
-        <div className="brand">Giochi</div>
+        <div className="brand">Palestra</div>
         <Link className="chip" href="/home">← Home</Link>
       </div>
       <div className={styles.hub}>
         <header className={styles.head}>
-          <h1>Allenati giocando</h1>
+          <h1>La palestra dell&rsquo;inglese</h1>
           <p>
-            Partite brevi, costruite sulle parole che stai imparando — comprese quelle che hai sbagliato con Sam.
-            Quello che indovini avanza nel ripasso, quello che sbagli torna prima.
+            Ripetizioni brevi, tutti i giorni, sulle parole che stai imparando — comprese quelle che hai sbagliato con Sam.
+            Quello che indovini avanza nel ripasso, quello che sbagli torna prima: qui non si gioca soltanto, si allena.
           </p>
         </header>
         <div className={styles.list}>
@@ -28,7 +28,7 @@ export default async function GiochiPage() {
             game.status === "live" ? (
               <Link
                 key={game.slug}
-                href={`/giochi/${game.slug}`}
+                href={`/palestra/${game.slug}`}
                 className={styles.card}
                 data-track="game_opened"
                 data-where={game.slug}
@@ -57,7 +57,7 @@ export default async function GiochiPage() {
           )}
         </div>
         <p className={styles.footnote}>
-          Altri giochi stanno arrivando. Se ne hai in mente uno che ti farebbe tornare ogni giorno, dillo a Sam: le richieste le leggiamo.
+          Altri esercizi stanno arrivando. Se ne hai in mente uno che ti farebbe tornare ogni giorno, dillo a Sam: le richieste le leggiamo.
         </p>
       </div>
       <BottomNav active="home" />

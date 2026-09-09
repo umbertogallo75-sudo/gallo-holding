@@ -210,14 +210,14 @@ export default async function HomePage() {
       </div>
     </Link>
 
-    {/* The games department. It sits under the trainings rather than above
-        them because it is the lighter door into the same work: the words it
-        plays on are the ones Sam has already corrected. */}
-    <Link href="/giochi" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="game_opened" data-where="home">
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>🎮</span>
+    {/* The gym. It sits under the trainings rather than above them because it
+        is the lighter door into the same work: the words it drills are the
+        ones Sam has already corrected. */}
+    <Link href="/palestra" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="game_opened" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 20%, var(--surface))" }}>🏋️</span>
       <div>
-        <div className="modeTitle">Giochi</div>
-        <div className="modeMeta">Partite brevi sulle parole che hai sbagliato. Cinque minuti che contano come ripasso</div>
+        <div className="modeTitle">Palestra</div>
+        <div className="modeMeta">Ripetizioni brevi sulle parole che hai sbagliato. Due minuti che contano come ripasso</div>
       </div>
     </Link>
 

@@ -201,13 +201,13 @@ describe("ascolta e scegli", () => {
 });
 
 describe("every live game is actually reachable", () => {
-  it("has a page under /giochi and is accepted by the result API", () => {
-    const route = readFileSync(join(__dirname, "..", "src", "app", "api", "giochi", "result", "route.ts"), "utf8");
+  it("has a page under /palestra and is accepted by the result API", () => {
+    const route = readFileSync(join(__dirname, "..", "src", "app", "api", "palestra", "result", "route.ts"), "utf8");
     // The result route validates against the catalogue, so a game that is not
     // in it cannot record a score.
     expect(route).toContain("findGame(game)");
     for (const game of LIVE_GAMES) {
-      const page = join(__dirname, "..", "src", "app", "giochi", game.slug, "page.tsx");
+      const page = join(__dirname, "..", "src", "app", "palestra", game.slug, "page.tsx");
       expect(existsSync(page), `manca la pagina di ${game.slug}`).toBe(true);
       expect(findGame(game.slug)).not.toBeNull();
     }

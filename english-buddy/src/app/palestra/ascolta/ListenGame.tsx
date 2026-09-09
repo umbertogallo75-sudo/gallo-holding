@@ -77,7 +77,7 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
     if (phase !== "over" || posted.current) return;
     posted.current = true;
     saveBest(correct);
-    void fetch("/api/giochi/result", {
+    void fetch("/api/palestra/result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -166,7 +166,7 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
           ))}
         </ul>
         <button type="button" className={styles.go} onClick={start}>Ancora →</button>
-        <Link href="/giochi" className={styles.link}>Torna ai giochi</Link>
+        <Link href="/palestra" className={styles.link}>Torna alla palestra</Link>
       </div>
     );
   }

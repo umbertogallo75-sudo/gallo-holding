@@ -32,6 +32,9 @@ const PROTECTED_PAGE_PREFIXES = [
   "/progress",
   "/rescue",
   "/partner/dashboard",
+  "/palestra",
+  // Kept alongside it: /giochi redirects to /palestra, and that redirect is
+  // checked after this runs, so the old path still has to be recognised here.
   "/giochi",
 ];
 

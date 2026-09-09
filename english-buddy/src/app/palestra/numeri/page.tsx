@@ -14,7 +14,7 @@ export default async function NumeriPage() {
     <main className="shell">
       <div className="topbar">
         <div className="brand">{game?.icon} {game?.title}</div>
-        <Link className="chip" href="/giochi">← Giochi</Link>
+        <Link className="chip" href="/palestra">← Palestra</Link>
       </div>
       <NumbersGame opening={opening} />
     </main>

@@ -52,7 +52,7 @@ describe("the letter wheel", () => {
   it("is positioned with left/top, not with a percentage translate", () => {
     // A percentage inside translate() resolves against the element's own box,
     // which is exactly how the letters ended up stacked in the middle.
-    const css = readFileSync(join(__dirname, "..", "src", "app", "giochi", "wheel.module.css"), "utf8");
+    const css = readFileSync(join(__dirname, "..", "src", "app", "palestra", "wheel.module.css"), "utf8");
     const tileRule = css.slice(css.indexOf(".tile {"), css.indexOf("}", css.indexOf(".tile {")));
     expect(tileRule).toContain("left:var(--x)");
     expect(tileRule).toContain("top:var(--y)");

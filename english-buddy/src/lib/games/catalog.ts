@@ -1,10 +1,10 @@
 /**
- * The games department. Every game is one entry here: the hub page, the
- * routing and the home rail all read this list, so adding a game is adding a
- * row plus its own page under /giochi/<slug>.
+ * The gym. Every exercise is one entry here: the hub page, the routing and the
+ * home card all read this list, so adding one is adding a row plus its own
+ * page under /palestra/<slug>.
  *
- * Games are exercise, not decoration — each one declares what it trains, and
- * the ones marked `usesOwnWords` are played on the learner's own mistakes and
+ * These are exercise, not decoration — each declares what it trains, and the
+ * ones marked `usesOwnWords` run on the learner's own mistakes and
  * expressions rather than on a generic word list.
  */
 export type GameStatus = "live" | "soon";
