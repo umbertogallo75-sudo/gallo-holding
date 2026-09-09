@@ -171,14 +171,14 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
     });
   }, [phase, results, score]);
 
-  if (phase === "loading") return <p className="muted">Preparo le parole…</p>;
+  if (phase === "loading") return <p className={styles.footnote}>Preparo le parole…</p>;
 
   if (phase === "error") {
     return (
       <div className={styles.over}>
         <h2>Non riesco a preparare la partita</h2>
-        <p className="muted" style={{ margin: 0 }}>Riprova tra un attimo: le tue parole restano dove sono.</p>
-        <button className="primary full" onClick={restart}>Riprova</button>
+        <p>Riprova tra un attimo: le tue parole restano dove sono.</p>
+        <button type="button" className={styles.go} onClick={restart}>Riprova</button>
       </div>
     );
   }
@@ -187,13 +187,13 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
     return (
       <div className={styles.over}>
         <h2>Word Sprint</h2>
-        <p className="muted" style={{ margin: 0 }}>
+        <p>
           {ownWords > 0
             ? `${ownWords} ${ownWords === 1 ? "parola tua" : "parole tue"} in questa partita: quelle che hai sbagliato con Sam. Ricomponile prima che scada il tempo — quelle che sbagli tornano prima.`
             : "Otto parole del lavoro, trenta secondi ciascuna. Man mano che ti alleni con Sam, il gioco passa alle parole che sbagli tu."}
         </p>
-        <button className="primary full" onClick={start}>Inizia →</button>
-        <p className="itHint" style={{ margin: 0, textAlign: "center" }}>{ROUND_SECONDS} secondi a parola · {rounds.length} parole{best > 0 ? ` · record ${best}` : ""}</p>
+        <button type="button" className={styles.go} onClick={start}>Inizia →</button>
+        <p className={styles.footnote} style={{ textAlign: "center" }}>{ROUND_SECONDS} secondi a parola · {rounds.length} parole{best > 0 ? ` · record ${best}` : ""}</p>
       </div>
     );
   }
@@ -205,7 +205,7 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
       <div className={styles.over}>
         <h2>Fine partita</h2>
         <div className={styles.finalScore}>{score}</div>
-        <p className="muted" style={{ margin: 0 }}>
+        <p>
           {correct} su {results.length}. {verdict(correct, results.length)}
           {mine > 0 ? ` ${mine === 1 ? "Una parola tua è stata" : `${mine} parole tue sono state`} ripassata${mine === 1 ? "" : "e"}: Sam ne terrà conto.` : ""}
         </p>
@@ -217,9 +217,9 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
             </li>
           ))}
         </ul>
-        <button className="primary full" onClick={restart}>Un&rsquo;altra partita</button>
-        <Link href="/giochi" className="secondary full" style={{ textAlign: "center" }}>Torna ai giochi</Link>
-        {best > 0 ? <p className="itHint" style={{ margin: 0, textAlign: "center" }}>Record personale: {best}</p> : null}
+        <button type="button" className={styles.go} onClick={restart}>Un&rsquo;altra partita</button>
+        <Link href="/giochi" className={styles.link}>Torna ai giochi</Link>
+        {best > 0 ? <p className={styles.footnote} style={{ textAlign: "center" }}>Record personale: {best}</p> : null}
       </div>
     );
   }
@@ -284,7 +284,7 @@ export function WordSprint({ initial }: { initial: { rounds: Round[]; ownWords: 
         </>
       ) : (
         <div className={styles.controls}>
-          <button type="button" className="primary" onClick={nextRound}>
+          <button type="button" className={styles.go} onClick={nextRound}>
             {index + 1 >= rounds.length ? "Vedi il risultato →" : "Avanti →"}
           </button>
         </div>

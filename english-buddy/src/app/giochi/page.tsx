@@ -56,7 +56,7 @@ export default async function GiochiPage() {
             )
           )}
         </div>
-        <p className="itHint" style={{ margin: 0 }}>
+        <p className={styles.footnote}>
           Altri giochi stanno arrivando. Se ne hai in mente uno che ti farebbe tornare ogni giorno, dillo a Sam: le richieste le leggiamo.
         </p>
       </div>
