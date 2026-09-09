@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { GAMES, findGame, LIVE_GAMES } from "@/lib/games/catalog";
 import { bankWords, BANK_SIZE } from "@/lib/games/bank";
+import { GLOSSARY } from "@/lib/games/glossary";
+import { buildRun, OPTIONS, QUESTIONS, tooClose, verdict as listenVerdict } from "@/lib/games/listen";
 import { dedupe, extractWord, MAX_LETTERS, MIN_LETTERS, safeHint, type GameWord } from "@/lib/games/words";
 import {
   BASE_POINTS,
@@ -141,5 +143,57 @@ describe("scoring", () => {
     expect(verdict(8, 8)).toBeTruthy();
     expect(verdict(1, 8)).toBeTruthy();
     expect(verdict(8, 8)).not.toBe(verdict(1, 8));
+  });
+});
+
+describe("ascolta e scegli", () => {
+  it("asks the right number of questions, each with one correct answer", () => {
+    const run = buildRun([], seeded(21));
+    expect(run).toHaveLength(QUESTIONS);
+    for (const question of run) {
+      expect(question.options).toHaveLength(OPTIONS);
+      expect(question.answer).toBeGreaterThanOrEqual(0);
+      expect(question.answer).toBeLessThan(OPTIONS);
+      // The right answer really is that word's meaning.
+      expect(question.options[question.answer]).toBe(GLOSSARY.find((e) => e.word === question.word)?.it);
+      // No option appears twice, or the question has two right answers.
+      expect(new Set(question.options).size).toBe(OPTIONS);
+    }
+    // The same word must not be asked twice in one run.
+    const words = run.map((q) => q.word);
+    expect(new Set(words).size).toBe(words.length);
+  });
+
+  it("does not offer a decoy that means the same as the answer", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      for (const question of buildRun([], seeded(seed))) {
+        const answer = question.options[question.answer];
+        const decoys = question.options.filter((_, i) => i !== question.answer);
+        for (const decoy of decoys) expect(tooClose(decoy, answer), `${decoy} ~ ${answer}`).toBe(false);
+      }
+    }
+  });
+
+  it("puts the learner's own expressions in first, and marks them for review", () => {
+    const own = [
+      { word: "to touch base", it: "farsi sentire brevemente" },
+      { word: "ballpark figure", it: "cifra indicativa" },
+    ];
+    const run = buildRun(own, seeded(4));
+    expect(run[0].word).toBe("to touch base");
+    expect(run[0].itemText).toBe("to touch base");
+    expect(run[1].itemText).toBe("ballpark figure");
+    // Glossary words are nobody's, so they carry nothing to write back.
+    expect(run[5].itemText).toBeNull();
+  });
+
+  it("knows when two meanings are too close to tell apart", () => {
+    expect(tooClose("passaggio di consegne", "il passaggio di consegne")).toBe(true);
+    expect(tooClose("fatturato", "magazzino")).toBe(false);
+  });
+
+  it("says something different about ten out of ten and two out of ten", () => {
+    expect(listenVerdict(10, 10)).not.toBe(listenVerdict(2, 10));
+    expect(listenVerdict(0, 0)).toBeTruthy();
   });
 });

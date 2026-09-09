@@ -35,6 +35,16 @@ export const GAMES: Game[] = [
     minutes: 2,
   },
   {
+    slug: "ascolta",
+    title: "Ascolta e scegli",
+    tagline: "Sam pronuncia, tu scegli il significato fra tre. Dieci parole a raffica, un solo cronometro.",
+    trains: "Ascolto · comprensione",
+    icon: "🎧",
+    status: "live",
+    usesOwnWords: true,
+    minutes: 2,
+  },
+  {
     slug: "word-sprint",
     title: "Word Sprint",
     tagline: "Ricomponi la parola prima che scada il tempo. Sono le tue parole, quelle che hai sbagliato.",

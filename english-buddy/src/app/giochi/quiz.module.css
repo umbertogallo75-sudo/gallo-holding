@@ -1,0 +1,32 @@
+/* Shared by every game that asks a question and offers answers. */
+.ear { display:grid; gap:12px; justify-items:center; padding:14px 0 4px; }
+.speaker {
+  height:96px; width:96px; border:0; border-radius:50%; cursor:pointer;
+  font-size:2.5rem; color:#fff;
+  background:radial-gradient(120% 120% at 34% 26%, #4fb8ea, #2f7be0);
+  box-shadow:inset 0 2px 0 rgb(255 255 255 / .42), 0 8px 0 #245fae, 0 14px 26px rgb(16 34 26 / .26);
+  transition:transform .18s cubic-bezier(.22,1,.36,1);
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.speaker:active { transform:translateY(5px); box-shadow:inset 0 2px 0 rgb(255 255 255 / .42), 0 3px 0 #245fae, 0 6px 12px rgb(16 34 26 / .22); }
+.prompt { margin:0; font-size:.9375rem; font-weight:600; color:var(--g-dim); }
+
+.options { display:grid; gap:10px; }
+.option {
+  border:0; border-radius:18px; padding:17px 18px; min-height:58px; cursor:pointer; width:100%;
+  font-family:inherit; font-size:1.0625rem; font-weight:600; text-align:left; color:var(--g-ink);
+  background:rgb(var(--g-glass) / calc(var(--g-glass-a) + .18));
+  backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:inset 0 1.5px 0 rgb(var(--g-stroke) / .55), inset 0 0 0 1px rgb(var(--g-stroke) / .2), 0 5px 14px rgb(var(--g-edge) / .14);
+  transition:transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, opacity .2s ease;
+  touch-action:manipulation;
+}
+.option:active:not(:disabled) { transform:scale(.975); }
+.right { box-shadow:inset 0 0 0 2.5px #2f9b5f, 0 6px 18px rgb(var(--g-edge) / .18); color:var(--g-accent); }
+.wrong { box-shadow:inset 0 0 0 2.5px #d1503a; color:#d1503a; }
+.dim { opacity:.4; }
+.reveal { margin:0; text-align:center; font-size:1.375rem; font-weight:700; letter-spacing:-.02em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .speaker, .option { transition-duration:.01ms !important; }
+}
