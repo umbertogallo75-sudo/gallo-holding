@@ -32,6 +32,7 @@ const PROTECTED_PAGE_PREFIXES = [
   "/progress",
   "/rescue",
   "/partner/dashboard",
+  "/giochi",
 ];
 
 export function proxy(request: NextRequest) {
