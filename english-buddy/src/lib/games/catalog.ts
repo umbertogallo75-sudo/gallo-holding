@@ -25,6 +25,16 @@ export type Game = {
 
 export const GAMES: Game[] = [
   {
+    slug: "four-letters",
+    title: "Quattro lettere",
+    tagline: "Quattro lettere, una parola vera. Ogni parola ti ridà secondi, ma l'orologio accelera.",
+    trains: "Vocabolario · lettura veloce",
+    icon: "🔤",
+    status: "live",
+    usesOwnWords: false,
+    minutes: 2,
+  },
+  {
     slug: "word-sprint",
     title: "Word Sprint",
     tagline: "Ricomponi la parola prima che scada il tempo. Sono le tue parole, quelle che hai sbagliato.",

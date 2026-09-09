@@ -31,9 +31,11 @@
   font-synthesis-weight:none;
 }
 
-/* The lit ground. Fixed behind the content, never scrolls, never intercepts
-   a tap. It is what makes the panes above it read as glass rather than as
-   grey cards. */
+/* The lit ground. Fixed behind the content, never scrolls, never intercepts a
+   tap. Its whole job is to give the panes above something to refract, so it is
+   two soft lights on a near-neutral field and nothing more — a colourful
+   backdrop would fight the letters, which are the only thing that matters on
+   this screen. */
 .root::before {
   content:"";
   position:fixed;
@@ -41,18 +43,15 @@
   z-index:-1;
   pointer-events:none;
   background:
-    radial-gradient(46% 38% at 16% 8%, #7ff0c0aa, transparent 68%),
-    radial-gradient(40% 34% at 88% 4%, #a7d9ffaa, transparent 66%),
-    radial-gradient(52% 44% at 74% 92%, #ffe0a8aa, transparent 70%),
-    radial-gradient(60% 50% at 20% 88%, #b9f2d9aa, transparent 72%),
-    #f4f7f3;
-  filter:saturate(112%);
-  animation:drift 26s ease-in-out infinite alternate;
+    radial-gradient(58% 42% at 18% 2%, #cfe9dc, transparent 70%),
+    radial-gradient(50% 38% at 92% 10%, #e4e6da, transparent 72%),
+    linear-gradient(#f7f8f5, #eef1ec);
+  animation:drift 34s ease-in-out infinite alternate;
 }
 
 @keyframes drift {
   from { transform:translate3d(0,0,0) scale(1); }
-  to   { transform:translate3d(-2.5%,1.5%,0) scale(1.06); }
+  to   { transform:translate3d(-1.5%,1%,0) scale(1.04); }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,12 +70,9 @@
   }
   .root:not([data-theme="light"])::before {
     background:
-      radial-gradient(46% 38% at 16% 8%, #0e6b4b, transparent 66%),
-      radial-gradient(40% 34% at 88% 4%, #123f63, transparent 64%),
-      radial-gradient(52% 44% at 74% 92%, #6b4416, transparent 68%),
-      radial-gradient(60% 50% at 20% 88%, #10402f, transparent 70%),
-      #08120e;
-    filter:saturate(122%);
+      radial-gradient(58% 42% at 18% 2%, #143a2b, transparent 70%),
+      radial-gradient(50% 38% at 92% 10%, #16292f, transparent 72%),
+      linear-gradient(#0b1512, #070d0b);
   }
 }
 
@@ -141,6 +137,8 @@
 
 .clock { height:7px; border-radius:999px; overflow:hidden; background:rgb(var(--g-stroke) / .26); box-shadow:inset 0 1px 2px rgb(var(--g-edge) / .16); }
 .clock i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--g-accent), var(--g-accent-soft)); transition:width .95s linear; }
+/* Ticks ten times a second: it must not lag behind the number beside it. */
+.live { transition:width .1s linear !important; }
 .clock[data-low="true"] i { background:linear-gradient(90deg, var(--g-warm), #ffd08a); }
 
 .prompt { composes:pane; display:grid; gap:14px; padding:24px 20px; text-align:center; transition:box-shadow .3s ease; }
@@ -166,6 +164,7 @@
 .wrong .slotFilled { color:var(--g-hot); box-shadow:inset 0 1px 0 rgb(var(--g-stroke) / .7), inset 0 0 0 2px var(--g-hot); }
 .wrong.prompt { box-shadow:inset 0 1px 0 rgb(var(--g-stroke) / .55), inset 0 0 0 1.5px var(--g-hot), var(--g-lift); animation:shake .34s ease; }
 @keyframes shake { 25% { transform:translateX(-5px); } 60% { transform:translateX(4px); } 100% { transform:translateX(0); } }
+.nudge { animation:shake .3s ease; }
 
 .tray { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }
 .key {
