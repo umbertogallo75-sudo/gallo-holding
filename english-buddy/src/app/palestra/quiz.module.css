@@ -22,8 +22,8 @@
   touch-action:manipulation;
 }
 .option:active:not(:disabled) { transform:scale(.975); }
-.right { box-shadow:inset 0 0 0 2.5px #2f9b5f, 0 6px 18px rgb(var(--g-edge) / .18); color:var(--g-accent); }
-.wrong { box-shadow:inset 0 0 0 2.5px #d1503a; color:#d1503a; }
+.right { box-shadow:inset 0 0 0 2.5px var(--g-accent), 0 6px 18px rgb(var(--g-edge) / .18); color:var(--g-accent); }
+.wrong { box-shadow:inset 0 0 0 2.5px var(--g-hot); color:var(--g-hot); }
 .dim { opacity:.4; }
 .reveal { margin:0; text-align:center; font-size:1.375rem; font-weight:700; letter-spacing:-.02em; }
 
@@ -43,8 +43,8 @@
 }
 .field::placeholder { font-size:1rem; font-weight:500; color:var(--g-dim); letter-spacing:0; }
 .field:focus { outline:none; box-shadow:inset 0 0 0 2.5px var(--g-accent); }
-.field.right { box-shadow:inset 0 0 0 2.5px #2f9b5f; }
-.field.wrong { box-shadow:inset 0 0 0 2.5px #d1503a; }
+.field.right { box-shadow:inset 0 0 0 2.5px var(--g-accent); }
+.field.wrong { box-shadow:inset 0 0 0 2.5px var(--g-hot); }
 
 /* The prompt card, for games that show a word rather than speak it. */
 .card { display:grid; gap:8px; justify-items:center; padding:26px 18px 22px; text-align:center; }
@@ -62,8 +62,8 @@
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
 .word:active:not(:disabled) { transform:scale(.94); }
-.badWord { box-shadow:inset 0 0 0 2.5px #2f9b5f; color:var(--g-accent); }
-.missWord { box-shadow:inset 0 0 0 2.5px #d1503a; color:#d1503a; }
+.badWord { box-shadow:inset 0 0 0 2.5px var(--g-accent); color:var(--g-accent); }
+.missWord { box-shadow:inset 0 0 0 2.5px var(--g-hot); color:var(--g-hot); }
 .explain { display:grid; gap:5px; text-align:center; padding:4px 8px; }
 .fix { margin:0; font-size:1.25rem; font-weight:700; letter-spacing:-.02em; }
 .why { margin:0; font-size:.9375rem; line-height:1.5; color:var(--g-dim); }

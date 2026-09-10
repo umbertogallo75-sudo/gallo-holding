@@ -25,9 +25,6 @@
   position:relative;
   isolation:isolate;
   color:var(--g-ink);
-  display:grid;
-  gap:16px;
-  padding:4px 0 8px;
   font-synthesis-weight:none;
 }
 
@@ -54,26 +51,51 @@
   to   { transform:translate3d(-1.5%,1%,0) scale(1.04); }
 }
 
+/* Dark, in the three states the app actually has. The choice is stamped as
+   data-theme on the document element, so both selectors must reach up to it:
+   the media query for "follow the phone", and the attribute for a choice made
+   inside the app. Declaring only the first is how a gym could stay pale
+   inside a dark app. The two blocks are kept identical by a test. */
 @media (prefers-color-scheme: dark) {
-  .root:not([data-theme="light"]) {
+  :global(html):not([data-theme="light"]) .root {
     --g-ink:#eefaf3;
-    --g-dim:#93a89d;
+    --g-dim:#9db2a7;
     --g-glass:26 40 34;
-    --g-glass-a:.52;
+    --g-glass-a:.72;
     --g-stroke:214 255 236;
     --g-edge:0 0 0;
-    --g-accent:#4fe0a4;
-    --g-accent-soft:#1d5a42;
+    --g-accent:#57e6ab;
+    --g-accent-soft:#2a7a59;
     --g-warm:#f0b055;
-    --g-hot:#ff7a63;
-    --g-lift:0 14px 40px rgb(0 0 0 / .48), 0 2px 8px rgb(0 0 0 / .3);
+    --g-hot:#ff8a72;
+    --g-lift:0 14px 40px rgb(0 0 0 / .5), 0 2px 8px rgb(0 0 0 / .32);
   }
-  .root:not([data-theme="light"])::before {
+  :global(html):not([data-theme="light"]) .root::before {
     background:
       radial-gradient(58% 42% at 18% 2%, #143a2b, transparent 70%),
       radial-gradient(50% 38% at 92% 10%, #16292f, transparent 72%),
       linear-gradient(#0b1512, #070d0b);
   }
+}
+
+:global(html)[data-theme="dark"] .root {
+    --g-ink:#eefaf3;
+    --g-dim:#9db2a7;
+    --g-glass:26 40 34;
+    --g-glass-a:.72;
+    --g-stroke:214 255 236;
+    --g-edge:0 0 0;
+    --g-accent:#57e6ab;
+    --g-accent-soft:#2a7a59;
+    --g-warm:#f0b055;
+    --g-hot:#ff8a72;
+    --g-lift:0 14px 40px rgb(0 0 0 / .5), 0 2px 8px rgb(0 0 0 / .32);
+}
+:global(html)[data-theme="dark"] .root::before {
+    background:
+      radial-gradient(58% 42% at 18% 2%, #143a2b, transparent 70%),
+      radial-gradient(50% 38% at 92% 10%, #16292f, transparent 72%),
+      linear-gradient(#0b1512, #070d0b);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -198,6 +220,7 @@
 /* The primary action, the one glossy element on the screen. */
 .go {
   border:0; border-radius:999px; padding:15px 26px; min-height:52px; width:100%; cursor:pointer;
+  /* Dark ink in both themes: it always sits on the bright green gradient. */
   font-family:inherit; font-size:1rem; font-weight:700; letter-spacing:-.01em; color:#04150e;
   background:linear-gradient(168deg, var(--g-accent-soft), var(--g-accent));
   box-shadow:inset 0 1.5px 0 rgb(255 255 255 / .5), 0 8px 22px rgb(var(--g-edge) / .24);
@@ -205,7 +228,6 @@
   touch-action:manipulation;
 }
 .go:active { transform:scale(.96); }
-@media (prefers-color-scheme: dark) { .root:not([data-theme="light"]) .go { color:#04150e; } }
 
 .flash { margin:0; min-height:1.5em; font-size:.9375rem; font-weight:600; line-height:1.4; }
 .flashRight { color:var(--g-accent); }
