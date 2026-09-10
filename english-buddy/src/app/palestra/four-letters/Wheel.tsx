@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { seatCentres } from "@/lib/games/wheel-layout";
+import { seatCentres, tilePxFor } from "@/lib/games/wheel-layout";
 import styles from "../wheel.module.css";
 
 /** One hue per seat, so the same letter is not always the same colour. */
@@ -17,6 +17,12 @@ export type WheelProps = {
   onPick: (position: number) => void;
   onSubmit: () => void;
   onClear: () => void;
+  /**
+   * Whether a single tap submits. True where every word is the same length,
+   * so filling the slots can only mean one thing; false where the player
+   * decides how long their word is and confirms it themselves.
+   */
+  submitOnTap?: boolean;
 };
 
 /**
@@ -27,7 +33,7 @@ export type WheelProps = {
  * Dragging is done with pointer events and elementFromPoint rather than by
  * measuring geometry, so it keeps working whatever the tiles are sized at.
  */
-export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit, onClear }: WheelProps) {
+export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit, onClear, submitOnTap = true }: WheelProps) {
   const box = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
@@ -78,6 +84,7 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
     <div
       ref={box}
       className={styles.wheel}
+      style={{ "--tile-size": `${tilePxFor(seats)}px`, "--tile-size-small": `${tilePxFor(seats, true)}px` } as React.CSSProperties}
       data-low={low}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -127,10 +134,9 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
             }
             onClick={() => {
               // A plain tap, for anyone who does not want to drag.
-              if (!dragging.current && state === "idle") {
-                onPick(seat);
-                onSubmit();
-              }
+              if (dragging.current || state !== "idle") return;
+              onPick(seat);
+              if (submitOnTap) onSubmit();
             }}
             aria-label={`lettera ${letter}`}
           >

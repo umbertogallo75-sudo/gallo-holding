@@ -35,6 +35,16 @@ export const GAMES: Game[] = [
     minutes: 2,
   },
   {
+    slug: "parola-lunga",
+    title: "Parola lunga",
+    tagline: "Nove lettere, molte parole dentro. Quella che le usa tutte vale il doppio e apre il gruppo dopo.",
+    trains: "Vocabolario · parole lunghe",
+    icon: "🧩",
+    status: "live",
+    usesOwnWords: false,
+    minutes: 3,
+  },
+  {
     slug: "ascolta",
     title: "Ascolta e scegli",
     tagline: "Sam pronuncia, tu scegli il significato fra tre. Dieci parole a raffica, un solo cronometro.",

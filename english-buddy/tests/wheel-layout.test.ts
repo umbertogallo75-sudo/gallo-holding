@@ -10,6 +10,7 @@ import {
   SEAT_RADIUS,
   TILE_PX,
   TILE_PX_SMALL,
+  tilePxFor,
   WHEEL_PX,
   WHEEL_PX_SMALL,
 } from "@/lib/games/wheel-layout";
@@ -35,6 +36,26 @@ describe("the letter wheel", () => {
     // And with room to spare, so a slightly narrower phone is still fine.
     const gap = (closestPair(seatCentres(LETTERS)) / 100) * WHEEL_PX_SMALL;
     expect(gap).toBeGreaterThan(TILE_PX_SMALL * 1.15);
+  });
+
+  it("fits every tray size the games actually deal, on both screens", () => {
+    // Four letters for one game, six to nine for the long-word one.
+    for (let count = 4; count <= 9; count += 1) {
+      expect(seatsFit(count, WHEEL_PX, tilePxFor(count)), `${count} lettere, schermo largo`).toBe(true);
+      expect(seatsFit(count, WHEEL_PX_SMALL, tilePxFor(count, true)), `${count} lettere, schermo stretto`).toBe(true);
+      // Not merely touching: a finger needs room between them.
+      const gap = (closestPair(seatCentres(count)) / 100) * WHEEL_PX_SMALL;
+      expect(gap, `${count} lettere: troppo stretto`).toBeGreaterThan(tilePxFor(count, true) * 1.15);
+      expect(seatsStayInside(WHEEL_PX, tilePxFor(count))).toBe(true);
+      expect(seatsStayInside(WHEEL_PX_SMALL, tilePxFor(count, true))).toBe(true);
+    }
+  });
+
+  it("shrinks the tiles as the ring gets crowded, never the other way", () => {
+    for (let count = 4; count < 9; count += 1) {
+      expect(tilePxFor(count + 1)).toBeLessThanOrEqual(tilePxFor(count));
+      expect(tilePxFor(count, true)).toBeLessThan(tilePxFor(count));
+    }
   });
 
   it("keeps every tile inside the ring it is drawn in", () => {

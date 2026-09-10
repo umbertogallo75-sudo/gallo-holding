@@ -35,7 +35,7 @@
 .slots { display:flex; gap:10px; justify-content:center; }
 .slot {
   display:grid; place-items:center;
-  height:60px; width:60px; border-radius:50%;
+  height:var(--slot-size, 60px); width:var(--slot-size, 60px); border-radius:50%;
   font-size:1.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.01em;
   background:rgb(var(--w-dish) / .5);
   box-shadow:inset 0 0 0 2px rgb(var(--w-edge) / .16);
@@ -66,9 +66,9 @@
 .tile {
   position:absolute;
   left:var(--x); top:var(--y);
-  height:78px; width:78px; border:0; padding:0; border-radius:50%;
+  height:var(--tile-size, 78px); width:var(--tile-size, 78px); border:0; padding:0; border-radius:50%;
   transform:translate(-50%,-50%);
-  font-family:inherit; font-size:2.125rem; font-weight:800; color:#fff; text-transform:uppercase;
+  font-family:inherit; font-size:calc(var(--tile-size, 78px) * .44); font-weight:800; color:#fff; text-transform:uppercase;
   line-height:1; display:grid; place-items:center;
   cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent;
   background:radial-gradient(120% 120% at 34% 26%, color-mix(in srgb, var(--tile) 78%, white), var(--tile));
@@ -106,6 +106,6 @@
 }
 
 @media (max-width:380px) {
-  .tile { height:68px; width:68px; font-size:1.875rem; }
-  .slot { height:52px; width:52px; font-size:1.5rem; }
+  .tile { height:var(--tile-size-small, 68px); width:var(--tile-size-small, 68px); font-size:calc(var(--tile-size-small, 68px) * .44); }
+  .slot { height:46px; width:46px; font-size:1.375rem; }
 }

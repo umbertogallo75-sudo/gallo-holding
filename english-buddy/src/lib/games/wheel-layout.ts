@@ -15,12 +15,28 @@ export type Seat = { x: number; y: number };
 
 /** How far from the centre the tiles sit, as a percentage of the wheel. */
 export const SEAT_RADIUS = 34;
-/** Tile diameter and wheel width in pixels, as the stylesheet sets them. */
-export const TILE_PX = 78;
+/** Wheel width in pixels, as the stylesheet sets it, on both screen sizes. */
 export const WHEEL_PX = 340;
-/** The narrow-screen pair, from the max-width:380px block. */
-export const TILE_PX_SMALL = 68;
+/** The narrow-screen width, from the max-width:380px block. */
 export const WHEEL_PX_SMALL = 315;
+
+/**
+ * Tile size by how many letters are on the ring.
+ *
+ * Nine seats sit far closer together than four — the gap between neighbours
+ * shrinks from 48% of the wheel to 23% — so one fixed tile size either wastes
+ * the ring at four letters or overlaps at nine. The component sets this as a
+ * custom property; seatsFit below is what proves each step is roomy enough.
+ */
+export function tilePxFor(count: number, small = false): number {
+  if (count <= 5) return small ? 68 : 78;
+  if (count <= 7) return small ? 60 : 68;
+  return small ? 52 : 58;
+}
+
+/** The four-letter game's sizes, kept as names for the tests that cite them. */
+export const TILE_PX = tilePxFor(4);
+export const TILE_PX_SMALL = tilePxFor(4, true);
 
 /** Seats evenly around the ring, the first one straight up. */
 export function seatCentres(count: number, radius = SEAT_RADIUS): Seat[] {
