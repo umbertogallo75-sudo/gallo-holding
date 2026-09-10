@@ -201,10 +201,12 @@ export async function runLifecycleEmails(
     }
 
     if (!kind || !message) continue;
-    // A reward that has just been earned arrives now; everything else waits
-    // its turn, so nobody gets two automatic emails in a day.
-    const throttleHours = kind === "trial_extended" ? undefined : THROTTLE_HOURS;
-    const result = await sendMarketing({ userId, email, kind, claimKey, message, throttleHours, now }, client, send ?? undefined);
+    // Everything automatic waits its turn, so nobody gets two in a day. The
+    // exemption that used to sit here was for the earned trial extension,
+    // which stopped existing when the free week became the same for everyone;
+    // sendMarketing still sends immediately when given no throttle, and that
+    // is what a hand-written campaign uses.
+    const result = await sendMarketing({ userId, email, kind, claimKey, message, throttleHours: THROTTLE_HOURS, now }, client, send ?? undefined);
     if (result === "sent") {
       sends++;
       const bucket = kind.startsWith("win_back") ? kind : kind.replace("trial_", "").replace("evening_recap", "recap");

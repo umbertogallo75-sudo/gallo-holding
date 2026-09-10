@@ -51,7 +51,6 @@ export type FunnelEvent =
   // step between meeting the paywall and paying. Without these, a drop
   // between "registered" and "bought" had no shape at all.
   | "trial_started"
-  | "trial_extended"
   | "first_reply_ok"
   | "paywall_shown"
   | "prices_shown"

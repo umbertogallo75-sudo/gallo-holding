@@ -14,7 +14,9 @@ export type EmailStat = { kind: string; total: number; last7: number; lastAt: st
 const LABELS: Record<string, string> = {
   welcome_trial: "Benvenuto (con offerta 24 ore)",
   trial_reminder: "Prova in scadenza",
-  trial_extended: "Prova estesa — ricompensa",
+  // No longer sent — the earned extension ended when the free week became
+  // the same for everybody — but rows from before it are still in the table.
+  trial_extended: "Prova estesa — ricompensa (non più inviata)",
   trial_ended: "Prova finita",
   win_back_soft: "Sollecito 3 giorni — morbido",
   win_back_firm: "Sollecito 7 giorni — diretto",

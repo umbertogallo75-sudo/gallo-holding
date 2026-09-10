@@ -100,9 +100,11 @@ describe("the daily throttle", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("lets a reward through immediately, because it was just earned", async () => {
+  it("sends immediately when given no throttle at all", async () => {
+    // What a hand-written campaign relies on: it is not part of the daily
+    // rotation and must not be held back by whatever went out this morning.
     await sendMarketing({ userId: "u1", email: "a@test.it", kind: "win_back_soft", claimKey: "k1", message, throttleHours: 20 }, client, send);
-    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "trial_extended", claimKey: "k2", message }, client, send)).toBe("sent");
+    expect(await sendMarketing({ userId: "u1", email: "a@test.it", kind: "campaign", claimKey: "k2", message }, client, send)).toBe("sent");
   });
 
   it("does not burn the claim of the email it held back", async () => {
