@@ -5,6 +5,7 @@ import { GAMES, findGame, LIVE_GAMES } from "@/lib/games/catalog";
 import { bankWords, BANK_SIZE } from "@/lib/games/bank";
 import { GLOSSARY } from "@/lib/games/glossary";
 import { buildRun, OPTIONS, QUESTIONS, tooClose, verdict as listenVerdict } from "@/lib/games/listen";
+import { advanceDelayMs, directionFor, speaksAfterAnswer, speaksOnAppear } from "@/lib/games/flash";
 import { dedupe, extractWord, MAX_LETTERS, MIN_LETTERS, safeHint, type GameWord } from "@/lib/games/words";
 import {
   BASE_POINTS,
@@ -216,5 +217,39 @@ describe("every live game is actually reachable", () => {
   it("gives each game its own icon, so the list can be read at a glance", () => {
     const icons = LIVE_GAMES.map((game) => game.icon);
     expect(new Set(icons).size, `icone ripetute: ${icons.join(" ")}`).toBe(icons.length);
+  });
+});
+
+describe("flash: when the voice speaks", () => {
+  it("speaks the English on arrival when it is the prompt, and never twice", () => {
+    // Shown in English: the word is on screen, so hearing it is worth having
+    // immediately — and saying it again after the tap is what made the voice
+    // feel like a late instruction.
+    expect(speaksOnAppear("en-it")).toBe(true);
+    expect(speaksAfterAnswer("en-it")).toBe(false);
+  });
+
+  it("speaks it after the answer when the English was the answer", () => {
+    expect(speaksOnAppear("it-en")).toBe(false);
+    expect(speaksAfterAnswer("it-en")).toBe(true);
+  });
+
+  it("holds a card long enough that a spoken word cannot run into the next one", () => {
+    // A short English word takes roughly 700ms to say; the card has to outlast
+    // it, or you hear one word while reading another.
+    expect(advanceDelayMs("it-en", true)).toBeGreaterThanOrEqual(1000);
+    expect(advanceDelayMs("it-en", false)).toBeGreaterThanOrEqual(1000);
+    // Nothing is spoken in the other direction after the tap, so it can move on.
+    expect(advanceDelayMs("en-it", true)).toBeLessThan(advanceDelayMs("it-en", true));
+    // A wrong answer always gets longer than a right one to be read.
+    expect(advanceDelayMs("en-it", false)).toBeGreaterThan(advanceDelayMs("en-it", true));
+  });
+
+  it("alternates the direction, so exactly one of the two rules applies each time", () => {
+    for (let i = 0; i < 10; i += 1) {
+      const direction = directionFor(i);
+      expect(speaksOnAppear(direction) !== speaksAfterAnswer(direction)).toBe(true);
+    }
+    expect(directionFor(0)).not.toBe(directionFor(1));
   });
 });

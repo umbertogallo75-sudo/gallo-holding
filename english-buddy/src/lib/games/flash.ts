@@ -94,6 +94,34 @@ export function buildDeck(own: Entry[], random: () => number, size = 40): Card[]
   return cards;
 }
 
+/**
+ * When the English is spoken.
+ *
+ * The first version said it after every answer, which felt like being told
+ * what to do a moment too late — and worse, the word was still being spoken
+ * when the next card appeared, so you heard one word while reading another.
+ *
+ * It depends on the direction. When the English is the prompt it is already on
+ * screen, so it is spoken as the card appears and never again. When the
+ * English is the answer, saying it back is the whole payoff, so it is spoken
+ * after the tap — and the card is then held long enough for it to finish.
+ */
+export function speaksOnAppear(direction: Direction): boolean {
+  return direction === "en-it";
+}
+
+export function speaksAfterAnswer(direction: Direction): boolean {
+  return direction === "it-en";
+}
+
+/** How long the answered card stays up before the next one. */
+export function advanceDelayMs(direction: Direction, correct: boolean): number {
+  // Long enough for a spoken word to finish, so nothing bleeds into the next
+  // card; otherwise just long enough to read the result.
+  if (speaksAfterAnswer(direction)) return 1200;
+  return correct ? 420 : 900;
+}
+
 export function verdict(correct: number): string {
   if (correct === 0) return "Nessuna. Riprova: la prima partita serve solo a capire il ritmo.";
   if (correct < 8) return "Un inizio. Il trucco è non rileggere: la prima risposta che ti viene è quasi sempre giusta.";

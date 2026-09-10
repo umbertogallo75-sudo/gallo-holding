@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { track } from "@/lib/track-client";
-import { buildDeck, RUN_SECONDS, verdict, WRONG_SECONDS, type Card } from "@/lib/games/flash";
+import {
+  advanceDelayMs,
+  buildDeck,
+  RUN_SECONDS,
+  speaksAfterAnswer,
+  speaksOnAppear,
+  verdict,
+  WRONG_SECONDS,
+  type Card,
+} from "@/lib/games/flash";
 import type { Entry } from "@/lib/games/glossary";
 import * as sound from "@/lib/games/sound";
 import { hush, say } from "@/lib/games/speak";
@@ -98,6 +107,16 @@ export function FlashGame({ opening, own }: { opening: Card[]; own: Entry[] }) {
     []
   );
 
+  // The English is heard the moment the card arrives, when it is the prompt.
+  // Saying it only after the tap made the voice feel like a late instruction.
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const current = deck[index];
+    if (!current) return;
+    if (speaksOnAppear(current.direction)) say(current.word, 0.95);
+    else hush();
+  }, [phase, index, deck]);
+
   function choose(option: number) {
     if (phase !== "playing" || chosen !== null || !card) return;
     const ok = option === card.answer;
@@ -111,14 +130,16 @@ export function FlashGame({ opening, own }: { opening: Card[]; own: Entry[] }) {
       setMissed((all) => [...all, card]);
     }
     if (card.itemText) setReviewed((all) => [...all, { itemText: card.itemText as string, success: ok }]);
-    // Hearing the English is the reward for getting it right, and the
-    // correction for getting it wrong.
-    say(card.word, 0.95);
+    // Only when the English was the answer: hearing it said back is the point
+    // of that direction, and the card is held long enough for it to finish.
+    if (speaksAfterAnswer(card.direction)) say(card.word, 0.95);
     window.setTimeout(() => {
+      // Nothing spoken may still be talking over the next card.
+      hush();
       setChosen(null);
       if (index + 1 >= deck.length) return setPhase("over");
       setIndex(index + 1);
-    }, ok ? 420 : 900);
+    }, advanceDelayMs(card.direction, ok));
   }
 
   function start() {
