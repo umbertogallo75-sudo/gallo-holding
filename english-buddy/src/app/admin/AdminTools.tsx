@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmPill } from "./ConfirmPill";
 
 /** One-off maintenance actions for the owner. */
 export function AdminTools() {
@@ -9,7 +10,6 @@ export function AdminTools() {
   const [codes, setCodes] = useState<string[]>([]);
 
   async function voidTestLicenses() {
-    if (!window.confirm("Annullare TUTTI i codici licenza non ancora usati? Serve per invalidare i codici generati durante i collaudi sandbox. I codici già riscattati non vengono toccati.")) return;
     setBusy(true);
     setStatus("");
     try {
@@ -49,7 +49,13 @@ export function AdminTools() {
     <div style={{ margin: "4px 0 10px" }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button className="pill" disabled={busy} onClick={makeGiftCodes}>🎁 Genera codici omaggio</button>
-        <button className="pill" disabled={busy} onClick={voidTestLicenses}>🧹 Annulla licenze di prova</button>
+        <ConfirmPill
+          label="🧹 Annulla licenze di prova"
+          question="Annulla tutti i codici non ancora riscattati. Quelli già usati restano."
+          danger
+          disabled={busy}
+          onConfirm={voidTestLicenses}
+        />
         {status ? <span className="itHint">{status}</span> : null}
       </div>
       {codes.length > 0 ? (

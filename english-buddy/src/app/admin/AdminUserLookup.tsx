@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmPill } from "./ConfirmPill";
 
 /**
  * Finding somebody by the address they wrote from.
@@ -31,6 +32,7 @@ export function AdminUserLookup() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Found | null>(null);
   const [error, setError] = useState("");
+  const [done, setDone] = useState("");
 
   async function call(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
     const response = await fetch("/api/admin", {
@@ -55,17 +57,18 @@ export function AdminUserLookup() {
 
   async function remove() {
     if (!result?.userId) return;
-    if (!window.confirm(`Eliminare DEFINITIVAMENTE l'account ${result.email} e tutti i suoi dati? Non è reversibile.`)) return;
-    if (!window.confirm("Confermi? Questa è l'ultima richiesta.")) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setDone("");
     const data = await call({ action: "deleteuser", userId: result.userId });
     setBusy(false);
-    if (data) { setResult(null); setEmail(""); window.alert("Account eliminato ✓"); }
+    // Said on the page, not in a dialog: an alert stops the browser exactly
+    // like a confirm, and the result of a deletion is worth reading calmly.
+    if (data) { setResult(null); setEmail(""); setDone("Account eliminato ✓"); }
   }
 
   return (
     <section className="card">
       <div className="kicker">Richieste GDPR · trova un account</div>
+      {done ? <p className="composerNote" style={{ color: "var(--accent)", fontWeight: 650 }}>{done}</p> : null}
       <p className="composerNote" style={{ marginTop: 4 }}>
         Cerca per l&rsquo;indirizzo da cui la persona ha scritto. Trova anche chi si è registrato e non ha
         mai finito l&rsquo;onboarding, che nell&rsquo;elenco qui sotto non compare.
@@ -112,15 +115,15 @@ export function AdminUserLookup() {
           ) : (
             <p className="composerNote" style={{ margin: "6px 0 0" }}>Nessun piano attivo: si può procedere.</p>
           )}
-          <button
-            type="button"
-            className="pill"
-            style={{ marginTop: 12, borderColor: "#b3362a", color: "#b3362a" }}
-            disabled={busy}
-            onClick={remove}
-          >
-            🗑 Elimina definitivamente
-          </button>
+          <div style={{ marginTop: 12 }}>
+            <ConfirmPill
+              label="🗑 Elimina definitivamente"
+              question={`Elimina ${result.email} e tutti i suoi dati. Non è reversibile.`}
+              danger
+              disabled={busy}
+              onConfirm={remove}
+            />
+          </div>
         </div>
       ) : null}
     </section>

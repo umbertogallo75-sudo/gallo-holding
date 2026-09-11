@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmPill } from "./ConfirmPill";
 
 const SEGMENTS = [
   { value: "lapsed", label: "Inattivi da 7+ giorni" },
@@ -58,7 +59,6 @@ export function AdminCampaign({ from, replyTo, startsOn, ready: configured }: { 
 
   function send() {
     if (audience === null) return;
-    if (!window.confirm(`Inviare a ${audience} persone? Le email partite non si possono richiamare.`)) return;
     // Identifies this campaign so a second click cannot write to anyone twice.
     void call(`c${Date.now().toString(36)}`);
   }
@@ -102,9 +102,19 @@ export function AdminCampaign({ from, replyTo, startsOn, ready: configured }: { 
 
       <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
         <button className="secondary" disabled={busy} onClick={() => void call()}>{busy ? "…" : "Quanti sono?"}</button>
-        <button className="primary" disabled={busy || !ready || audience === null} onClick={send}>
-          {busy ? "…" : audience === null ? "Prima conta i destinatari" : `Invia a ${audience}`}
-        </button>
+        {audience === null || !ready ? (
+          <button className="pill" disabled>
+            {audience === null ? "Prima conta i destinatari" : "Servono oggetto e testo"}
+          </button>
+        ) : (
+          <ConfirmPill
+            label={busy ? "…" : `Invia a ${audience}`}
+            question={`${audience} email partiranno subito e non si possono richiamare.`}
+            danger
+            disabled={busy}
+            onConfirm={send}
+          />
+        )}
       </div>
       {status ? <div className="notice" style={{ marginTop: 12 }}>{status}</div> : null}
       <p className="itHint" style={{ marginBottom: 0 }}>

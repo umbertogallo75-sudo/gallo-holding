@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmPill } from "./ConfirmPill";
 
 export function AdminActions({ userId, intensity, hasPush, hasFree }: { userId: string; intensity: string; hasPush: boolean; hasFree: boolean }) {
   const [free, setFree] = useState(hasFree);
@@ -27,7 +28,6 @@ export function AdminActions({ userId, intensity, hasPush, hasFree }: { userId: 
   }
 
   function resetCode() {
-    if (!window.confirm("Generare un nuovo codice temporaneo? Il codice attuale dell'utente smetterà di funzionare.")) return;
     void call({ action: "resetcode", userId }, "");
   }
 
@@ -45,29 +45,37 @@ export function AdminActions({ userId, intensity, hasPush, hasFree }: { userId: 
           {busy ? "…" : "📣 Stimola"}
         </button>
         {userId !== "owner" ? (
-          <button className="pill" disabled={busy} title="Genera un codice temporaneo se l'utente ha perso il suo" onClick={resetCode}>🔑 Reset codice</button>
+          <ConfirmPill
+            label="🔑 Reset codice"
+            question="Il codice attuale smetterà di funzionare."
+            title="Genera un codice temporaneo se l'utente ha perso il suo"
+            disabled={busy}
+            onConfirm={resetCode}
+          />
         ) : null}
         {userId !== "owner" ? (
-          <button className="pill" disabled={busy} style={{ borderColor: "#b3362a", color: "#b3362a" }}
+          <ConfirmPill
+            label="🗑 Elimina"
+            question="Elimina l'account e tutti i suoi dati. Non è reversibile."
             title="Elimina definitivamente l'account e tutti i suoi dati"
-            onClick={() => {
-              if (!window.confirm("Eliminare DEFINITIVAMENTE questo utente e tutti i suoi dati? L'operazione non è reversibile.")) return;
-              if (!window.confirm("Confermi? Questa è l'ultima richiesta.")) return;
-              void call({ action: "deleteuser", userId }, "Utente eliminato ✓ (ricarica la pagina)");
-            }}>
-            🗑 Elimina
-          </button>
+            danger
+            disabled={busy}
+            onConfirm={() => void call({ action: "deleteuser", userId }, "Utente eliminato ✓ (ricarica la pagina)")}
+          />
         ) : null}
         {userId !== "owner" ? (
-          <button className="pill" disabled={busy} style={free ? { borderColor: "var(--accent)", fontWeight: 700 } : undefined}
+          <ConfirmPill
+            label={free ? "🎁 Gratis ✓" : "🎁 Rendi gratis"}
+            question={free ? "L'utente dovrà attivare un piano." : "Accesso completo, senza pagamento."}
             title={free ? "Questo utente usa l'app gratis: tocca per revocare" : "Concedi accesso completo gratuito (senza pagamento)"}
-            onClick={() => {
+            disabled={busy}
+            style={free ? { borderColor: "var(--accent)", fontWeight: 700 } : undefined}
+            onConfirm={() => {
               const next = !free;
-              if (!window.confirm(next ? "Concedere l'accesso gratuito completo a questo utente?" : "Revocare l'accesso gratuito? L'utente dovrà attivare un piano.")) return;
-              void call({ action: "freeaccess", userId, grant: next }, next ? "Accesso gratuito attivato ✓" : "Accesso gratuito revocato ✓").then((ok) => { if (ok) setFree(next); });
-            }}>
-            {free ? "🎁 Gratis ✓" : "🎁 Rendi gratis"}
-          </button>
+              void call({ action: "freeaccess", userId, grant: next }, next ? "Accesso gratuito attivato ✓" : "Accesso gratuito revocato ✓")
+                .then((ok) => { if (ok) setFree(next); });
+            }}
+          />
         ) : null}
       </div>
       {tempCode ? (

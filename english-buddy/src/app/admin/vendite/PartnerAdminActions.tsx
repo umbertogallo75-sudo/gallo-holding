@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmPill } from "../ConfirmPill";
 import { useRouter } from "next/navigation";
 
 const STATUSES = ["ACTIVE", "SUSPENDED", "BLOCKED", "TERMINATED", "REVIEW_REQUIRED"];
@@ -35,10 +36,13 @@ export function PartnerAdminActions({ partnerId, rate, status, canPayout }: { pa
         onChange={(e) => call({ action: "partnerstatus", partnerId, status: e.target.value }, "Stato aggiornato ✓")}>
         {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
-      <button className="pill" disabled={busy || !canPayout} title={canPayout ? "Crea il pagamento delle provvigioni disponibili" : "Sotto il minimo o dati di incasso mancanti"}
-        onClick={() => { if (window.confirm("Creare il pagamento delle provvigioni disponibili di questo partner?")) void call({ action: "payoutcreate", partnerId }, "Pagamento creato ✓"); }}>
-        💸 Crea pagamento
-      </button>
+      <ConfirmPill
+        label="💸 Crea pagamento"
+        question="Crea il pagamento delle provvigioni disponibili."
+        title={canPayout ? "Crea il pagamento delle provvigioni disponibili" : "Sotto il minimo o dati di incasso mancanti"}
+        disabled={busy || !canPayout}
+        onConfirm={() => void call({ action: "payoutcreate", partnerId }, "Pagamento creato ✓")}
+      />
       {msg ? <span className="itHint">{msg}</span> : null}
     </div>
   );

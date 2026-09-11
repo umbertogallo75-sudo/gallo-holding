@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { shouldSend, type Intensity } from "@/lib/push/windows";
-import { bannerForNotification, generateBuddyQuestion } from "@/lib/push/content";
+import { bannerForNotification, bilingualBody, generateBuddyQuestion } from "@/lib/push/content";
 import { sendPushToUser } from "@/lib/push/sender";
 import { runUpgradeNudges } from "@/lib/nudges";
 import { runLifecycleEmails } from "@/lib/marketing/lifecycle";
@@ -157,10 +157,12 @@ async function run(request: Request) {
       const notificationId = randomUUID();
       const { delivered, problems } = await sendPushToUser(userId, {
         title: "Sam · ExecLingo",
-        body: question,
-        image: bannerForNotification({ question, window: due.window, kind: due.kind, seed: notificationId }),
+        // Both languages on the lock screen; only the English opens the chat,
+        // because that is the question Sam is actually asking.
+        body: bilingualBody(question),
+        image: bannerForNotification({ question: question.en, window: due.window, kind: due.kind, seed: notificationId }),
         data: {
-          url: `/buddy?mode=buddy&q=${encodeURIComponent(question)}&nid=${notificationId}`,
+          url: `/buddy?mode=buddy&q=${encodeURIComponent(question.en)}&nid=${notificationId}`,
           nid: notificationId,
         },
       });
@@ -168,7 +170,7 @@ async function run(request: Request) {
       if (delivered > 0) {
         await database.execute({
           sql: "INSERT INTO notification_history (id, user_id, kind, prompt, sent_at) VALUES (?, ?, ?, ?, ?)",
-          args: [notificationId, userId, due.kind, question, now.toISOString()],
+          args: [notificationId, userId, due.kind, question.en, now.toISOString()],
         });
         results[userId] = `sent:${due.window}`;
       } else {
