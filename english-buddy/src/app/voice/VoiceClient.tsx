@@ -76,6 +76,7 @@ const RESUME_GRACE_MS = 45_000;
 
 import { DEFAULT_ENGINE, ENGINE_KEY, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
 import { INITIAL, onEvent, onTick, type LiveState } from "@/lib/voice/live-phase";
+import { levelFromStats, smoothLevel } from "@/lib/voice/mic-level";
 import { EngineStart } from "./EnginePicker";
 
 /**
@@ -118,6 +119,14 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const engineRef = useRef<VoiceEngine>(DEFAULT_ENGINE);
   const liveRef = useRef<LiveState>(INITIAL);
   const liveTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * The orb, written to directly rather than through state: this changes five
+   * times a second and a re-render of the whole call screen for a ring is a
+   * poor trade.
+   */
+  const orbRef = useRef<HTMLDivElement | null>(null);
+  const levelRef = useRef(0);
+  const meterRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Transcript deltas, which is all the Live engine sends: no completed event. */
   const draftRef = useRef<{ you: string; coach: string }>({ you: "", coach: "" });
   const awaySinceRef = useRef<number | null>(null);
@@ -244,6 +253,33 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (type === "response.done" || type === "output_audio_buffer.stopped") setPhase("waiting");
   }
 
+  /**
+   * The ring around the microphone, driven by how loudly it is actually
+   * hearing. Read from the connection's statistics rather than from a Web
+   * Audio analyser on purpose: building an audio context over the microphone
+   * is the ordinary way to do this, and the last time this app touched the
+   * audio session for a reason that looked safe, every speakerphone call went
+   * silent. Statistics cannot route anything anywhere.
+   */
+  function startMeter(pc: RTCPeerConnection) {
+    if (meterRef.current) return;
+    meterRef.current = setInterval(() => {
+      void pc
+        .getStats()
+        .then((report) => {
+          levelRef.current = smoothLevel(levelRef.current, levelFromStats(report.values()));
+          orbRef.current?.style.setProperty("--level", levelRef.current.toFixed(3));
+        })
+        .catch(() => undefined);
+    }, 200);
+  }
+
+  function stopMeter() {
+    if (meterRef.current) { clearInterval(meterRef.current); meterRef.current = null; }
+    levelRef.current = 0;
+    orbRef.current?.style.setProperty("--level", "0");
+  }
+
   function startClock() {
     if (timerRef.current) return;
     timerRef.current = setInterval(() => {
@@ -289,6 +325,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     if (liveTickRef.current) { clearInterval(liveTickRef.current); liveTickRef.current = null; }
+    stopMeter();
     // Whatever the Live engine was halfway through saying belongs in the
     // transcript: no event is coming to finish it.
     flushDrafts();
@@ -439,6 +476,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
       setStatus("live"); statusRef.current = "live";
       startClock();
+      startMeter(pc);
       // The chat stops introducing the microphone once it has been used for
       // real: the invitation is for people who have never seen this screen.
       try { localStorage.setItem("execlingo-voice-known", "1"); } catch { /* private browsing */ }
@@ -528,7 +566,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       {status === "live" ? (
         <div className="voiceStage">
           <section className="card voiceLive">
-            <div className={interrupted === "paused" ? "voiceOrb" : "voiceOrb pulsing"}>🎙️</div>
+            <div
+              ref={orbRef}
+              className={interrupted === "paused" ? "voiceOrb" : `voiceOrb pulsing voiceOrbLive${phase === "hearing" ? " listening" : ""}`}
+            >
+              🎙️
+            </div>
             <p className="voiceTimer">
               <span className="voicePhase">
                 {interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}

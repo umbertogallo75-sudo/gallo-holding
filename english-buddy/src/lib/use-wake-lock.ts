@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { makeWakeVideo, wakeStrategy } from "./wake-video";
 
 /**
  * Keeps the screen awake while something is genuinely running.
@@ -18,9 +19,17 @@ import { useEffect, useRef } from "react";
  * somebody's battery. And it re-takes the lock when the page becomes visible
  * again, because the system revokes it on every hide, so without that a
  * glance at a notification would quietly cost the rest of the conversation.
+ *
+ * And one thing it now does. The API above does not exist inside iOS
+ * WKWebView, which is precisely what the ExecLingo iPhone app is — so on the
+ * device where a spoken conversation matters most, all of the care above
+ * amounted to nothing and the screen locked anyway. Where there is no API,
+ * a silent invisible video plays instead, which is the one thing iOS accepts
+ * as a reason to stay awake.
  */
 export function useWakeLock(active: boolean, maxMs?: number): void {
   const heldRef = useRef<WakeLockSentinel | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -33,6 +42,7 @@ export function useWakeLock(active: boolean, maxMs?: number): void {
     const ceiling = maxMs
       ? setTimeout(() => {
           cancelled = true;
+          stopVideo();
           const held = heldRef.current;
           heldRef.current = null;
           void held?.release().catch(() => undefined);
@@ -60,16 +70,51 @@ export function useWakeLock(active: boolean, maxMs?: number): void {
       }
     }
 
-    function onVisibility() {
-      if (document.visibilityState === "visible") void acquire();
+    /** The fallback: a video that is playing is a reason for iOS to stay lit. */
+    function playVideo() {
+      if (cancelled) return;
+      try {
+        if (!videoRef.current) {
+          videoRef.current = makeWakeVideo();
+          document.body.appendChild(videoRef.current);
+        }
+        void videoRef.current.play().catch(() => undefined);
+      } catch {
+        // No video either. The call still works; the screen behaves as before.
+      }
     }
 
+    function stopVideo() {
+      const video = videoRef.current;
+      videoRef.current = null;
+      if (!video) return;
+      try {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        video.remove();
+      } catch {
+        /* already gone */
+      }
+    }
+
+    function onVisibility() {
+      if (document.visibilityState !== "visible") return;
+      void acquire();
+      // iOS pauses the video when the app goes to the background and does not
+      // resume it on its own, so a glance at a notification would otherwise
+      // cost the rest of the conversation — the same trap as the API path.
+      if (videoRef.current) playVideo();
+    }
+
+    if (wakeStrategy(Boolean(navigator.wakeLock)) === "video") playVideo();
     void acquire();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       cancelled = true;
       if (ceiling) clearTimeout(ceiling);
       document.removeEventListener("visibilitychange", onVisibility);
+      stopVideo();
       const held = heldRef.current;
       heldRef.current = null;
       void held?.release().catch(() => undefined);

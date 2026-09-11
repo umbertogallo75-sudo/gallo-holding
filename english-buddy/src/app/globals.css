@@ -330,6 +330,27 @@ p { line-height:1.55; font-size:16px; }
 
 .voiceOrb { width:110px; height:110px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:44px; background:linear-gradient(135deg, var(--accent), #b0567a); box-shadow:0 8px 30px color-mix(in srgb, var(--accent) 40%, transparent); }
 .voiceOrb.pulsing { animation:orbPulse 1.6s ease-in-out infinite; }
+/* The ring that answers the voice.
+   --level is written straight to the element five times a second, so the ring
+   follows the microphone rather than a fixed animation: during a call the
+   difference between "the app is running" and "it can hear me" is the whole
+   reassurance, and nobody is touching the screen to find out. */
+.voiceOrbLive { position:relative; --level:0; }
+.voiceOrbLive::before, .voiceOrbLive::after {
+  content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  border:2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  transform:scale(calc(1 + var(--level) * 0.55));
+  opacity:calc(var(--level) * 0.85);
+  transition:transform .18s ease-out, opacity .18s ease-out;
+}
+.voiceOrbLive::after { transform:scale(calc(1 + var(--level) * 0.95)); opacity:calc(var(--level) * 0.45); border-width:1px; }
+/* While it is the learner's turn the ring is theirs; the pulse steps aside so
+   two animations are not competing for the same circle. */
+.voiceOrbLive.listening { animation:none; box-shadow:0 0 0 calc(var(--level) * 9px) color-mix(in srgb, var(--accent) 28%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .voiceOrbLive::before, .voiceOrbLive::after { display:none; }
+  .voiceOrbLive.listening { box-shadow:none; }
+}
 @media (prefers-reduced-motion: reduce) { .voiceOrb.pulsing { animation:none; } }
 /* Landscape, and any short screen. The orb is decoration and gives way first,
    so the timer and Termina stay on screen without scrolling for them. */
