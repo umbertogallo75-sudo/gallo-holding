@@ -19,6 +19,7 @@ import {
   type Tray,
 } from "@/lib/games/four-letters";
 import * as sound from "@/lib/games/sound";
+import { slotPxFor } from "@/lib/games/wheel-layout";
 import { Wheel } from "./Wheel";
 import styles from "../games.module.css";
 import wheel from "../wheel.module.css";
@@ -252,7 +253,7 @@ export function FourLetters({ opening }: { opening: Tray }) {
         <div className={styles.hudCell}><strong>{best}</strong><span>record</span></div>
       </div>
 
-      <div className={wheel.stage} data-state={flash}>
+      <div className={wheel.stage} data-state={flash} style={{ ["--slot-size" as string]: `${slotPxFor(LETTERS)}px` }}>
         <div className={wheel.slots}>
           {Array.from({ length: LETTERS }, (_, i) => {
             const seat = picked[i];

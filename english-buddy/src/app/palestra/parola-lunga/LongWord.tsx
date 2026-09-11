@@ -19,6 +19,7 @@ import {
 } from "@/lib/games/long-word";
 import * as sound from "@/lib/games/sound";
 import { hush, say } from "@/lib/games/speak";
+import { slotPxFor } from "@/lib/games/wheel-layout";
 import { Wheel } from "../four-letters/Wheel";
 import styles from "../games.module.css";
 import wheel from "../wheel.module.css";
@@ -274,16 +275,22 @@ export function LongWord({ opening }: { opening: Tray }) {
       <div className={styles.hud}>
         <div className={styles.hudCell}><strong>{score}</strong><span>punti</span></div>
         <div className={`${styles.hudCell} ${low ? styles.low : ""}`}><strong>{seconds}</strong><span>secondi</span></div>
-        <div className={styles.hudCell}><strong>{got.got}/{got.outOf}</strong><span>trovate qui</span></div>
+        <div className={styles.hudCell}><strong>{got.got}/{got.outOf}</strong><span>trovate</span></div>
       </div>
 
-      <div className={wheel.stage} data-state={flash} style={{ ["--slot-size" as string]: "46px" }}>
+      <div
+        className={wheel.stage}
+        data-state={flash}
+        style={{ ["--slot-size" as string]: `${slotPxFor(tray.letters.length)}px` }}
+      >
         <div className={wheel.slots}>
-          {Array.from({ length: tray.letters.length }, (_, i) => {
-            const seat = picked[i];
-            const letter = seat === undefined ? "" : tray.letters[seat];
-            return <span key={i} className={letter ? `${wheel.slot} ${wheel.slotFull}` : wheel.slot}>{letter}</span>;
-          })}
+          {picked.length === 0 ? (
+            <span className={wheel.empty}>Componi una parola di almeno {MIN_WORD} lettere</span>
+          ) : (
+            picked.map((seat, i) => (
+              <span key={i} className={`${wheel.slot} ${wheel.slotFull}`}>{tray.letters[seat]}</span>
+            ))
+          )}
         </div>
 
         <Wheel

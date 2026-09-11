@@ -6,6 +6,8 @@
    ============================================================ */
 
 .stage {
+  max-width:100%;
+  min-width:0;
   /* Local to the wheel: the dish it sits in, and the colour its shadows are
      cast in. Redefined for dark below, like every other surface in the app. */
   --w-edge:16 34 26;
@@ -32,16 +34,20 @@
 .slots .slot { color:var(--g-ink, currentColor); }
 
 /* ---- the slots being filled ---- */
-.slots { display:flex; gap:10px; justify-content:center; }
+.slots { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%; }
 .slot {
   display:grid; place-items:center;
-  height:var(--slot-size, 60px); width:var(--slot-size, 60px); border-radius:50%;
-  font-size:1.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.01em;
+  height:var(--slot-size, 56px); width:var(--slot-size, 56px); border-radius:50%;
+  font-size:calc(var(--slot-size, 56px) * .46); font-weight:700; text-transform:uppercase; letter-spacing:.01em;
+  flex:0 0 auto;
   background:rgb(var(--w-dish) / .5);
   box-shadow:inset 0 0 0 2px rgb(var(--w-edge) / .16);
   transition:transform .28s cubic-bezier(.22,1.5,.4,1), background .18s ease, box-shadow .18s ease;
 }
 .slotFull { animation:drop .3s cubic-bezier(.22,1.5,.4,1); }
+/* Shown instead of empty circles where the word length is up to the
+   player: nine placeholders would say the answer has to use them all. */
+.empty { display:grid; place-items:center; min-height:56px; padding:0 12px; color:var(--g-dim); font-size:.9375rem; text-align:center; line-height:1.4; }
 @keyframes drop { from { transform:scale(.6) translateY(-10px); } to { transform:scale(1) translateY(0); } }
 
 /* ---- the wheel ---- */
@@ -107,5 +113,5 @@
 
 @media (max-width:380px) {
   .tile { height:var(--tile-size-small, 68px); width:var(--tile-size-small, 68px); font-size:calc(var(--tile-size-small, 68px) * .44); }
-  .slot { height:46px; width:46px; font-size:1.375rem; }
+  .slot { height:calc(var(--slot-size, 56px) * .84); width:calc(var(--slot-size, 56px) * .84); }
 }

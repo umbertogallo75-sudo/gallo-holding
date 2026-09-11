@@ -38,6 +38,53 @@ export function tilePxFor(count: number, small = false): number {
 export const TILE_PX = tilePxFor(4);
 export const TILE_PX_SMALL = tilePxFor(4, true);
 
+/* ---------- the row of slots above the wheel ---------- */
+
+/**
+ * The page's own margins: .shell pads 18px each side, so this much of the
+ * screen is never available to a row of slots.
+ */
+export const SHELL_PADDING_PX = 36;
+/** An ordinary modern phone, the width the slots are sized to fit in one row. */
+export const ORDINARY_PX = 393;
+/** The narrowest phone still worth supporting (iPhone SE, first generation). */
+export const NARROWEST_PX = 320;
+export const SLOT_GAP_PX = 6;
+/** Below this a letter stops being comfortably readable inside its circle. */
+export const MIN_READABLE_SLOT_PX = 32;
+
+/**
+ * Slot size by how many letters the word can be.
+ *
+ * Nine slots at the four-letter game's size come to 494px against the 357 an
+ * ordinary phone gives you — and a row that does not fit does not merely look
+ * cramped: it widens the page and drags the score bar and the buttons off the
+ * right edge with it.
+ *
+ * These sizes fit one row on an ordinary phone. On a narrower one the row is
+ * allowed to wrap rather than shrink further, because a circle under about
+ * 32px stops being a letter you can read at a glance; the stylesheet's
+ * flex-wrap is what makes that safe, and a test checks it is still there.
+ */
+export function slotPxFor(count: number): number {
+  if (count <= 5) return 56;
+  if (count === 6) return 48;
+  if (count === 7) return 44;
+  if (count === 8) return 38;
+  return 34;
+}
+
+/** Width a row of `count` slots needs, gaps included. */
+export function slotsRowPx(count: number): number {
+  if (count <= 0) return 0;
+  return count * slotPxFor(count) + (count - 1) * SLOT_GAP_PX;
+}
+
+/** True when that row fits the usable width of a screen this wide. */
+export function slotsRowFits(count: number, viewportPx: number): boolean {
+  return slotsRowPx(count) <= viewportPx - SHELL_PADDING_PX;
+}
+
 /** Seats evenly around the ring, the first one straight up. */
 export function seatCentres(count: number, radius = SEAT_RADIUS): Seat[] {
   return Array.from({ length: count }, (_, index) => {

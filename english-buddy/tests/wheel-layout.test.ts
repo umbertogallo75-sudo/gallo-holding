@@ -8,6 +8,13 @@ import {
   seatsFit,
   seatsStayInside,
   SEAT_RADIUS,
+  MIN_READABLE_SLOT_PX,
+  NARROWEST_PX,
+  ORDINARY_PX,
+  SHELL_PADDING_PX,
+  slotPxFor,
+  slotsRowFits,
+  slotsRowPx,
   TILE_PX,
   TILE_PX_SMALL,
   tilePxFor,
@@ -78,5 +85,44 @@ describe("the letter wheel", () => {
     expect(tileRule).toContain("left:var(--x)");
     expect(tileRule).toContain("top:var(--y)");
     expect(tileRule).not.toMatch(/translateY\(calc\(var\(--r\)/);
+  });
+
+  it("fits the row of slots on one line on an ordinary phone", () => {
+    // The bug: nine slots at the four-letter size came to 494px against the
+    // 357 an ordinary phone gives you. A row that does not fit does not just
+    // look cramped — it widens the page and drags the score bar and the
+    // buttons off the right edge with it.
+    for (let count = 4; count <= 9; count += 1) {
+      expect(slotsRowFits(count, ORDINARY_PX), `${count} caselle su ${ORDINARY_PX}px`).toBe(true);
+    }
+  });
+
+  it("lets the row wrap on a narrow phone instead of shrinking past legibility", () => {
+    // Below about 32px a circle stops being a letter you can read, so the row
+    // folds rather than shrinking further — and the stylesheet is what makes
+    // folding safe. Without flex-wrap the row would widen the page again.
+    const css = readFileSync(join(__dirname, "..", "src", "app", "palestra", "wheel.module.css"), "utf8");
+    const rule = css.slice(css.indexOf(".slots {"), css.indexOf("}", css.indexOf(".slots {")));
+    expect(rule).toContain("flex-wrap:wrap");
+    expect(rule).toContain("max-width:100%");
+    for (let count = 4; count <= 9; count += 1) {
+      expect(slotPxFor(count), `${count} caselle`).toBeGreaterThanOrEqual(MIN_READABLE_SLOT_PX);
+    }
+    // A single slot always fits, so a folded row can never overflow.
+    expect(slotsRowFits(1, NARROWEST_PX)).toBe(true);
+  });
+
+  it("shrinks the slots as the word gets longer, never the other way", () => {
+    for (let count = 4; count < 9; count += 1) {
+      expect(slotPxFor(count + 1)).toBeLessThanOrEqual(slotPxFor(count));
+    }
+  });
+
+  it("would refuse a row that does not fit, so the check above means something", () => {
+    expect(slotsRowFits(20, NARROWEST_PX)).toBe(false);
+    expect(slotsRowFits(9, 200)).toBe(false);
+    expect(slotsRowPx(9)).toBeGreaterThan(slotsRowPx(4));
+    expect(slotsRowPx(0)).toBe(0);
+    expect(SHELL_PADDING_PX).toBeGreaterThan(0);
   });
 });

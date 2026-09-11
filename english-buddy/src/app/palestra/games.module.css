@@ -9,6 +9,7 @@
    ============================================================ */
 
 .root {
+  max-width:100%;
   /* Light. The ground is warm pearl so the glass has something to refract. */
   --g-ink:#0d201a;
   --g-dim:#5d7168;
@@ -148,13 +149,13 @@
 .footnote { margin:0; padding:0 6px; color:var(--g-dim); font-size:.8125rem; line-height:1.6; }
 
 /* ---------- the game ---------- */
-.game { display:grid; gap:14px; }
+.game { display:grid; gap:14px; max-width:100%; min-width:0; }
 
 .hud { composes:pane; display:grid; grid-template-columns:repeat(3,1fr); border-radius:22px; padding:12px 6px; }
-.hudCell { display:grid; gap:2px; text-align:center; position:relative; }
+.hudCell { display:grid; gap:2px; text-align:center; position:relative; min-width:0; padding:0 4px; }
 .hudCell + .hudCell::before { content:""; position:absolute; left:0; top:14%; bottom:14%; width:1px; background:rgb(var(--g-stroke) / .22); }
-.hudCell strong { font-size:1.4rem; font-variant-numeric:tabular-nums; letter-spacing:-.035em; line-height:1.1; }
-.hudCell span { font-size:.625rem; letter-spacing:.12em; text-transform:uppercase; color:var(--g-dim); font-weight:650; }
+.hudCell strong { font-size:clamp(1.05rem, 4.6vw, 1.4rem); font-variant-numeric:tabular-nums; letter-spacing:-.035em; line-height:1.1; }
+.hudCell span { font-size:.625rem; letter-spacing:.08em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; color:var(--g-dim); font-weight:650; }
 .low strong { color:var(--g-warm); }
 
 .clock { height:7px; border-radius:999px; overflow:hidden; background:rgb(var(--g-stroke) / .26); box-shadow:inset 0 1px 2px rgb(var(--g-edge) / .16); }
