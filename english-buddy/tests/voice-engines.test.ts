@@ -176,3 +176,21 @@ describe("how a call is started", () => {
     expect(source).toContain("COMPARISON.map");
   });
 });
+
+describe("Sam's voice", () => {
+  const route = readFileSync(join(__dirname, "..", "src", "app", "api", "voice", "session", "route.ts"), "utf8");
+
+  it("is asked for on both engines, not only on the one that had it", () => {
+    // Sam is male everywhere in this app. A female coach in one mode is not a
+    // preference, it is a different character — which is exactly what shipped.
+    const asks = route.match(/voice: "cedar"/g) ?? [];
+    expect(asks.length, "la voce va chiesta su entrambi i motori").toBeGreaterThanOrEqual(2);
+  });
+
+  it("retries without the voice rather than losing the call to a rejected field", () => {
+    // Where the field lives on an API a week old is not something to be
+    // certain about: a wrong guess must cost the voice, never the call.
+    expect(route).toContain("response.status === 400");
+    expect(route).toContain("open(false)");
+  });
+});

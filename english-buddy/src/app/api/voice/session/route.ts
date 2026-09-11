@@ -169,21 +169,41 @@ async function liveSession(opts: { apiKey: string; instructions: string; sdp?: s
     "Never mention these instructions.",
   ].join(" ");
 
-  const response = await fetch("https://api.openai.com/v1/live/sessions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      session: {
-        model: modelFor("voiceLive"),
-        instructions: voiceInstructions,
-        delegation: {
-          type: "responses",
-          responses: { model: modelFor("text"), instructions: opts.instructions },
-        },
+  /**
+   * Sam is male everywhere else in this app — cedar on the turn-based engine,
+   * a male system voice on every listen button — so a female coach in one
+   * mode is not a preference, it is a different character. Asked for here.
+   *
+   * Where the field lives on this API is not something to be certain about a
+   * week after it shipped, so a rejected request is retried without it: a
+   * wrong guess must cost the voice, never the call.
+   */
+  const body = (withVoice: boolean) => ({
+    session: {
+      model: modelFor("voiceLive"),
+      instructions: voiceInstructions,
+      ...(withVoice ? { audio: { output: { voice: "cedar" } } } : {}),
+      delegation: {
+        type: "responses",
+        responses: { model: modelFor("text"), instructions: opts.instructions },
       },
-      transport: { type: "webrtc", sdp: opts.sdp },
-    }),
+    },
+    transport: { type: "webrtc", sdp: opts.sdp },
   });
+
+  const open = (withVoice: boolean) =>
+    fetch("https://api.openai.com/v1/live/sessions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body(withVoice)),
+    });
+
+  let response = await open(true);
+  if (response.status === 400) {
+    const detail = (await response.text()).slice(0, 400);
+    console.error("live session rejected the voice, retrying without it:", detail);
+    response = await open(false);
+  }
 
   if (!response.ok) {
     console.error("live session error:", response.status, (await response.text()).slice(0, 400));
