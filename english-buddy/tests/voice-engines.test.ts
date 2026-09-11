@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   COMPARISON,
@@ -139,5 +141,38 @@ describe("the start of a call", () => {
     expect(INITIAL.phase).toBe("waiting");
     // And a tick on an untouched call must not invent a transition.
     expect(onTick(INITIAL, 10_000)).toEqual(INITIAL);
+  });
+});
+
+describe("how a call is started", () => {
+  it("offers one button per engine, each naming its own mode", () => {
+    const source = readFileSync(join(__dirname, "..", "src", "app", "voice", "EnginePicker.tsx"), "utf8");
+    // One button per engine, built from the catalogue rather than written out,
+    // so a third engine could never be added and quietly not offered.
+    expect(source).toContain("VOICE_ENGINES.map");
+    expect(source).toContain("Inizia a parlare");
+    // The colour carries which is which: green familiar, blue new.
+    expect(source).toContain("styles.classic");
+    expect(source).toContain("styles.advanced");
+  });
+
+  it("colours both buttons in both themes, never only in one", () => {
+    // A colour defined only inside a dark block leaves the light theme with
+    // nothing — the fault that made half the gym unreadable.
+    const css = readFileSync(join(__dirname, "..", "src", "app", "voice", "engine.module.css"), "utf8");
+    const cut = css.indexOf("@media (prefers-color-scheme: dark)");
+    const light = css.slice(0, cut);
+    for (const rule of [".classic", ".advanced", ".headClassic", ".headAdvanced"]) {
+      expect(light, `${rule} non ha un colore chiaro`).toContain(rule);
+    }
+    // And dark is declared for both of the states the app can be in.
+    expect(css).toContain(':global(html):not([data-theme="light"])');
+    expect(css).toContain(':global(html)[data-theme="dark"]');
+  });
+
+  it("still explains the difference, without making it a step", () => {
+    const source = readFileSync(join(__dirname, "..", "src", "app", "voice", "EnginePicker.tsx"), "utf8");
+    expect(source).toContain("Qual è la differenza?");
+    expect(source).toContain("COMPARISON.map");
   });
 });

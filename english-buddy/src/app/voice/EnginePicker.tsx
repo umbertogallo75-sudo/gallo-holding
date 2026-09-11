@@ -1,84 +1,79 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { track } from "@/lib/track-client";
-import {
-  COMPARISON,
-  DEFAULT_ENGINE,
-  ENGINE_CARDS,
-  ENGINE_KEY,
-  isVoiceEngine,
-  VOICE_ENGINES,
-  type VoiceEngine,
-} from "@/lib/voice/engines";
+import { COMPARISON, ENGINE_CARDS, ENGINE_KEY, VOICE_ENGINES, type VoiceEngine } from "@/lib/voice/engines";
 import styles from "./engine.module.css";
 
 /**
- * Which conversation engine to talk to, chosen by the person who has to talk.
+ * How a call starts: two buttons, one per engine.
  *
- * Whether a conversation feels natural is not measurable from a server, so the
- * new full-duplex engine is offered rather than imposed: the difference is
- * laid out, including the part that is a drawback, and the classic engine
- * stays selected until somebody decides otherwise.
+ * It used to be a setting you opened, chose in, closed, and only then pressed
+ * start — three taps to do one thing, and a choice made in the abstract before
+ * you knew what either option sounded like. Two buttons put the choice where
+ * the decision actually is, and make going back after a bad call one tap
+ * rather than a hunt through a panel.
+ *
+ * The colours are not decoration: the same green as everywhere else means the
+ * familiar one, and the blue marks the one that is new.
  */
-const listeners = new Set<() => void>();
-let cached: VoiceEngine | null = null;
-
-function snapshot(): VoiceEngine {
-  if (cached === null) {
-    try {
-      const saved = window.localStorage.getItem(ENGINE_KEY);
-      cached = isVoiceEngine(saved) ? saved : DEFAULT_ENGINE;
-    } catch {
-      cached = DEFAULT_ENGINE;
-    }
-  }
-  return cached;
-}
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-function choose(engine: VoiceEngine): void {
-  cached = engine;
-  try {
-    window.localStorage.setItem(ENGINE_KEY, engine);
-  } catch {
-    /* private browsing: the choice holds for this visit */
-  }
-  for (const listener of listeners) listener();
-}
-
-export function EnginePicker() {
-  const engine = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_ENGINE);
+export function EngineStart({
+  onStart,
+  again,
+}: {
+  onStart: (engine: VoiceEngine) => void;
+  /** After a call: the label changes, the choice does not. */
+  again?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+
+  function begin(engine: VoiceEngine) {
+    try {
+      window.localStorage.setItem(ENGINE_KEY, engine);
+    } catch {
+      /* private browsing: only this call remembers */
+    }
+    track("voice_engine_chosen", { where: engine });
+    onStart(engine);
+  }
 
   return (
     <div className={styles.root}>
-      <button
-        type="button"
-        className={styles.summary}
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <span>Modalità di dialogo: <strong>{ENGINE_CARDS[engine].name}</strong></span>
-        <span className={styles.chev} aria-hidden>{open ? "▲" : "▼"}</span>
+      <div className={styles.buttons}>
+        {VOICE_ENGINES.map((engine) => {
+          const card = ENGINE_CARDS[engine];
+          return (
+            <button
+              key={engine}
+              type="button"
+              className={`${styles.start} ${engine === "live" ? styles.advanced : styles.classic}`}
+              onClick={() => begin(engine)}
+            >
+              <span className={styles.startTop}>🎙️ {again ? "Parla ancora" : "Inizia a parlare"}</span>
+              <span className={styles.startMode}>modalità {card.name.toLowerCase()}</span>
+              <span className={styles.startWhy}>{card.summary}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button type="button" className={styles.more} onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        {open ? "Nascondi il confronto" : "Qual è la differenza?"}
       </button>
 
       {open ? (
         <div className={styles.panel}>
           <p className={styles.intro}>
-            Sam può conversare in due modi. Il secondo è appena uscito: ascolta mentre parla, come al telefono.
-            Provalo e tieni quello che ti trovi meglio — si cambia quando vuoi, anche fra una chiamata e l&rsquo;altra.
+            Sam può conversare in due modi. Quella avanzata è appena uscita: ascolta mentre parla, come al telefono.
+            Provala e tieni quella con cui ti trovi meglio — si cambia a ogni chiamata, senza impostazioni.
           </p>
-
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th scope="col"><span className="visually-hidden">Caratteristica</span></th>
-                  <th scope="col">{ENGINE_CARDS.realtime.name}</th>
-                  <th scope="col">{ENGINE_CARDS.live.name}</th>
+                  <th scope="col" className={styles.headClassic}>{ENGINE_CARDS.realtime.name}</th>
+                  <th scope="col" className={styles.headAdvanced}>{ENGINE_CARDS.live.name}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,29 +86,6 @@ export function EnginePicker() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          <div className={styles.choices}>
-            {VOICE_ENGINES.map((key) => {
-              const card = ENGINE_CARDS[key];
-              const active = engine === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={active ? `${styles.choice} ${styles.active}` : styles.choice}
-                  aria-pressed={active}
-                  onClick={() => {
-                    choose(key);
-                    track("voice_engine_chosen", { where: key });
-                    setOpen(false);
-                  }}
-                >
-                  <span className={styles.choiceName}>{card.name}{active ? " · in uso" : ""}</span>
-                  <span className={styles.choiceWhy}>{card.summary}</span>
-                </button>
-              );
-            })}
           </div>
         </div>
       ) : null}

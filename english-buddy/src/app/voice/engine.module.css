@@ -1,26 +1,52 @@
-/* The engine choice, folded away under the start button: a person who came
-   here to talk should not have to read a table first. */
-.root { margin:14px 0 0; }
-.summary {
-  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
-  border:0; background:transparent; cursor:pointer; padding:10px; min-height:44px;
-  font-family:inherit; font-size:.875rem; color:var(--muted);
+/* Two ways to start a call. The colour carries the meaning: the app's own
+   green is the familiar engine, the blue is the new one. */
+.root { display:grid; gap:10px; margin-top:12px; }
+.buttons { display:grid; gap:10px; }
+
+.start {
+  display:grid; gap:2px; width:100%; border:0; cursor:pointer; text-align:center;
+  border-radius:16px; padding:15px 18px; min-height:58px;
+  font-family:inherit; color:#fff;
+  transition:transform .18s cubic-bezier(.22,1,.36,1), filter .18s ease;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
-.summary strong { color:var(--ink); font-weight:650; }
-.chev { font-size:.625rem; }
-.panel { display:grid; gap:14px; border:1px solid var(--line); border-radius:16px; padding:16px; text-align:left; margin-top:4px; }
-.intro { margin:0; font-size:.9375rem; line-height:1.6; color:var(--muted); }
+.start:active { transform:scale(.98); }
+.startTop { font-size:1.0625rem; font-weight:750; letter-spacing:-.01em; }
+.startMode { font-size:.8125rem; font-weight:650; opacity:.92; }
+.startWhy { font-size:.75rem; line-height:1.45; opacity:.82; margin-top:3px; }
+
+.classic { background:linear-gradient(165deg, #2f8f63, #1d6b4c); box-shadow:0 6px 18px rgb(29 107 76 / .28); }
+.advanced { background:linear-gradient(165deg, #4a86c8, #2d5f96); box-shadow:0 6px 18px rgb(45 95 150 / .28); }
+
+.more {
+  border:0; background:transparent; cursor:pointer; padding:8px; min-height:44px;
+  font-family:inherit; font-size:.8125rem; color:var(--muted); text-decoration:underline;
+  text-underline-offset:3px;
+}
+.more:hover { color:var(--ink); }
+
+.panel { display:grid; gap:12px; border:1px solid var(--line); border-radius:16px; padding:15px; text-align:left; }
+.intro { margin:0; font-size:.875rem; line-height:1.6; color:var(--muted); }
 .tableWrap { overflow-x:auto; }
 .table { width:100%; border-collapse:collapse; font-size:.8125rem; }
 .table th, .table td { padding:9px 10px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); line-height:1.45; }
-.table thead th { font-size:.6875rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
+.table thead th { font-size:.6875rem; letter-spacing:.08em; text-transform:uppercase; font-weight:700; white-space:nowrap; }
+.headClassic { color:#1d6b4c; }
+.headAdvanced { color:#2d5f96; }
 .table tbody th { font-weight:600; color:var(--muted); white-space:nowrap; }
 .table tbody tr:last-child :is(th,td) { border-bottom:0; }
-.choices { display:grid; gap:8px; }
-.choice {
-  display:grid; gap:3px; text-align:left; cursor:pointer; font-family:inherit;
-  border:1px solid var(--line); border-radius:14px; padding:13px 15px; background:var(--surface); color:inherit;
+
+/* Dark, in the three states the app has: follow the phone, or an explicit
+   choice stamped on the document element. */
+@media (prefers-color-scheme: dark) {
+  :global(html):not([data-theme="light"]) .headClassic { color:#6fd3a3; }
+  :global(html):not([data-theme="light"]) .headAdvanced { color:#8ec2f0; }
+  :global(html):not([data-theme="light"]) .classic { background:linear-gradient(165deg, #35a273, #1f7754); }
+  :global(html):not([data-theme="light"]) .advanced { background:linear-gradient(165deg, #5b97d8, #35709f); }
 }
-.active { border-color:color-mix(in srgb, var(--accent) 55%, var(--line)); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); }
-.choiceName { font-weight:650; font-size:.9375rem; }
-.choiceWhy { color:var(--muted); font-size:.8125rem; line-height:1.5; }
+:global(html)[data-theme="dark"] .headClassic { color:#6fd3a3; }
+:global(html)[data-theme="dark"] .headAdvanced { color:#8ec2f0; }
+:global(html)[data-theme="dark"] .classic { background:linear-gradient(165deg, #35a273, #1f7754); }
+:global(html)[data-theme="dark"] .advanced { background:linear-gradient(165deg, #5b97d8, #35709f); }
+
+@media (prefers-reduced-motion: reduce) { .start { transition-duration:.01ms; } }

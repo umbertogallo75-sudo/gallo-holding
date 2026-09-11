@@ -76,10 +76,13 @@ const RESUME_GRACE_MS = 45_000;
 
 import { DEFAULT_ENGINE, ENGINE_KEY, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
 import { INITIAL, onEvent, onTick, type LiveState } from "@/lib/voice/live-phase";
-import { EnginePicker } from "./EnginePicker";
+import { EngineStart } from "./EnginePicker";
 
-/** The engine this device last chose. Absent means the one with the mileage. */
-function chosenEngine(): VoiceEngine {
+/**
+ * The engine this device used last. Only the resume-after-the-limit button
+ * needs it: everywhere else the choice arrives with the tap that starts.
+ */
+function lastEngine(): VoiceEngine {
   try {
     const saved = window.localStorage.getItem(ENGINE_KEY);
     return isVoiceEngine(saved) ? saved : DEFAULT_ENGINE;
@@ -331,13 +334,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (draftRef.current.coach) { push("coach", draftRef.current.coach); draftRef.current.coach = ""; }
   }
 
-  async function start() {
+  async function start(engine: VoiceEngine = lastEngine()) {
     setStatus("connecting"); statusRef.current = "connecting";
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
     followRef.current = true; setDetached(false);
-    const engine = chosenEngine();
     engineRef.current = engine;
     liveRef.current = INITIAL;
     draftRef.current = { you: "", coach: "" };
@@ -505,17 +507,14 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           {status === "ended" && reachedLimit ? (
             <>
               <a className="primary full voiceHandoff" href={HANDOFF_HREF}>✍️ Continuiamo a scrivere</a>
-              <button className="secondary full" style={{ marginTop: 10 }} onClick={start}>🎙️ Riprendi a voce</button>
+              <button className="secondary full" style={{ marginTop: 10 }} onClick={() => start()}>🎙️ Riprendi a voce</button>
             </>
           ) : (
             <>
               <p className="composerNote" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
-              <button className="primary full" style={{ marginTop: 10, minHeight: 58, fontSize: 18 }} onClick={start}>
-                🎙️ {status === "ended" ? "Parla ancora" : "Inizia a parlare"}
-              </button>
+              <EngineStart onStart={start} again={status === "ended"} />
             </>
           )}
-          <EnginePicker />
         </section>
       ) : null}
 
