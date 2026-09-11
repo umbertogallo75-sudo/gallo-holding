@@ -76,7 +76,7 @@ const RESUME_GRACE_MS = 45_000;
 
 import { DEFAULT_ENGINE, ENGINE_KEY, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
 import { INITIAL, onEvent, onTick, type LiveState } from "@/lib/voice/live-phase";
-import { levelFromStats, smoothLevel } from "@/lib/voice/mic-level";
+import { isAudible, levelsFromStats, smoothLevel } from "@/lib/voice/mic-level";
 import { EngineStart } from "./EnginePicker";
 
 /**
@@ -267,8 +267,23 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       void pc
         .getStats()
         .then((report) => {
-          levelRef.current = smoothLevel(levelRef.current, levelFromStats(report.values()));
+          const levels = levelsFromStats(report.values());
+          levelRef.current = smoothLevel(levelRef.current, levels.mic);
           orbRef.current?.style.setProperty("--level", levelRef.current.toFixed(3));
+
+          // The full-duplex engine announces no turn boundaries, and on this
+          // transport the data channel may deliver nothing at all — so who is
+          // talking is decided by listening to both directions rather than by
+          // waiting for an event that may never come.
+          if (engineRef.current !== "live") return;
+          const now = Date.now();
+          if (isAudible(levels.remote)) markPhase("session.output_audio.delta");
+          else if (isAudible(levels.mic)) markPhase("session.input_transcript.delta");
+          else {
+            const next = onTick(liveRef.current, now);
+            if (next.phase !== liveRef.current.phase) setPhase(next.phase);
+            liveRef.current = next;
+          }
         })
         .catch(() => undefined);
     }, 200);
@@ -427,6 +442,18 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
 
       const channel = pc.createDataChannel("oai-events");
       channelRef.current = channel;
+      channel.onopen = () => {
+        // The turn-based engine greets on its own once the session is up. The
+        // full-duplex one waits to be spoken to, which left Sam silent until
+        // the learner said something first — an empty room where the coach
+        // should have said hello. Asking for the opening is what starts it.
+        if (engineRef.current !== "live") return;
+        try {
+          channel.send(JSON.stringify({ type: "response.create" }));
+        } catch {
+          // The opening is worth trying and never worth failing the call for.
+        }
+      };
       channel.onmessage = (message) => {
         try {
           const event = JSON.parse(message.data as string) as { type?: string; transcript?: string; delta?: string };

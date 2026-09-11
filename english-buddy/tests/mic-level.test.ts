@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { FLOOR, GAIN, levelFromStats, SMOOTHING, smoothLevel } from "@/lib/voice/mic-level";
+import {
+  FLOOR,
+  GAIN,
+  isAudible,
+  levelFromStats,
+  levelsFromStats,
+  SMOOTHING,
+  smoothLevel,
+  SPEAKING_AT,
+} from "@/lib/voice/mic-level";
 
 describe("reading the microphone level", () => {
   it("prefers the current place browsers put it", () => {
@@ -56,5 +65,47 @@ describe("turning readings into a ring", () => {
     expect(level).toBeLessThanOrEqual(1);
     expect(SMOOTHING).toBeGreaterThan(0);
     expect(SMOOTHING).toBeLessThan(1);
+  });
+});
+
+describe("hearing both sides of the call", () => {
+  it("tells the microphone apart from what is arriving", () => {
+    const levels = levelsFromStats([
+      { type: "media-source", kind: "audio", audioLevel: 0.2 },
+      { type: "inbound-rtp", kind: "audio", audioLevel: 0.6 },
+    ]);
+    expect(levels.mic).toBe(0.2);
+    expect(levels.remote).toBe(0.6);
+  });
+
+  it("reads the older shape, where direction is a flag", () => {
+    const levels = levelsFromStats([
+      { type: "track", audioLevel: 0.15 },
+      { type: "track", audioLevel: 0.5, remoteSource: true },
+    ]);
+    expect(levels.mic).toBe(0.15);
+    expect(levels.remote).toBe(0.5);
+  });
+
+  it("says nothing rather than guessing when the report has neither", () => {
+    expect(levelsFromStats([{ type: "candidate-pair" }])).toEqual({ mic: null, remote: null });
+  });
+
+  it("knows a room from a person", () => {
+    // The screen has to decide whose turn it is from this alone: the
+    // full-duplex engine announces no turn boundaries, and on this transport
+    // the data channel may deliver nothing at all.
+    expect(isAudible(null)).toBe(false);
+    expect(isAudible(0)).toBe(false);
+    expect(isAudible(SPEAKING_AT - 0.001)).toBe(false);
+    expect(isAudible(SPEAKING_AT)).toBe(true);
+    expect(isAudible(0.9)).toBe(true);
+  });
+
+  it("calls somebody audible before the ring has finished growing", () => {
+    // Otherwise the label would lag a beat behind the sound, which on a call
+    // reads as the app being slow rather than careful.
+    expect(SPEAKING_AT).toBeGreaterThanOrEqual(FLOOR);
+    expect(SPEAKING_AT).toBeLessThan(0.2);
   });
 });
