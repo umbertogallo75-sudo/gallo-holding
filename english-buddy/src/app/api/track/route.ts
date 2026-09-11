@@ -29,6 +29,7 @@ const bodySchema = z.object({
     "onboarding_skipped",
     "plan_shown",
     "first_session_started",
+    "voice_engine_chosen",
     "game_opened",
     "game_started",
     "game_finished",

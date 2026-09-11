@@ -20,8 +20,14 @@ export const MODELS = {
   voice: {
     env: "VOICE_MODEL",
     best: "gpt-realtime-2.1",
-    label: "Voce in tempo reale",
+    label: "Voce in tempo reale — modalità classica",
     why: "Il modello pieno, non il mini: su un'app di pronuncia la voce non è dove si risparmia.",
+  },
+  voiceLive: {
+    env: "VOICE_LIVE_MODEL",
+    best: "gpt-live-1",
+    label: "Voce full-duplex — modalità avanzata, a scelta dell'utente",
+    why: "Ascolta mentre parla: scioglie il compromesso fra interrompere e rispondere tardi. Nuovo, quindi offerto e non imposto.",
   },
   transcribe: {
     env: "VOICE_TRANSCRIBE_MODEL",
@@ -48,6 +54,7 @@ export type ModelSlot = keyof typeof MODELS;
 const OVERRIDE: Record<ModelSlot, () => string | undefined> = {
   text: () => process.env.OPENAI_MODEL,
   voice: () => process.env.VOICE_MODEL,
+  voiceLive: () => process.env.VOICE_LIVE_MODEL,
   transcribe: () => process.env.VOICE_TRANSCRIBE_MODEL,
   speech: () => process.env.OPENAI_TTS_MODEL,
 };

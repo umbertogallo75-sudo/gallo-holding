@@ -74,6 +74,20 @@ const RESUME_GRACE_MS = 45_000;
  * somebody can test a fix on a real phone rather than reason about it.
  */
 
+import { DEFAULT_ENGINE, ENGINE_KEY, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
+import { INITIAL, onEvent, onTick, type LiveState } from "@/lib/voice/live-phase";
+import { EnginePicker } from "./EnginePicker";
+
+/** The engine this device last chose. Absent means the one with the mileage. */
+function chosenEngine(): VoiceEngine {
+  try {
+    const saved = window.localStorage.getItem(ENGINE_KEY);
+    return isVoiceEngine(saved) ? saved : DEFAULT_ENGINE;
+  } catch {
+    return DEFAULT_ENGINE;
+  }
+}
+
 export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -97,9 +111,18 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const channelRef = useRef<RTCDataChannel | null>(null);
   const [phase, setPhase] = useState<Phase>("waiting");
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Which engine this call is running on, and its inferred state if Live. */
+  const engineRef = useRef<VoiceEngine>(DEFAULT_ENGINE);
+  const liveRef = useRef<LiveState>(INITIAL);
+  const liveTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Transcript deltas, which is all the Live engine sends: no completed event. */
+  const draftRef = useRef<{ you: string; coach: string }>({ you: "", coach: "" });
   const awaySinceRef = useRef<number | null>(null);
   const statusRef = useRef<Status>("idle");
 
+  // Teardown on unmount, and only on unmount: listing cleanup as a dependency
+  // would re-run it on every render, which would hang up the call.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => { cleanup(false); }, []);
 
   // A spoken conversation is the one screen nobody touches, so the phone locks
@@ -194,6 +217,13 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
    * unrecognised event should leave the label alone, never blank it.
    */
   function markPhase(type: string) {
+    // The full-duplex engine announces no turn boundaries at all, so the label
+    // is inferred from the two streams instead of read off an event.
+    if (engineRef.current === "live") {
+      liveRef.current = onEvent(liveRef.current, type, Date.now());
+      setPhase(liveRef.current.phase);
+      return;
+    }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     if (type === "input_audio_buffer.speech_started") { setPhase("hearing"); return; }
     if (type === "input_audio_buffer.speech_stopped" || type === "response.created") {
@@ -255,6 +285,10 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   function cleanup(report: boolean) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
+    if (liveTickRef.current) { clearInterval(liveTickRef.current); liveTickRef.current = null; }
+    // Whatever the Live engine was halfway through saying belongs in the
+    // transcript: no event is coming to finish it.
+    flushDrafts();
     pcRef.current?.close(); pcRef.current = null;
     channelRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
@@ -277,16 +311,47 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     setLines(linesRef.current);
   }
 
+  /**
+   * A transcript fragment from the Live engine. Fragments accumulate until the
+   * other side starts talking or the line has been quiet long enough, because
+   * nothing ever arrives to say a sentence is finished.
+   */
+  function collect(role: "you" | "coach", delta: string) {
+    const other = role === "you" ? "coach" : "you";
+    if (draftRef.current[other]) {
+      push(other, draftRef.current[other]);
+      draftRef.current[other] = "";
+    }
+    draftRef.current[role] += delta;
+  }
+
+  /** Closes whatever is half-written, at the end of a turn or of the call. */
+  function flushDrafts() {
+    if (draftRef.current.you) { push("you", draftRef.current.you); draftRef.current.you = ""; }
+    if (draftRef.current.coach) { push("coach", draftRef.current.coach); draftRef.current.coach = ""; }
+  }
+
   async function start() {
     setStatus("connecting"); statusRef.current = "connecting";
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
     followRef.current = true; setDetached(false);
+    const engine = chosenEngine();
+    engineRef.current = engine;
+    liveRef.current = INITIAL;
+    draftRef.current = { you: "", coach: "" };
     try {
-      const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice" }) });
-      const tokenData = await tokenResponse.json();
-      if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
+      // Realtime mints a short-lived secret first and lets the browser
+      // negotiate straight with OpenAI. Live takes the offer on our server
+      // instead, so there is nothing to mint and nothing to hand out — which
+      // means the session is asked for after the offer exists, not before.
+      let tokenData: { clientSecret?: string; model?: string; error?: string } = {};
+      if (engine === "realtime") {
+        const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice", engine }) });
+        tokenData = await tokenResponse.json();
+        if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
+      }
 
       // Asked for explicitly, not left to the browser's defaults. Without echo
       // cancellation the phone's loudspeaker feeds Sam's own voice straight
@@ -325,22 +390,50 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       channelRef.current = channel;
       channel.onmessage = (message) => {
         try {
-          const event = JSON.parse(message.data as string) as { type?: string; transcript?: string };
+          const event = JSON.parse(message.data as string) as { type?: string; transcript?: string; delta?: string };
           if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) push("you", event.transcript);
           if ((event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") && event.transcript) push("coach", event.transcript);
+          // Live sends transcripts only as fragments, with no completed event
+          // and no item id — so a line is closed by a silence, not by a signal.
+          if (event.type === "session.input_transcript.delta" && event.delta) collect("you", event.delta);
+          if (event.type === "session.output_transcript.delta" && event.delta) collect("coach", event.delta);
           if (event.type) markPhase(event.type);
         } catch { /* non-JSON frame */ }
       };
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      const answerResponse = await fetch(`https://api.openai.com/v1/realtime/calls?model=${tokenData.model}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${tokenData.clientSecret}`, "Content-Type": "application/sdp" },
-        body: offer.sdp,
-      });
-      if (!answerResponse.ok) throw new Error("Voice connection failed");
-      await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
+
+      if (engine === "live") {
+        const liveResponse = await fetch("/api/voice/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: mode || "voice", engine, sdp: offer.sdp }),
+        });
+        const liveData = (await liveResponse.json()) as { sdp?: string; error?: string };
+        if (!liveResponse.ok || !liveData.sdp) throw new Error(liveData.error || "Voice unavailable");
+        await pc.setRemoteDescription({ type: "answer", sdp: liveData.sdp });
+        // Nothing announces the end of a turn on this engine, so the label is
+        // moved by the clock as well as by events.
+        liveTickRef.current = setInterval(() => {
+          const next = onTick(liveRef.current, Date.now());
+          if (next.phase !== liveRef.current.phase) {
+            liveRef.current = next;
+            setPhase(next.phase);
+            if (next.phase !== "speaking") flushDrafts();
+          } else {
+            liveRef.current = next;
+          }
+        }, 250);
+      } else {
+        const answerResponse = await fetch(`https://api.openai.com/v1/realtime/calls?model=${tokenData.model}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tokenData.clientSecret}`, "Content-Type": "application/sdp" },
+          body: offer.sdp,
+        });
+        if (!answerResponse.ok) throw new Error("Voice connection failed");
+        await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
+      }
 
       setStatus("live"); statusRef.current = "live";
       startClock();
@@ -422,6 +515,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
               </button>
             </>
           )}
+          <EnginePicker />
         </section>
       ) : null}
 

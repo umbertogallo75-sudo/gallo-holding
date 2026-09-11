@@ -46,6 +46,22 @@ describe("modelStatus", () => {
   });
 
   it("covers every slot the app can call", () => {
-    expect(modelStatus().map((m) => m.slot).sort()).toEqual(["speech", "text", "transcribe", "voice"]);
+    // voiceLive is the full-duplex engine, offered alongside the turn-based
+    // one rather than replacing it — so both voice slots are live at once.
+    expect(modelStatus().map((m) => m.slot).sort()).toEqual([
+      "speech",
+      "text",
+      "transcribe",
+      "voice",
+      "voiceLive",
+    ]);
+  });
+
+  it("keeps the two voice engines on different models", () => {
+    const voice = modelStatus().find((m) => m.slot === "voice");
+    const live = modelStatus().find((m) => m.slot === "voiceLive");
+    expect(voice?.inUse).not.toBe(live?.inUse);
+    // Each reads its own override, or one dashboard variable would move both.
+    expect(voice?.env).not.toBe(live?.env);
   });
 });

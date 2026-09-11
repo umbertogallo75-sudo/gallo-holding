@@ -26,6 +26,9 @@ export type FunnelEvent =
   // The games department. game_opened is the hub or a game page; game_started
   // is a game actually begun; game_finished carries score and how many of the
   // learner's own words were reviewed by playing.
+  // Which conversation engine a learner picked for the voice call: the only
+  // way to tell whether the full-duplex one is actually preferred.
+  | "voice_engine_chosen"
   | "game_opened"
   | "game_started"
   | "game_finished"
