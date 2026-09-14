@@ -20,13 +20,32 @@ import {
  */
 type Call = { sql: string; args: unknown[] };
 
-function fakeClient(rowsFor: (sql: string) => Record<string, unknown>[], missingColumn = false) {
+/**
+ * `canAlter` is the difference between the two databases this has to work on:
+ * one where adding the column succeeds (production, before anybody runs the
+ * migration) and one where it does not (a read-only replica), where the read
+ * still has to answer instead of throwing.
+ */
+function fakeClient(
+  rowsFor: (sql: string) => Record<string, unknown>[],
+  opts: { missingColumn?: boolean; canAlter?: boolean } = {}
+) {
+  const { missingColumn = false, canAlter = true } = opts;
+  let hasColumn = !missingColumn;
   const calls: Call[] = [];
   const client = {
-    execute: async (q: { sql: string; args: unknown[] }) => {
-      calls.push({ sql: q.sql, args: q.args });
-      if (missingColumn && /s\.closed_at/.test(q.sql)) throw new Error("no such column: closed_at");
-      return { rows: rowsFor(q.sql) };
+    execute: async (q: { sql: string; args: unknown[] } | string) => {
+      const sql = typeof q === "string" ? q : q.sql;
+      calls.push({ sql, args: typeof q === "string" ? [] : q.args });
+      if (/ALTER TABLE/.test(sql)) {
+        if (!canAlter) throw new Error("read-only");
+        hasColumn = true;
+        return { rows: [] };
+      }
+      if (!hasColumn && /closed_at/.test(sql) && !/NULL AS closed_at/.test(sql)) {
+        throw new Error("no such column: closed_at");
+      }
+      return { rows: rowsFor(sql) };
     },
   } as unknown as Client;
   return { client, calls };
@@ -50,12 +69,19 @@ describe("resumableSession", () => {
     expect(calls[0].sql).toContain("s.closed_at IS NULL");
   });
 
-  it("still answers on a database that has not got the column yet", async () => {
-    const { client, calls } = fakeClient(() => [session], true);
+  it("adds the missing column itself rather than waiting for the migration", async () => {
+    const { client, calls } = fakeClient(() => [session], { missingColumn: true });
     const found = await resumableSession("u1", client);
     expect(found?.id).toBe("s1");
-    expect(calls).toHaveLength(2);
-    expect(calls[1].sql).not.toContain("s.closed_at IS NULL");
+    expect(calls[1].sql).toContain("ALTER TABLE sessions ADD COLUMN closed_at");
+    expect(calls[2].sql).toContain("s.closed_at IS NULL");
+  });
+
+  it("still answers when it cannot add the column either", async () => {
+    const { client, calls } = fakeClient(() => [session], { missingColumn: true, canAlter: false });
+    const found = await resumableSession("u1", client);
+    expect(found?.id).toBe("s1");
+    expect(calls[calls.length - 1].sql).not.toContain("s.closed_at IS NULL");
   });
 
   it("offers nothing when there is nothing to come back to", async () => {
@@ -75,7 +101,7 @@ describe("recentSessions", () => {
   });
 
   it("degrades to 'nothing was closed' rather than failing", async () => {
-    const { client } = fakeClient(() => [session], true);
+    const { client } = fakeClient(() => [session], { missingColumn: true, canAlter: false });
     const list = await recentSessions("u1", 25, client);
     expect(list).toHaveLength(1);
     expect(list[0].closed).toBe(false);
@@ -102,6 +128,14 @@ describe("closeSession", () => {
       },
     } as unknown as Client;
     await expect(closeSession("u1", "s1", client)).resolves.toBeUndefined();
+  });
+
+  it("adds the column and writes the close when the migration has not run", async () => {
+    const { client, calls } = fakeClient(() => [], { missingColumn: true });
+    await closeSession("u1", "s1", client);
+    expect(calls[1].sql).toContain("ALTER TABLE sessions ADD COLUMN closed_at");
+    expect(calls[2].sql).toContain("UPDATE sessions SET closed_at");
+    expect(calls[2].args).toContain("s1");
   });
 
   it("keeps the first close when it happens twice", async () => {

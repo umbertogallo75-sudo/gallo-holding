@@ -30,14 +30,42 @@ export type SessionSummary = {
 export type Transcript = { role: string; content: string; correction: string | null; at: string }[];
 
 /**
- * closed_at arrives by migration, and this must work on a database that has
- * not had it yet — the same lazy approach the push failure counter uses. A
- * missing column means no session was ever closed, which is exactly true.
+ * closed_at arrives with migration 0028, and nothing here may wait for it.
+ *
+ * The deploy lands before anybody applies the migration, and the migration
+ * endpoint needs a secret that only the owner holds — so "it works after
+ * somebody remembers" is not a plan. Mirrors 0028 the way the other tables
+ * mirror theirs: the first query that misses the column adds it and retries,
+ * and if even that is refused the read degrades to "nothing was ever closed",
+ * which on a database without the column is exactly true.
  */
+const ADD_COLUMN = "ALTER TABLE sessions ADD COLUMN closed_at TEXT";
+let healed = false;
+
+async function heal(client: Client): Promise<boolean> {
+  if (healed) return true;
+  try {
+    await client.execute(ADD_COLUMN);
+    healed = true;
+  } catch {
+    // Already there (added by the migration or by a parallel request), or the
+    // table is not ours to alter. The retry tells the two apart.
+    healed = false;
+  }
+  return healed;
+}
+
 async function withClosedAt<T>(client: Client, run: (hasColumn: boolean) => Promise<T>): Promise<T> {
   try {
     return await run(true);
   } catch {
+    if (await heal(client)) {
+      try {
+        return await run(true);
+      } catch {
+        /* fall through to the column-less read */
+      }
+    }
     return run(false);
   }
 }
@@ -118,8 +146,16 @@ export async function closeSession(userId: string, sessionId: string, client: Cl
       args: [new Date().toISOString(), sessionId, userId],
     });
   } catch {
-    // The column is not there yet. The session simply stays resumable, which
-    // is a smaller problem than failing the request that ends it.
+    // The column is not there yet: add it and write the close properly. If
+    // that fails too the session simply stays resumable, which is a smaller
+    // problem than failing the request that ends it.
+    try {
+      await client.execute(ADD_COLUMN);
+      await client.execute({
+        sql: "UPDATE sessions SET closed_at = COALESCE(closed_at, ?) WHERE id = ? AND user_id = ?",
+        args: [new Date().toISOString(), sessionId, userId],
+      });
+    } catch { /* stays resumable */ }
   }
 }
 
