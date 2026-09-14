@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
+import { SessionRecap } from "@/components/SessionRecap";
+import { shouldWrapUp, type SessionFacts, type SessionScore } from "@/lib/learning/session-score";
 import { EnablePush } from "@/components/EnablePush";
 import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
@@ -121,6 +123,16 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   const [suggesting, setSuggesting] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string>();
   const [blocked, setBlocked] = useState<{ kind: "plan" | "login"; text: string }>();
+  /**
+   * A conversation you were in the middle of. Everything said was always
+   * stored; what was missing was anywhere to keep the fact that you were
+   * still in it, so a phone call meant coming back to a blank screen.
+   */
+  const [resumable, setResumable] = useState<{ id: string; exchanges: number; lastAt: string } | null>(null);
+  const [recap, setRecap] = useState<{ score: SessionScore; facts: SessionFacts } | null>(null);
+  const [closing, setClosing] = useState(false);
+  /** Offered once per session: a wrap-up is a suggestion, never a wall. */
+  const [wrapDismissed, setWrapDismissed] = useState(false);
   const started = useRef(Boolean(initialQuestion));
   const opener = useRef(initialQuestion);
   const failedRef = useRef<string>(undefined);
@@ -205,6 +217,47 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     }
   }
 
+  /** Picks the conversation back up exactly where it stopped. */
+  async function resume(id: string) {
+    setResumable(null);
+    try {
+      const r = await fetch(`/api/sessioni?id=${encodeURIComponent(id)}`);
+      const data = await r.json();
+      if (!r.ok || !Array.isArray(data.transcript)) return;
+      setMessages(
+        (data.transcript as { role: string; content: string }[]).map((line) => ({
+          role: line.role === "user" ? ("user" as const) : ("assistant" as const),
+          content: line.content,
+        }))
+      );
+      setSessionId(id);
+      started.current = true;
+      track("session_resumed", { where: mode.slice(0, 20) });
+    } catch {
+      // The conversation simply starts fresh, which is where it was anyway.
+    }
+  }
+
+  /** Ends it on purpose, and says how it went. */
+  async function finish() {
+    if (!sessionId || closing) return;
+    setClosing(true);
+    try {
+      const r = await fetch("/api/sessioni", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close", sessionId }),
+      });
+      const data = await r.json();
+      if (r.ok && data.score) setRecap({ score: data.score, facts: data.facts });
+      track("session_closed", { where: mode.slice(0, 20) });
+    } catch {
+      // Nothing to show, but the session is over as far as the person cares.
+    } finally {
+      setClosing(false);
+    }
+  }
+
   function retry() {
     const message = failedMessage;
     if (!message) return;
@@ -228,6 +281,24 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false, true); }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- opener fires exactly once per mount
   }, [mode]);
+
+  // Is there one to pick up? Asked once, and only when arriving without a
+  // question of its own — a notification that carries a question is starting
+  // something new by definition.
+  const lookedForResumable = useRef(false);
+  useEffect(() => {
+    if (lookedForResumable.current || initialQuestion) return;
+    lookedForResumable.current = true;
+    void (async () => {
+      try {
+        const r = await fetch("/api/sessioni");
+        const data = await r.json();
+        if (r.ok && data.resumable) setResumable(data.resumable);
+      } catch {
+        // No offer, no harm: the new conversation is already underway.
+      }
+    })();
+  }, [initialQuestion]);
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
@@ -247,10 +318,55 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     if (sessionOver && !endReported.current) { endReported.current = true; track("first_session_done", { where: mode.slice(0, 20) }); }
   }, [first, sessionOver, mode]);
 
+  // Long enough to have done its job. Offered, never enforced: a suggestion to
+  // stop is useful, a door that locks is not.
+  const wrapUpDue = shouldWrapUp(exchanges) && !wrapDismissed && !recap && !loading && Boolean(sessionId);
+
+  if (recap) {
+    return (
+      <SessionRecap
+        score={recap.score}
+        facts={recap.facts}
+        onNew={() => {
+          setRecap(null);
+          setMessages([]);
+          setSessionId(undefined);
+          setWrapDismissed(false);
+          started.current = false;
+          void send(openers[mode] || openers["text-5"], false, true);
+        }}
+      />
+    );
+  }
+
   return <>
     {offline && (
       <div className="offlineBar" role="status">📡 Sei offline — appena torna la rete riprendo io <span style={{ opacity: .75 }}>· You&rsquo;re offline</span></div>
     )}
+    {resumable ? (
+      <div className="card" style={{ display: "grid", gap: 8, margin: "0 0 12px" }}>
+        <strong style={{ fontSize: 15 }}>Avevi una conversazione aperta</strong>
+        <span className="muted" style={{ fontSize: 14 }}>
+          {resumable.exchanges} messaggi. Riprendi da dove eri, o comincia da capo.
+        </span>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="pill" onClick={() => void resume(resumable.id)}>↩︎ Riprendi</button>
+          <button type="button" className="pill" onClick={() => setResumable(null)}>Comincia da capo</button>
+        </div>
+      </div>
+    ) : null}
+    {wrapUpDue ? (
+      <div className="card" style={{ display: "grid", gap: 8, margin: "0 0 12px" }}>
+        <strong style={{ fontSize: 15 }}>Bella sessione — la chiudiamo qui?</strong>
+        <span className="muted" style={{ fontSize: 14 }}>
+          Hai fatto {exchanges} scambi. Chiudendo vedi il riepilogo e il punteggio; oppure andiamo avanti.
+        </span>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="pill" disabled={closing} onClick={() => void finish()}>🏁 Chiudi e vedi il riepilogo</button>
+          <button type="button" className="pill" onClick={() => setWrapDismissed(true)}>Continuiamo</button>
+        </div>
+      </div>
+    ) : null}
     <div className="chat">
       {messages.map((m,i) => <div key={i} style={{display:"contents"}}>
         <div className={`bubble ${m.role === "assistant" ? "ai" : "user"}`}>

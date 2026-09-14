@@ -28,6 +28,10 @@ export type FunnelEvent =
   // learner's own words were reviewed by playing.
   // Which conversation engine a learner picked for the voice call: the only
   // way to tell whether the full-duplex one is actually preferred.
+  // Sessions you come back to: resumed, deliberately finished, or reread.
+  | "session_resumed"
+  | "session_closed"
+  | "session_opened"
   | "voice_engine_chosen"
   | "game_opened"
   | "game_started"

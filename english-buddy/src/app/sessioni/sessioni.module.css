@@ -1,0 +1,19 @@
+.list { display:grid; gap:8px; margin-top:12px; }
+.row {
+  display:grid; grid-template-columns:1fr auto; grid-template-areas:"when go" "mode go" "meta go";
+  gap:2px 12px; align-items:center;
+  border:1px solid var(--line); border-radius:14px; background:var(--surface);
+  padding:14px 16px; text-decoration:none; color:inherit;
+}
+.row:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.when { grid-area:when; font-size:.75rem; color:var(--muted); text-transform:capitalize; }
+.mode { grid-area:mode; font-weight:650; font-size:1rem; letter-spacing:-.01em; }
+.meta { grid-area:meta; font-size:.8125rem; color:var(--muted); }
+.go { grid-area:go; color:var(--muted); font-size:1.125rem; }
+
+.transcript { display:grid; gap:10px; margin-top:14px; }
+.turn { border-radius:14px; padding:12px 14px; line-height:1.55; font-size:.9375rem; }
+.you { background:color-mix(in srgb, var(--accent) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--accent) 28%, var(--line)); }
+.coach { background:var(--surface); border:1px solid var(--line); }
+.who { display:block; font-size:.6875rem; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:4px; }
+.fix { display:block; margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); font-size:.875rem; color:var(--amber); }

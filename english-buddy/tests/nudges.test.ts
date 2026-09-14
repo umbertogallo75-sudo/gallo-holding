@@ -48,7 +48,11 @@ describe("upgrade nudge emails", () => {
     await addUser("paying-1", "pagante@azienda.it", 2);       // has a plan
     await addUser("test-acct", "qa@example.com", 2);          // internal test domain
     await addUser("no-mail", null, 2);                        // no email
-    await saveBilling({ userId: "paying-1", plan: "program", status: "active", currentPeriodEnd: new Date(NOON.getTime() + 30 * 86_400_000).toISOString() }, client);
+    // getEntitlement compares the period end against the real clock, not the
+    // NOON the rest of this test runs on, so the end date has to be far from
+    // today — dated from NOON it quietly expired and this account started
+    // receiving the nudge meant for people without a plan.
+    await saveBilling({ userId: "paying-1", plan: "program", status: "active", currentPeriodEnd: new Date(Date.now() + 365 * 86_400_000).toISOString() }, client);
 
     const first = await runUpgradeNudges(client, NOON, fakeSend);
     expect(first).toEqual({ day1: 1, day3: 0 });
