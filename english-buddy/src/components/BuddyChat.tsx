@@ -291,7 +291,9 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     lookedForResumable.current = true;
     void (async () => {
       try {
-        const r = await fetch("/api/sessioni");
+        // Written only: being offered back a conversation you had out loud,
+        // reopened as text mid-sentence, is not resuming it.
+        const r = await fetch("/api/sessioni?kind=text");
         const data = await r.json();
         if (r.ok && data.resumable) setResumable(data.resumable);
       } catch {

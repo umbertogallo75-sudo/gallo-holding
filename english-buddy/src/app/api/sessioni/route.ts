@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
-import { closeSession, recentSessions, resumableSession, sessionReport, sessionTranscript } from "@/lib/learning/sessions";
+import { closeSession, recentSessions, resumableSession, sessionReport, sessionTranscript, type SessionKind } from "@/lib/learning/sessions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +26,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ transcript, ...(report ?? {}) });
   }
 
+  // Spoken and written are one history but two offers: the chat must never be
+  // handed a conversation that happened at the microphone, and the microphone
+  // must never be handed one that happened in writing.
+  const asked = url.searchParams.get("kind");
+  const kind: SessionKind = asked === "voice" || asked === "text" ? asked : "all";
+
   const [resumable, recent] = await Promise.all([
-    resumableSession(userId).catch(() => null),
-    url.searchParams.get("all") === "1" ? recentSessions(userId).catch(() => []) : Promise.resolve([]),
+    resumableSession(userId, { kind }).catch(() => null),
+    url.searchParams.get("all") === "1" ? recentSessions(userId, { kind }).catch(() => []) : Promise.resolve([]),
   ]);
   return NextResponse.json({ resumable, recent });
 }

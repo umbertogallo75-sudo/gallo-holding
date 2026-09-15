@@ -8,6 +8,7 @@ import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
 import { modelFor } from "@/lib/ai/models";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { DEFAULT_ENGINE, isVoiceEngine } from "@/lib/voice/engines";
+import { resumeVoiceSession, type VoiceLine } from "@/lib/learning/voice-sessions";
 
 export const maxDuration = 30;
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   if (billingEnforced() && !(await getEntitlement(userId)).access) {
     return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
   }
-  const body = (await request.json().catch(() => ({}))) as { mode?: string; engine?: string; sdp?: string };
+  const body = (await request.json().catch(() => ({}))) as { mode?: string; engine?: string; sdp?: string; resume?: string };
   const diary = body?.mode === "diary";
   // Which conversation engine the learner picked. Anything unrecognised falls
   // back to the one with the mileage rather than failing the call.
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   const beginner = ["A1", "A2"].includes(level) || ["zero", "basics"].includes(String(row?.starting_level ?? ""));
   const phase = monthPhase(row?.path_started_at ? String(row.path_started_at) : row?.created_at ? String(row.created_at) : null);
 
-  const instructions = `You are Sam, the warm spoken English coach of the ExecLingo app, talking with ${row?.display_name || "an Italian professional"} (level ${level}).
+  let instructions = `You are Sam, the warm spoken English coach of the ExecLingo app, talking with ${row?.display_name || "an Italian professional"} (level ${level}).
 Their 3-month mission: functional professional English for meetings, finance, negotiation, travel. Month ${phase} focus — ${PHASE_FOCUS[phase]}
 ${row?.professional_context ? `Their background: ${String(row.professional_context)}.` : ""}
 LANGUAGE — the rule that outranks every other rule here:
@@ -75,7 +76,16 @@ Conversation rules:
       : ""
   }`;
 
-  if (engine === "live") return liveSession({ apiKey, instructions, sdp: body?.sdp });
+  // Picking up an interrupted call: the same session row, and a Sam who knows
+  // he is in the middle of something rather than meeting them for the first
+  // time. A resume that is refused simply starts a normal conversation.
+  const resumed = typeof body?.resume === "string" && body.resume.length >= 8
+    ? await resumeVoiceSession(userId, body.resume).catch(() => null)
+    : null;
+  if (resumed) instructions += pickUpBlock(resumed.recap);
+  const session = resumed ? { sessionId: resumed.id, recap: resumed.recap } : {};
+
+  if (engine === "live") return liveSession({ apiKey, instructions, sdp: body?.sdp, session });
 
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",
@@ -144,7 +154,25 @@ Conversation rules:
   const json = (await response.json()) as { value?: string };
   if (!json.value) return NextResponse.json({ error: "Voice is temporarily unavailable" }, { status: 502 });
 
-  return NextResponse.json({ engine: "realtime", clientSecret: json.value, model: modelFor("voice") });
+  return NextResponse.json({ engine: "realtime", clientSecret: json.value, model: modelFor("voice"), ...session });
+}
+
+/**
+ * What Sam is told when a conversation is being picked back up.
+ *
+ * Without it he greets them as if they had just arrived — which, to somebody
+ * who tapped "riprendi" precisely because they had not, reads as the app
+ * having forgotten the last ten minutes. The lines are given as what was
+ * said, not as an instruction to summarise them: the one thing that must not
+ * happen is Sam opening with a recap of the conversation they were both in.
+ */
+function pickUpBlock(recap: VoiceLine[]): string {
+  if (!recap.length) return "";
+  const lines = recap.map((line) => `${line.role === "you" ? "THEM" : "YOU"}: ${line.text}`).join("\n");
+  return `\n\nPICKING UP AN INTERRUPTED CONVERSATION — this is not a first meeting:
+You were already talking with them minutes ago and the call dropped (a phone call, a locked screen). Here are the last things the two of you said:
+${lines}
+Open with one short, warm line that shows you remember — no greeting as if you had just met, no summary of the transcript above — and carry straight on from where you were. If the thread is finished, ask the natural next question.`;
 }
 
 /**
@@ -164,7 +192,7 @@ Conversation rules:
  * declared here: it cannot be turned on later, and trying returns
  * immutable_field_update.
  */
-async function liveSession(opts: { apiKey: string; instructions: string; sdp?: string }) {
+async function liveSession(opts: { apiKey: string; instructions: string; sdp?: string; session?: Record<string, unknown> }) {
   if (!opts.sdp) return NextResponse.json({ error: "Missing offer" }, { status: 400 });
 
   const voiceInstructions = [
@@ -233,5 +261,5 @@ async function liveSession(opts: { apiKey: string; instructions: string; sdp?: s
     console.error("live session: no sdp in answer", raw.slice(0, 300));
     return NextResponse.json({ error: "La modalità avanzata non è disponibile in questo momento." }, { status: 502 });
   }
-  return NextResponse.json({ engine: "live", sdp: answer, model: modelFor("voiceLive") });
+  return NextResponse.json({ engine: "live", sdp: answer, model: modelFor("voiceLive"), ...(opts.session ?? {}) });
 }

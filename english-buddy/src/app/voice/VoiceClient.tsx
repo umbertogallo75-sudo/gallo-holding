@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useWakeLock } from "@/lib/use-wake-lock";
 
@@ -92,6 +93,18 @@ function lastEngine(): VoiceEngine {
   }
 }
 
+/** An id for the row this call writes into, made before the call connects. */
+function newSessionId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    // Not a secure context, or an old shell: any stable unique string will do,
+    // the server only checks that it looks like an id and is not somebody
+    // else's.
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}-${Math.random().toString(16).slice(2, 10)}`;
+  }
+}
+
 export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -131,6 +144,34 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const draftRef = useRef<{ you: string; coach: string }>({ you: "", coach: "" });
   const awaySinceRef = useRef<number | null>(null);
   const statusRef = useRef<Status>("idle");
+  /**
+   * Where this conversation is being written down.
+   *
+   * The id is made here rather than asked for, so that every flush — including
+   * the last one, which leaves on a beacon nobody can acknowledge — names the
+   * same row. A retried flush then writes nothing new instead of opening a
+   * second conversation.
+   */
+  const sessionRef = useRef<string>("");
+  /** The next line number to hand out; also what makes the writes idempotent. */
+  const seqRef = useRef(0);
+  /**
+   * Which leg of this conversation is being spoken.
+   *
+   * A call that is picked up numbers its lines from zero again, and without a
+   * name of its own the second leg's line 3 would claim the row the first
+   * leg's line 3 already has — and the write that protects against retries
+   * would quietly throw it away.
+   */
+  const legRef = useRef("a");
+  /** Said, not yet saved. */
+  const pendingRef = useRef<{ seq: number; role: "you" | "coach"; text: string }[]>([]);
+  const flushingRef = useRef(false);
+  const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** A spoken conversation left unfinished, offered back on the way in. */
+  const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number } | null>(null);
+  const [resumedFrom, setResumedFrom] = useState(0);
+  const lookedRef = useRef(false);
 
   // Teardown on unmount, and only on unmount: listing cleanup as a dependency
   // would re-run it on every render, which would hang up the call.
@@ -159,6 +200,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       if (document.hidden) {
         awaySinceRef.current = Date.now();
         pauseClock();
+        // The page may never run again: this is the last chance to keep what
+        // was said, and the reason a locked phone no longer costs a lesson.
+        flushBeacon();
         setInterrupted("paused");
         return;
       }
@@ -181,6 +225,29 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     // and never rebound: re-binding on each render would tear the listener down
     // and put it back in the middle of a call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Is there a conversation to pick back up?
+   *
+   * Asked once, on the way in, and only about spoken ones: the written chat
+   * asks the same question about its own. A call that was interrupted is the
+   * common case here, not the exception — that is what the testers were
+   * describing — so the offer belongs on the screen before the start button,
+   * not in a menu somewhere else.
+   */
+  useEffect(() => {
+    if (lookedRef.current) return;
+    lookedRef.current = true;
+    void (async () => {
+      try {
+        const response = await fetch("/api/sessioni?kind=voice");
+        const data = await response.json();
+        if (response.ok && data.resumable) setResumable(data.resumable);
+      } catch {
+        // No offer, no harm: the start button is right there.
+      }
+    })();
   }, []);
 
   /**
@@ -340,6 +407,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null; }
     if (liveTickRef.current) { clearInterval(liveTickRef.current); liveTickRef.current = null; }
+    if (flushTimerRef.current) { clearInterval(flushTimerRef.current); flushTimerRef.current = null; }
     stopMeter();
     // Whatever the Live engine was halfway through saying belongs in the
     // transcript: no event is coming to finish it.
@@ -348,9 +416,17 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     channelRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
     if (report && secondsRef.current > 3) {
+      // Whatever never made it into a flush travels with the ending, so the
+      // last thing said is not the one line missing from the transcript.
+      const left = pendingRef.current.slice(0, 40);
       const payload = JSON.stringify({
         seconds: secondsRef.current,
         transcript: linesRef.current.slice(-30).map((l) => ({ role: l.role, text: l.text.slice(0, 400) })),
+        sessionId: sessionRef.current || null,
+        mode: mode || "voice",
+        leg: legRef.current,
+        from: left[0]?.seq ?? 0,
+        pending: left.map((l) => ({ role: l.role, text: l.text.slice(0, 2000) })),
       });
       const sent = navigator.sendBeacon?.("/api/voice/end", new Blob([payload], { type: "application/json" }));
       if (!sent) {
@@ -364,6 +440,75 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (!clean) return;
     linesRef.current = [...linesRef.current.slice(-30), { role, text: clean }];
     setLines(linesRef.current);
+    pendingRef.current = [...pendingRef.current, { seq: seqRef.current, role, text: clean }];
+    seqRef.current += 1;
+    // A handful of lines is worth a request on its own: the gap between what
+    // has been said and what has been saved is the only thing an interruption
+    // can take away.
+    if (pendingRef.current.length >= 6) void flush();
+  }
+
+  /**
+   * Saves what has been said since the last time.
+   *
+   * Lines stay pending until a request comes back saying they landed — never
+   * because one was sent. A flush that is lost and repeated writes nothing
+   * twice: the line numbers travel with the lines, and the server derives its
+   * row ids from them.
+   */
+  async function flush(): Promise<void> {
+    if (flushingRef.current) return;
+    const batch = pendingRef.current.slice(0, 40);
+    if (!batch.length || !sessionRef.current) return;
+    flushingRef.current = true;
+    try {
+      const response = await fetch("/api/voice/turns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: sessionRef.current,
+          mode: mode || "voice",
+          leg: legRef.current,
+          from: batch[0].seq,
+          lines: batch.map((line) => ({ role: line.role, text: line.text.slice(0, 2000) })),
+        }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { sessionId?: string };
+        if (data.sessionId) sessionRef.current = data.sessionId;
+        pendingRef.current = pendingRef.current.slice(batch.length);
+      }
+    } catch {
+      // Offline, or a lift. They stay pending and go with the next flush.
+    } finally {
+      flushingRef.current = false;
+    }
+  }
+
+  /**
+   * The flush for the moment the page is about to stop existing.
+   *
+   * A backgrounded page may be frozen or killed before a normal request
+   * finishes, which is precisely the moment worth saving — so this leaves on
+   * a beacon. Nothing is marked as saved: a beacon reports that it left, not
+   * that it arrived, and the duplicate that a real flush may later write
+   * costs nothing.
+   */
+  function flushBeacon() {
+    const batch = pendingRef.current.slice(0, 40);
+    if (!batch.length || !sessionRef.current || !navigator.sendBeacon) return;
+    const payload = JSON.stringify({
+      sessionId: sessionRef.current,
+      mode: mode || "voice",
+      leg: legRef.current,
+      from: batch[0].seq,
+      lines: batch.map((line) => ({ role: line.role, text: line.text.slice(0, 2000) })),
+    });
+    try {
+      navigator.sendBeacon("/api/voice/turns", new Blob([payload], { type: "application/json" }));
+    } catch {
+      void flush();
+    }
   }
 
   /**
@@ -386,8 +531,25 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (draftRef.current.coach) { push("coach", draftRef.current.coach); draftRef.current.coach = ""; }
   }
 
-  async function start(engine: VoiceEngine = lastEngine()) {
+  /** Adopts the session the server answered with: the one being continued. */
+  function adopt(data: { sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] }) {
+    if (!data?.sessionId) return;
+    sessionRef.current = data.sessionId;
+    if (Array.isArray(data.recap) && data.recap.length) {
+      // What was already said, back on the screen: somebody who tapped
+      // "riprendi" is continuing a conversation, and an empty transcript is
+      // the app saying it does not remember it.
+      linesRef.current = data.recap.slice(-30);
+      setLines(linesRef.current);
+      setResumedFrom(linesRef.current.length);
+    }
+  }
+
+  async function start(engine: VoiceEngine = lastEngine(), resumeId?: string) {
     setStatus("connecting"); statusRef.current = "connecting";
+    setResumable(null); setResumedFrom(0);
+    sessionRef.current = newSessionId(); seqRef.current = 0; pendingRef.current = []; flushingRef.current = false;
+    legRef.current = Math.random().toString(36).slice(2, 8);
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
@@ -400,11 +562,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       // negotiate straight with OpenAI. Live takes the offer on our server
       // instead, so there is nothing to mint and nothing to hand out — which
       // means the session is asked for after the offer exists, not before.
-      let tokenData: { clientSecret?: string; model?: string; error?: string } = {};
+      let tokenData: { clientSecret?: string; model?: string; error?: string; sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] } = {};
       if (engine === "realtime") {
-        const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice", engine }) });
+        const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice", engine, resume: resumeId }) });
         tokenData = await tokenResponse.json();
         if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
+        adopt(tokenData);
       }
 
       // Asked for explicitly, not left to the browser's defaults. Without echo
@@ -474,10 +637,11 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
         const liveResponse = await fetch("/api/voice/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: mode || "voice", engine, sdp: offer.sdp }),
+          body: JSON.stringify({ mode: mode || "voice", engine, sdp: offer.sdp, resume: resumeId }),
         });
-        const liveData = (await liveResponse.json()) as { sdp?: string; error?: string };
+        const liveData = (await liveResponse.json()) as { sdp?: string; error?: string; sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] };
         if (!liveResponse.ok || !liveData.sdp) throw new Error(liveData.error || "Voice unavailable");
+        adopt(liveData);
         await pc.setRemoteDescription({ type: "answer", sdp: liveData.sdp });
         // Nothing announces the end of a turn on this engine, so the label is
         // moved by the clock as well as by events.
@@ -504,6 +668,10 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       setStatus("live"); statusRef.current = "live";
       startClock();
       startMeter(pc);
+      // Saving on a rhythm as well as on a count: a slow, thoughtful
+      // conversation produces few lines, and those are exactly the ones worth
+      // keeping.
+      if (!flushTimerRef.current) flushTimerRef.current = setInterval(() => { void flush(); }, 8000);
       // The chat stops introducing the microphone once it has been used for
       // real: the invitation is for people who have never seen this screen.
       try { localStorage.setItem("execlingo-voice-known", "1"); } catch { /* private browsing */ }
@@ -569,15 +737,37 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
             </>
           )}
           {status === "error" ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
+          {resumable && status !== "ended" ? (
+            <div className="voiceResume">
+              <p className="voiceResumeText">
+                🎙️ Avevi una conversazione a voce lasciata a metà — {resumable.exchanges}{" "}
+                {resumable.exchanges === 1 ? "battuta" : "battute"}. Sam se la ricorda.
+              </p>
+              <button
+                type="button"
+                className="primary full"
+                data-track="session_resumed"
+                onClick={() => { void start(lastEngine(), resumable.id); }}
+              >
+                ↩︎ Riprendi da dove eravate
+              </button>
+            </div>
+          ) : null}
           {status === "ended" && reachedLimit ? (
             <>
               <a className="primary full voiceHandoff" href={HANDOFF_HREF}>✍️ Continuiamo a scrivere</a>
               <button className="secondary full" style={{ marginTop: 10 }} onClick={() => start()}>🎙️ Riprendi a voce</button>
+              <p className="voiceHistoryLink">
+                <Link href="/sessioni?tipo=voce" data-track="session_opened">🎧 Le tue conversazioni a voce</Link>
+              </p>
             </>
           ) : (
             <>
               <p className="composerNote" style={{ marginTop: 10 }}>🎧 Prima di iniziare: alza il volume o metti le cuffie — Sam ti parlerà a voce.</p>
               <EngineStart onStart={start} again={status === "ended"} />
+              <p className="voiceHistoryLink">
+                <Link href="/sessioni?tipo=voce" data-track="session_opened">🎧 Le tue conversazioni a voce</Link>
+              </p>
             </>
           )}
         </section>
@@ -623,7 +813,7 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
               <div className="kicker">Trascrizione dal vivo</div>
               <div className="voiceLog" ref={logRef} onScroll={onLogScroll}>
                 {lines.map((l, i) => (
-                  <p key={i} className="voiceLine">
+                  <p key={i} className={i === resumedFrom - 1 && resumedFrom > 0 ? "voiceLine voiceLineResumed" : "voiceLine"}>
                     <strong style={{ color: l.role === "coach" ? "var(--brandText)" : "inherit" }}>{l.role === "coach" ? "Coach: " : "You: "}</strong>{l.text}
                   </p>
                 ))}

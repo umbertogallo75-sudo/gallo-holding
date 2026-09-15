@@ -221,6 +221,18 @@ export default async function HomePage() {
       </div>
     </Link>
 
+    {/* The archive. It sits with the other doors rather than inside the chat
+        because it belongs to both halves of the app: the conversations you
+        typed and the ones you had out loud are one history, and the only
+        place that is true of is here. */}
+    <Link href="/sessioni" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="session_opened" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 14%, var(--surface))" }}>🗂️</span>
+      <div>
+        <div className="modeTitle">Le tue sessioni</div>
+        <div className="modeMeta">Riprendi quella lasciata a metà, o rileggi le conversazioni — scritte e a voce</div>
+      </div>
+    </Link>
+
     <Link href="/guida" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="guide_open" data-where="home">
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>▶︎</span>
       <div>

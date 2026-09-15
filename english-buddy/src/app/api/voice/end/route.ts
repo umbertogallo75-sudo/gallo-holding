@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureProfile, recordDailyMetric, saveExpression, saveMistake } from "@/lib/learning/service";
+import { appendVoiceLines, endVoiceSession, ensureVoiceSession } from "@/lib/learning/voice-sessions";
 import { randomUUID } from "node:crypto";
 import { modelFor } from "@/lib/ai/models";
 
@@ -14,6 +15,16 @@ const bodySchema = z.object({
     .array(z.object({ role: z.enum(["you", "coach"]), text: z.string().max(400) }))
     .max(40)
     .optional(),
+  /** The session the lines were being saved into while the call was running. */
+  sessionId: z.string().min(8).max(64).nullable().optional(),
+  /** Whatever had not been flushed yet, and where it starts. */
+  pending: z
+    .array(z.object({ role: z.enum(["you", "coach"]), text: z.string().min(1).max(2000) }))
+    .max(40)
+    .optional(),
+  from: z.number().int().min(0).max(10_000).optional(),
+  leg: z.string().max(16).optional(),
+  mode: z.string().max(24).optional(),
 });
 
 /**
@@ -29,14 +40,34 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  const { seconds, transcript } = parsed.data;
+  const { seconds, transcript, sessionId, pending, from, leg, mode } = parsed.data;
   const minutes = Math.max(1, Math.round(seconds / 60));
   await ensureProfile(userId);
   const now = new Date();
-  await db().execute({
-    sql: "INSERT INTO sessions (id, user_id, mode, started_at, ended_at) VALUES (?, ?, 'voice', ?, ?)",
-    args: [randomUUID(), userId, new Date(now.getTime() - seconds * 1000).toISOString(), now.toISOString()],
-  });
+
+  // The call was writing into a row as it went: close that one. Whatever had
+  // not been flushed when it ended goes in first, so the last thing said is
+  // not the one thing missing from the transcript.
+  if (sessionId) {
+    if (pending?.length) await appendVoiceLines(userId, sessionId, leg ?? "a", from ?? 0, pending).catch(() => 0);
+    await endVoiceSession(userId, sessionId);
+  } else if (pending?.length) {
+    // Nothing was ever flushed — a short call, or a network that only came
+    // back at the end. The row is created now and the lines are still kept.
+    const id = await ensureVoiceSession(userId, mode ?? "voice", null).catch(() => null);
+    if (id) {
+      await appendVoiceLines(userId, id, leg ?? "a", from ?? 0, pending).catch(() => 0);
+      await endVoiceSession(userId, id);
+    }
+  } else {
+    // A call with no transcript at all — the transcriber was unavailable, or
+    // nobody spoke. The minutes were still practised, so the row is still
+    // written, exactly as it was before any of this existed.
+    await db().execute({
+      sql: "INSERT INTO sessions (id, user_id, mode, started_at, ended_at) VALUES (?, ?, ?, ?, ?)",
+      args: [randomUUID(), userId, mode === "diary" ? "diary" : "voice", new Date(now.getTime() - seconds * 1000).toISOString(), now.toISOString()],
+    });
+  }
   await recordDailyMetric(userId, { minutes, interactions: 1 });
 
   let remembered = 0;

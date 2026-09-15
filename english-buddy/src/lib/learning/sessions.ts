@@ -18,6 +18,29 @@ export const RESUMABLE_HOURS = 36;
 /** Below this it was a false start, not something worth offering back. */
 const MIN_MESSAGES = 2;
 
+/**
+ * Spoken or written, and the list that is both.
+ *
+ * Without this the chat would offer to resume a conversation that happened at
+ * the microphone, and reopen it as text with Sam mid-sentence about something
+ * the learner said out loud. Two media, one history: shown together, resumed
+ * apart.
+ */
+export type SessionKind = "text" | "voice" | "all";
+/** The modes that happened at the microphone. */
+export const VOICE_MODES = ["voice", "diary"] as const;
+const VOICE_LIST = VOICE_MODES.map((mode) => `'${mode}'`).join(", ");
+
+function kindClause(kind: SessionKind): string {
+  if (kind === "voice") return `AND s.mode IN (${VOICE_LIST})`;
+  if (kind === "text") return `AND s.mode NOT IN (${VOICE_LIST})`;
+  return "";
+}
+
+export function isVoiceMode(mode: string): boolean {
+  return (VOICE_MODES as readonly string[]).includes(mode);
+}
+
 export type SessionSummary = {
   id: string;
   mode: string;
@@ -25,6 +48,7 @@ export type SessionSummary = {
   lastAt: string;
   exchanges: number;
   closed: boolean;
+  voice: boolean;
 };
 
 export type Transcript = { role: string; content: string; correction: string | null; at: string }[];
@@ -70,15 +94,33 @@ async function withClosedAt<T>(client: Client, run: (hasColumn: boolean) => Prom
   }
 }
 
+function summaryOf(row: Record<string, unknown>, closed: boolean): SessionSummary {
+  const mode = String(row.mode);
+  return {
+    id: String(row.id),
+    mode,
+    startedAt: String(row.started_at),
+    lastAt: String(row.last_at),
+    exchanges: Number(row.n ?? 0),
+    closed,
+    voice: isVoiceMode(mode),
+  };
+}
+
 /** The one to offer back, if there is one. */
-export async function resumableSession(userId: string, client: Client = db()): Promise<SessionSummary | null> {
+export async function resumableSession(
+  userId: string,
+  opts: { kind?: SessionKind } = {},
+  client: Client = db()
+): Promise<SessionSummary | null> {
   const since = new Date(Date.now() - RESUMABLE_HOURS * 3_600_000).toISOString();
+  const kind = kindClause(opts.kind ?? "all");
   return withClosedAt(client, async (hasColumn) => {
     const result = await client.execute({
       sql: `SELECT s.id, s.mode, s.started_at, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"},
                    MAX(m.created_at) AS last_at, COUNT(m.id) AS n
             FROM sessions s JOIN messages m ON m.session_id = s.id
-            WHERE s.user_id = ? AND s.started_at >= ? ${hasColumn ? "AND s.closed_at IS NULL" : ""}
+            WHERE s.user_id = ? AND s.started_at >= ? ${kind} ${hasColumn ? "AND s.closed_at IS NULL" : ""}
             GROUP BY s.id
             HAVING n >= ?
             ORDER BY last_at DESC
@@ -86,41 +128,41 @@ export async function resumableSession(userId: string, client: Client = db()): P
       args: [userId, since, MIN_MESSAGES],
     });
     const row = result.rows[0];
-    if (!row) return null;
-    return {
-      id: String(row.id),
-      mode: String(row.mode),
-      startedAt: String(row.started_at),
-      lastAt: String(row.last_at),
-      exchanges: Number(row.n ?? 0),
-      closed: false,
-    };
+    return row ? summaryOf(row as Record<string, unknown>, false) : null;
   });
 }
 
 /** The ones to look back at. */
-export async function recentSessions(userId: string, limit = 25, client: Client = db()): Promise<SessionSummary[]> {
+export async function recentSessions(
+  userId: string,
+  opts: { limit?: number; kind?: SessionKind } = {},
+  client: Client = db()
+): Promise<SessionSummary[]> {
+  const limit = Math.min(Math.max(1, Math.round(opts.limit ?? 25)), 100);
+  const kind = kindClause(opts.kind ?? "all");
   return withClosedAt(client, async (hasColumn) => {
     const result = await client.execute({
       sql: `SELECT s.id, s.mode, s.started_at, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"},
                    MAX(m.created_at) AS last_at, COUNT(m.id) AS n
             FROM sessions s JOIN messages m ON m.session_id = s.id
-            WHERE s.user_id = ?
+            WHERE s.user_id = ? ${kind}
             GROUP BY s.id
             HAVING n >= ?
             ORDER BY last_at DESC
             LIMIT ?`,
       args: [userId, MIN_MESSAGES, limit],
     });
-    return result.rows.map((row) => ({
-      id: String(row.id),
-      mode: String(row.mode),
-      startedAt: String(row.started_at),
-      lastAt: String(row.last_at),
-      exchanges: Number(row.n ?? 0),
-      closed: Boolean(row.closed_at),
-    }));
+    return result.rows.map((row) => summaryOf(row as Record<string, unknown>, Boolean(row.closed_at)));
   });
+}
+
+/** Which way this conversation happened, for a page that has only its id. */
+export async function sessionMode(userId: string, sessionId: string, client: Client = db()): Promise<string | null> {
+  const result = await client
+    .execute({ sql: "SELECT mode FROM sessions WHERE id = ? AND user_id = ? LIMIT 1", args: [sessionId, userId] })
+    .catch(() => null);
+  const row = result?.rows[0];
+  return row ? String(row.mode) : null;
 }
 
 /** Everything that was said, oldest first — the order it is read in. */

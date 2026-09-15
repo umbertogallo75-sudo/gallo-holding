@@ -860,6 +860,29 @@ p { line-height:1.55; font-size:16px; }
   font:inherit; font-size:14px; font-weight:650; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.12);
 }
 
+/* Picking a spoken conversation back up.
+
+   Deliberately not the same green as everything else on this screen: the
+   start buttons are the offer for a new conversation, and this is the offer
+   to finish the one that was taken away. Amber says "unfinished business"
+   without competing with them for the same tap. */
+.voiceResume {
+  margin:12px 0 4px; padding:14px; text-align:left;
+  border:1px solid color-mix(in srgb, var(--amber) 55%, var(--line));
+  background:color-mix(in srgb, var(--amber) 10%, var(--surface));
+  border-radius:16px;
+}
+.voiceResumeText { margin:0 0 10px; font-size:14.5px; line-height:1.5; }
+.voiceHistoryLink { margin:12px 0 0; text-align:center; font-size:14px; }
+.voiceHistoryLink a { color:var(--brandText); text-decoration:none; font-weight:600; }
+.voiceHistoryLink a:hover { text-decoration:underline; }
+/* Where the interrupted call ended and the new one carries on. */
+.voiceLineResumed { border-bottom:1px dashed var(--line); padding-bottom:8px; margin-bottom:8px; position:relative; }
+.voiceLineResumed::after {
+  content:"ripreso da qui"; position:absolute; right:0; bottom:-9px; padding:0 6px;
+  background:var(--surface); color:var(--muted); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+}
+
 /* The free trial, on the home screen. Amber rather than the usual green: it
    is a clock running down, and it should not read as one more thing to tap. */
 .trialBanner { border:1px solid color-mix(in srgb, var(--amber) 55%, var(--line)); background:color-mix(in srgb, var(--amber) 10%, var(--surface)); border-radius:18px; padding:14px 16px; margin-bottom:10px; }

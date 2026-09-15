@@ -63,7 +63,7 @@ const session = {
 describe("resumableSession", () => {
   it("offers back the session that was left open", async () => {
     const { client, calls } = fakeClient(() => [session]);
-    const found = await resumableSession("u1", client);
+    const found = await resumableSession("u1", {}, client);
     expect(found?.id).toBe("s1");
     expect(found?.exchanges).toBe(8);
     expect(calls[0].sql).toContain("s.closed_at IS NULL");
@@ -71,7 +71,7 @@ describe("resumableSession", () => {
 
   it("adds the missing column itself rather than waiting for the migration", async () => {
     const { client, calls } = fakeClient(() => [session], { missingColumn: true });
-    const found = await resumableSession("u1", client);
+    const found = await resumableSession("u1", {}, client);
     expect(found?.id).toBe("s1");
     expect(calls[1].sql).toContain("ALTER TABLE sessions ADD COLUMN closed_at");
     expect(calls[2].sql).toContain("s.closed_at IS NULL");
@@ -79,14 +79,50 @@ describe("resumableSession", () => {
 
   it("still answers when it cannot add the column either", async () => {
     const { client, calls } = fakeClient(() => [session], { missingColumn: true, canAlter: false });
-    const found = await resumableSession("u1", client);
+    const found = await resumableSession("u1", {}, client);
     expect(found?.id).toBe("s1");
     expect(calls[calls.length - 1].sql).not.toContain("s.closed_at IS NULL");
   });
 
   it("offers nothing when there is nothing to come back to", async () => {
     const { client } = fakeClient(() => []);
-    expect(await resumableSession("u1", client)).toBeNull();
+    expect(await resumableSession("u1", {}, client)).toBeNull();
+  });
+});
+
+describe("the line between spoken and written", () => {
+  it("never offers the chat a conversation that happened at the microphone", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    await resumableSession("u1", { kind: "text" }, client);
+    expect(calls[0].sql).toContain("s.mode NOT IN ('voice', 'diary')");
+  });
+
+  it("never offers the microphone a conversation that happened in writing", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    await resumableSession("u1", { kind: "voice" }, client);
+    expect(calls[0].sql).toContain("s.mode IN ('voice', 'diary')");
+  });
+
+  it("keeps one history when nobody asked for half of it", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    await recentSessions("u1", {}, client);
+    expect(calls[0].sql).not.toContain("s.mode IN");
+    expect(calls[0].sql).not.toContain("s.mode NOT IN");
+  });
+
+  it("says which way each session happened, so the list can show it", async () => {
+    const { client } = fakeClient(() => [
+      { ...session, mode: "voice" },
+      { ...session, id: "s2", mode: "diary" },
+      { ...session, id: "s3", mode: "guided" },
+    ]);
+    expect((await recentSessions("u1", {}, client)).map((s) => s.voice)).toEqual([true, true, false]);
+  });
+
+  it("asks for no more than a screenful, whatever it is told", async () => {
+    const { client, calls } = fakeClient(() => []);
+    await recentSessions("u1", { limit: 5000 }, client);
+    expect(calls[0].args[calls[0].args.length - 1]).toBe(100);
   });
 });
 
@@ -96,13 +132,13 @@ describe("recentSessions", () => {
       { ...session, closed_at: "2026-09-14T09:20:00.000Z" },
       { ...session, id: "s2", closed_at: null },
     ]);
-    const list = await recentSessions("u1", 25, client);
+    const list = await recentSessions("u1", {}, client);
     expect(list.map((s) => s.closed)).toEqual([true, false]);
   });
 
   it("degrades to 'nothing was closed' rather than failing", async () => {
     const { client } = fakeClient(() => [session], { missingColumn: true, canAlter: false });
-    const list = await recentSessions("u1", 25, client);
+    const list = await recentSessions("u1", {}, client);
     expect(list).toHaveLength(1);
     expect(list[0].closed).toBe(false);
   });

@@ -17,3 +17,17 @@
 .coach { background:var(--surface); border:1px solid var(--line); }
 .who { display:block; font-size:.6875rem; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:4px; }
 .fix { display:block; margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); font-size:.875rem; color:var(--amber); }
+
+/* Spoken, written, or both. A row of three, because on a phone the filter
+   has to be one thumb-width away from the list it filters. */
+.tabs { display:flex; gap:8px; margin-top:12px; }
+.tab {
+  flex:1; text-align:center; padding:9px 10px; border-radius:999px;
+  border:1px solid var(--line); background:var(--surface); color:var(--muted);
+  font-size:.875rem; font-weight:650; text-decoration:none; white-space:nowrap;
+}
+.tab:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.tabOn {
+  color:var(--brandText); border-color:color-mix(in srgb, var(--accent) 55%, var(--line));
+  background:color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
