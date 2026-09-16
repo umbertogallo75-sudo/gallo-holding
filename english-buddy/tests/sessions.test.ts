@@ -57,7 +57,9 @@ const session = {
   started_at: "2026-09-14T09:00:00.000Z",
   closed_at: null,
   last_at: "2026-09-14T09:12:00.000Z",
-  n: 8,
+  turns: 8,
+  first_user: "We had the budget meeting yesterday",
+  first_coach: "Tell me how it went!",
 };
 
 describe("resumableSession", () => {
@@ -87,6 +89,55 @@ describe("resumableSession", () => {
   it("offers nothing when there is nothing to come back to", async () => {
     const { client } = fakeClient(() => []);
     expect(await resumableSession("u1", {}, client)).toBeNull();
+  });
+});
+
+describe("what a row in the archive says", () => {
+  it("shows the first thing the learner actually said", async () => {
+    const { client } = fakeClient(() => [session]);
+    const [row] = await recentSessions("u1", {}, client);
+    expect(row.preview).toBe("We had the budget meeting yesterday");
+    expect(row.minutes).toBe(12);
+  });
+
+  it("falls back to Sam's answer when the first line is the old instruction", async () => {
+    // Conversations recorded before the instruction stopped being stored open
+    // with a sentence in English nobody wrote. Showing it as the preview is
+    // exactly what made the list unreadable.
+    const { client } = fakeClient(() => [
+      { ...session, first_user: "Start a short natural English conversation with me." },
+    ]);
+    const [row] = await recentSessions("u1", {}, client);
+    expect(row.preview).toBe("Tell me how it went!");
+  });
+
+  it("counts turns taken, not messages exchanged", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    const [row] = await recentSessions("u1", {}, client);
+    expect(row.exchanges).toBe(8);
+    expect(calls[0].sql).toContain("COUNT(CASE WHEN m.role = 'user' THEN 1 END) AS turns");
+    // Two turns, so a session opened and abandoned never reaches the archive.
+    expect(calls[0].sql).toContain("HAVING turns >= ?");
+    expect(calls[0].args).toContain(2);
+  });
+
+  it("finds a conversation by something said in it", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    await recentSessions("u1", { search: "budget" }, client);
+    expect(calls[0].sql).toContain("mm.content LIKE ?");
+    expect(calls[0].args).toContain("%budget%");
+  });
+
+  it("does not let a search term act as a wildcard", async () => {
+    const { client, calls } = fakeClient(() => []);
+    await recentSessions("u1", { search: "%_%" }, client);
+    expect(calls[0].args).toContain("%   %");
+  });
+
+  it("asks for nothing extra when nobody is searching", async () => {
+    const { client, calls } = fakeClient(() => [session]);
+    await recentSessions("u1", {}, client);
+    expect(calls[0].sql).not.toContain("mm.content LIKE");
   });
 });
 

@@ -47,11 +47,13 @@ function when(iso: string): string {
 }
 
 /** Everything you have already said, kept — spoken and written alike. */
-export default async function SessioniPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+export default async function SessioniPage({ searchParams }: { searchParams: Promise<{ tipo?: string; q?: string }> }) {
   const userId = await requireUserId();
-  const tipo = (await searchParams).tipo ?? "";
+  const params = await searchParams;
+  const tipo = params.tipo ?? "";
+  const query = (params.q ?? "").slice(0, 60);
   const tab = TABS.find((t) => t.key === tipo) ?? TABS[0];
-  const sessions = await recentSessions(userId, { kind: tab.kind }).catch(() => []);
+  const sessions = await recentSessions(userId, { kind: tab.kind, search: query, limit: 60 }).catch(() => []);
 
   return (
     <main className="shell">
@@ -61,15 +63,31 @@ export default async function SessioniPage({ searchParams }: { searchParams: Pro
       </div>
 
       <p className="composerNote" style={{ marginTop: 0 }}>
-        Tutto quello che hai detto a Sam resta qui — quello che hai scritto e quello che hai detto a voce. Rileggere una
-        conversazione di due settimane fa è il ripasso più onesto che esista: sono le tue frasi, non quelle di un libro.
+        Tutto quello che hai detto a Sam resta qui — scritto e a voce. Cerca una parola che ricordi di aver usato: è così
+        che si ritrova una conversazione.
       </p>
+
+      {/* A plain GET form: it works before any JavaScript has loaded, which on
+          a phone on a train is most of the time somebody is looking for
+          something. */}
+      <form className={styles.search} method="GET" action="/sessioni">
+        {tipo ? <input type="hidden" name="tipo" value={tipo} /> : null}
+        <input
+          className={styles.searchInput}
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Cerca nelle conversazioni — es. budget, aeroporto, cliente"
+          aria-label="Cerca nelle tue conversazioni"
+        />
+        <button type="submit" className={styles.searchGo} aria-label="Cerca">🔍</button>
+      </form>
 
       <nav className={styles.tabs}>
         {TABS.map((t) => (
           <Link
             key={t.key || "all"}
-            href={t.key ? `/sessioni?tipo=${t.key}` : "/sessioni"}
+            href={`/sessioni?${new URLSearchParams({ ...(t.key ? { tipo: t.key } : {}), ...(query ? { q: query } : {}) }).toString()}`}
             className={t.key === tab.key ? `${styles.tab} ${styles.tabOn}` : styles.tab}
             aria-current={t.key === tab.key ? "page" : undefined}
           >
@@ -81,11 +99,13 @@ export default async function SessioniPage({ searchParams }: { searchParams: Pro
       {sessions.length === 0 ? (
         <section className="card">
           <p className="muted" style={{ margin: 0 }}>
-            {tab.kind === "voice"
-              ? "Ancora nessuna conversazione a voce. Dopo la prima chiamata con Sam la ritrovi qui, parola per parola."
-              : tab.kind === "text"
-                ? "Ancora nessuna conversazione scritta. Dopo la prima chiacchierata con Sam la ritrovi qui."
-                : "Ancora nessuna sessione. Dopo la prima conversazione con Sam la ritrovi qui, insieme a tutte le altre."}
+            {query
+              ? `Nessuna conversazione con «${query}». Prova con un'altra parola, o togli il filtro.`
+              : tab.kind === "voice"
+                ? "Ancora nessuna conversazione a voce. Dopo la prima chiamata con Sam la ritrovi qui, parola per parola."
+                : tab.kind === "text"
+                  ? "Ancora nessuna conversazione scritta. Dopo la prima chiacchierata con Sam la ritrovi qui."
+                  : "Ancora nessuna sessione. Dopo la prima conversazione con Sam la ritrovi qui, insieme a tutte le altre."}
           </p>
         </section>
       ) : (
@@ -97,8 +117,10 @@ export default async function SessioniPage({ searchParams }: { searchParams: Pro
                 <span aria-hidden>{session.voice ? "🎙️ " : "✍️ "}</span>
                 {MODE_LABELS[session.mode] ?? session.mode}
               </span>
+              {session.preview ? <span className={styles.preview}>{session.preview}</span> : null}
               <span className={styles.meta}>
-                {session.exchanges} {session.exchanges === 1 ? "messaggio" : "messaggi"}
+                {session.exchanges} {session.exchanges === 1 ? "tuo messaggio" : "tuoi messaggi"}
+                {session.minutes > 0 ? ` · ${session.minutes} min` : ""}
                 {session.closed ? "" : " · non conclusa"}
               </span>
               <span className={styles.go} aria-hidden>→</span>

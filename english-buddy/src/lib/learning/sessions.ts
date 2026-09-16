@@ -1,6 +1,7 @@
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { scoreSession, type SessionFacts, type SessionScore } from "./session-score";
+import { isSyntheticOpener } from "./openers";
 
 /**
  * Sessions you can come back to.
@@ -15,8 +16,17 @@ import { scoreSession, type SessionFacts, type SessionScore } from "./session-sc
 
 /** After this long, picking up where you left off is stranger than starting. */
 export const RESUMABLE_HOURS = 36;
-/** Below this it was a false start, not something worth offering back. */
-const MIN_MESSAGES = 2;
+/**
+ * Below this it was a false start, not something worth keeping.
+ *
+ * Counted in turns the learner actually took, not in messages. Counting
+ * messages meant that opening the app and closing it again left a
+ * "conversation" in the archive — Sam's greeting, plus the instruction that
+ * produced it — so testers found a list full of sessions of a few seconds
+ * they had never had. Two turns is the smallest thing that is honestly a
+ * conversation.
+ */
+const MIN_TURNS = 2;
 
 /**
  * Spoken or written, and the list that is both.
@@ -46,9 +56,14 @@ export type SessionSummary = {
   mode: string;
   startedAt: string;
   lastAt: string;
+  /** Turns the learner took: what makes this a conversation rather than a tap. */
   exchanges: number;
   closed: boolean;
   voice: boolean;
+  /** The first thing actually said, so a row can be recognised at a glance. */
+  preview: string;
+  /** Minutes from the first line to the last. */
+  minutes: number;
 };
 
 export type Transcript = { role: string; content: string; correction: string | null; at: string }[];
@@ -94,18 +109,44 @@ async function withClosedAt<T>(client: Client, run: (hasColumn: boolean) => Prom
   }
 }
 
+function minutesBetween(from: string, to: string): number {
+  const a = Date.parse(from.includes("T") ? from : from.replace(" ", "T") + "Z");
+  const b = Date.parse(to.includes("T") ? to : to.replace(" ", "T") + "Z");
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.max(0, Math.round((b - a) / 60_000));
+}
+
 function summaryOf(row: Record<string, unknown>, closed: boolean): SessionSummary {
   const mode = String(row.mode);
+  const firstUser = row.first_user ? String(row.first_user) : "";
+  const firstCoach = row.first_coach ? String(row.first_coach) : "";
+  // A conversation recorded before the instruction stopped being stored still
+  // carries it as its first line; those are recognised by Sam's answer instead.
+  const preview = (firstUser && !isSyntheticOpener(firstUser) ? firstUser : firstCoach).replace(/\s+/g, " ").trim();
   return {
     id: String(row.id),
     mode,
     startedAt: String(row.started_at),
     lastAt: String(row.last_at),
-    exchanges: Number(row.n ?? 0),
+    exchanges: Number(row.turns ?? 0),
     closed,
     voice: isVoiceMode(mode),
+    preview: preview.length > 120 ? `${preview.slice(0, 117)}\u2026` : preview,
+    minutes: minutesBetween(String(row.started_at), String(row.last_at)),
   };
 }
+
+/**
+ * What every listing needs: how many turns the learner actually took, and
+ * enough of the conversation to recognise it by. A list of rows that all read
+ * "Conversazione · 8 messaggi" is a list nobody can search with their eyes,
+ * which is what the testers were describing.
+ */
+const SUMMARY_COLUMNS = `s.id, s.mode, s.started_at,
+   MAX(m.created_at) AS last_at,
+   COUNT(CASE WHEN m.role = 'user' THEN 1 END) AS turns,
+   (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC, rowid ASC LIMIT 1) AS first_user,
+   (SELECT content FROM messages WHERE session_id = s.id AND role = 'assistant' ORDER BY created_at ASC, rowid ASC LIMIT 1) AS first_coach`;
 
 /** The one to offer back, if there is one. */
 export async function resumableSession(
@@ -117,44 +158,51 @@ export async function resumableSession(
   const kind = kindClause(opts.kind ?? "all");
   return withClosedAt(client, async (hasColumn) => {
     const result = await client.execute({
-      sql: `SELECT s.id, s.mode, s.started_at, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"},
-                   MAX(m.created_at) AS last_at, COUNT(m.id) AS n
+      sql: `SELECT ${SUMMARY_COLUMNS}, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"}
             FROM sessions s JOIN messages m ON m.session_id = s.id
             WHERE s.user_id = ? AND s.started_at >= ? ${kind} ${hasColumn ? "AND s.closed_at IS NULL" : ""}
             GROUP BY s.id
-            HAVING n >= ?
+            HAVING turns >= ?
             ORDER BY last_at DESC
             LIMIT 1`,
-      args: [userId, since, MIN_MESSAGES],
+      args: [userId, since, MIN_TURNS],
     });
     const row = result.rows[0];
     return row ? summaryOf(row as Record<string, unknown>, false) : null;
   });
 }
 
-/** The ones to look back at. */
+/** The ones to look back at, optionally the ones with a word in them. */
 export async function recentSessions(
   userId: string,
-  opts: { limit?: number; kind?: SessionKind } = {},
+  opts: { limit?: number; kind?: SessionKind; search?: string } = {},
   client: Client = db()
 ): Promise<SessionSummary[]> {
   const limit = Math.min(Math.max(1, Math.round(opts.limit ?? 25)), 100);
   const kind = kindClause(opts.kind ?? "all");
+  // Looking for one conversation among fifty: it is searched by what was said
+  // in it, because what was said in it is the only thing anybody remembers.
+  const term = (opts.search ?? "").trim().slice(0, 60);
+  const search = term ? "AND EXISTS (SELECT 1 FROM messages mm WHERE mm.session_id = s.id AND mm.content LIKE ?)" : "";
+  const args: (string | number)[] = [userId];
+  if (term) args.push(`%${term.replace(/[%_]/g, " ")}%`);
+  args.push(MIN_TURNS, limit);
+
   return withClosedAt(client, async (hasColumn) => {
     const result = await client.execute({
-      sql: `SELECT s.id, s.mode, s.started_at, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"},
-                   MAX(m.created_at) AS last_at, COUNT(m.id) AS n
+      sql: `SELECT ${SUMMARY_COLUMNS}, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"}
             FROM sessions s JOIN messages m ON m.session_id = s.id
-            WHERE s.user_id = ? ${kind}
+            WHERE s.user_id = ? ${kind} ${search}
             GROUP BY s.id
-            HAVING n >= ?
+            HAVING turns >= ?
             ORDER BY last_at DESC
             LIMIT ?`,
-      args: [userId, MIN_MESSAGES, limit],
+      args,
     });
     return result.rows.map((row) => summaryOf(row as Record<string, unknown>, Boolean(row.closed_at)));
   });
 }
+
 
 /** Which way this conversation happened, for a page that has only its id. */
 export async function sessionMode(userId: string, sessionId: string, client: Client = db()): Promise<string | null> {
@@ -172,12 +220,16 @@ export async function sessionTranscript(userId: string, sessionId: string, clien
           WHERE user_id = ? AND session_id = ? ORDER BY created_at ASC, rowid ASC LIMIT 200`,
     args: [userId, sessionId],
   });
-  return result.rows.map((row) => ({
-    role: String(row.role),
-    content: String(row.content),
-    correction: row.correction ? String(row.correction) : null,
-    at: String(row.created_at),
-  }));
+  return result.rows
+    .map((row) => ({
+      role: String(row.role),
+      content: String(row.content),
+      correction: row.correction ? String(row.correction) : null,
+      at: String(row.created_at),
+    }))
+    // Conversations recorded before this was fixed still carry the instruction
+    // that opened them. Nobody said it, so nobody should have to read it.
+    .filter((line) => !(line.role === "user" && isSyntheticOpener(line.content)));
 }
 
 /** Finished on purpose. Idempotent: closing twice keeps the first time. */

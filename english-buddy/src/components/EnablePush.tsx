@@ -62,8 +62,8 @@ export function EnablePush() {
             {lastPushError ? <span style={{ display: "block", opacity: 0.6, marginTop: 4 }}>Dettaglio tecnico: {lastPushError}</span> : null}
           </p>
         ) : null}
-        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua senza notifiche" : "Non ora"}</button>
-        <p className="warnText">⚠️ Senza notifiche il coach non può cercarti: l&rsquo;app perde la sua forza.</p>
+        <button className="secondary full" style={{ marginTop: 8 }} onClick={dismiss}>{failed ? "Continua, le attivo dopo" : "Non ora"}</button>
+        <p className="composerNote" style={{ marginTop: 8 }}>Puoi attivarle quando vuoi da Profilo — ma è con le notifiche che Sam riesce ad accompagnarti giorno per giorno.</p>
       </div>
     </div>
   );

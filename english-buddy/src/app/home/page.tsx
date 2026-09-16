@@ -39,7 +39,16 @@ export default async function HomePage() {
   const [profileResult, metricResult, sessionsResult, entitlement, trial, steps, events, embedded] = await Promise.all([
     readProfile("SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", userId, database),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
-    database.execute({ sql:"SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?", args:[userId] }),
+    // Conversations, not taps. A row exists the moment a screen is opened, so
+    // counting rows told somebody who had opened the app three times that they
+    // had had three sessions. A session counts once the learner has spoken in
+    // it.
+    database.execute({
+      sql: `SELECT COUNT(*) AS c FROM (
+              SELECT s.id FROM sessions s JOIN messages m ON m.session_id = s.id AND m.role = 'user'
+              WHERE s.user_id = ? GROUP BY s.id HAVING COUNT(m.id) >= 1)`,
+      args: [userId],
+    }),
     billingEnforced() ? getEntitlement(userId) : Promise.resolve({ access: true }),
     readTrial(userId, database).catch(() => null),
     firstSteps(userId, database),

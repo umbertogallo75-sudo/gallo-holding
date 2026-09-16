@@ -11,6 +11,7 @@ import { trainingContext } from "@/lib/documents/analyse";
 import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { isFirstSession } from "@/lib/learning/first-use";
+import { isSyntheticOpener } from "@/lib/learning/openers";
 import { trackEvent } from "@/lib/analytics";
 import {
   ensureProfile,
@@ -91,7 +92,12 @@ export async function POST(request: Request) {
       sessionId = await startSession(userId, mode);
       if (parsed.data.opener) await saveMessage(userId, sessionId, "assistant", parsed.data.opener);
     }
-    await saveMessage(userId, sessionId, "user", message);
+    // The line that starts a session is an instruction to the coach, not
+    // something the learner said, and storing it as theirs made every
+    // transcript open with a sentence in English they never wrote — and made
+    // a session abandoned on arrival look like a conversation.
+    const synthetic = parsed.data.opening && isSyntheticOpener(message);
+    if (!synthetic) await saveMessage(userId, sessionId, "user", message);
 
     // The weekly focus has to be settled before the memory is read, since the
     // memory includes it. The other two answer to nobody, so they go alongside

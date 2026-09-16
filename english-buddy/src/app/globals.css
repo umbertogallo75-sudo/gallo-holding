@@ -130,7 +130,15 @@ p { line-height:1.55; font-size:16px; }
 .pageSpin { width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spinround .8s linear infinite; }
 @keyframes spinround { to { transform:rotate(360deg); } }
 
-.chat { display:flex; flex-direction:column; gap:10px; margin:20px 0 calc(130px + env(safe-area-inset-bottom, 0px)); }
+/* Room under the conversation for the bar that floats over it.
+
+   This used to be a flat 130px, which was a guess at a box whose height is
+   not fixed: the composer carries the invitation to speak on its own row, and
+   the textarea grows to 130px as you type. Both together came to well over
+   200px, so the last thing Sam said sat underneath the bar and could not be
+   scrolled to — the conversation appeared to end a paragraph early. The bar
+   now measures itself and says how much room it needs. */
+.chat { display:flex; flex-direction:column; gap:10px; margin:20px 0 calc(92px + var(--composerH, 150px) + env(safe-area-inset-bottom, 0px)); }
 .bubble { padding:15px 17px; max-width:88%; line-height:1.5; font-size:16.5px; white-space:pre-wrap; }
 .bubble.ai { align-self:flex-start; border-bottom-left-radius:6px; }
 .bubble.user { align-self:flex-end; background:var(--accent); color:white; border-color:var(--accent); border-bottom-right-radius:6px; }
@@ -256,6 +264,18 @@ p { line-height:1.55; font-size:16px; }
 .dictationHint, .composerNote, .speakLabel { color:color-mix(in srgb, var(--ink) 55%, var(--muted)); font-size:15px; margin-top:3px; line-height:1.45; display:block; }
 .speakLabel { display:inline; font-size:14px; }
 .warnText { color:#b3362a; font-size:14.5px; font-weight:700; margin-top:8px; }
+
+/* The invitation to switch notifications on. It used to borrow .alertBar — a
+   red-bordered warning — which is the wrong instrument entirely: nothing is
+   wrong, somebody is being offered something. Green, and quiet. */
+.inviteBar {
+  border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background:color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color:var(--ink); border-radius:16px; padding:14px 16px; font-size:15px; line-height:1.55; margin:0 0 16px;
+}
+.inviteBar strong:first-child { color:var(--brandText); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inviteBar strong:first-child { color:#7fd4a8; } }
+:root[data-theme="dark"] .inviteBar strong:first-child { color:#7fd4a8; }
 
 .alertBar { border:2px solid #c4483a; background:color-mix(in srgb, #c4483a 9%, var(--surface)); color:var(--ink); border-radius:16px; padding:14px 16px; font-size:15px; line-height:1.55; margin:0 0 16px; }
 .alertBar strong:first-child { color:#b3362a; }

@@ -7,6 +7,7 @@ import { shouldWrapUp, type SessionFacts, type SessionScore } from "@/lib/learni
 import { EnablePush } from "@/components/EnablePush";
 import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
+import { openerFor } from "@/lib/learning/openers";
 
 type Mistake = { incorrect:string; correct:string; note?:string };
 type Expression = { expression:string; meaning?:string };
@@ -30,23 +31,6 @@ function subscribeToNetwork(callback: () => void) {
   };
 }
 
-const openers: Record<string,string> = {
-  "text-2": "Ask me one quick English question. I only have two minutes.",
-  "text-5": "Start a short natural English conversation with me.",
-  guided: "Start today's guided Business English session using my learning memory.",
-  surprise: "Choose the most useful English exercise for me right now and start immediately.",
-  buddy: "Send me your quick question for this moment of the day.",
-  essentials: "Teach me essential everyday English. Pick a real situation — like a restaurant, airport or hotel — and start the role-play.",
-  zero: "Start today's Start-from-Zero guided micro-lesson. Teach me one useful sentence pattern step by step.",
-  mission: "Give me a real-life mission I haven't completed yet and role-play it with me.",
-  listen: "Start a listening dictation session. Give me the first sentence to transcribe.",
-  review: "Start my rapid review quiz on the items I need to practice.",
-  warmup: "I have a meeting or call soon. Warm me up: ask me what it's about.",
-  shadow: "Start a shadowing drill. Give me the first sentence to listen to and repeat aloud.",
-  briefing: "Give me today's short business read and then ask me about it.",
-  levelcheck: "Let's find my starting level with a short friendly chat. Start easy.",
-  doc: "Let's work on the document I uploaded. Start with what it is and the words I will need.",
-};
 
 /**
  * What to say when you cannot think of anything.
@@ -138,6 +122,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   const failedRef = useRef<string>(undefined);
   /** Typed while the coach was still answering; sent as soon as he lands. */
   const queued = useRef<string>(undefined);
+  const composerRef = useRef<HTMLFormElement | null>(null);
   failedRef.current = failedMessage;
 
   // Weak-network safety net: live offline flag + automatic re-send of the
@@ -278,7 +263,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   }
 
   useEffect(() => {
-    if (!started.current) { started.current = true; void send(openers[mode] || openers["text-5"], false, true); }
+    if (!started.current) { started.current = true; void send(openerFor(mode), false, true); }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- opener fires exactly once per mount
   }, [mode]);
 
@@ -286,6 +271,32 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
   // question of its own — a notification that carries a question is starting
   // something new by definition.
   const lookedForResumable = useRef(false);
+
+  /**
+   * The bar tells the conversation how much room it is taking.
+   *
+   * Its height is not a constant: the invitation to speak sits on its own row
+   * until somebody has used the microphone, and the textarea grows as a long
+   * answer is typed. The space under the conversation was a fixed guess at
+   * that height, and it guessed low — so the newest message was hidden behind
+   * the bar, which is precisely the message somebody is waiting to read.
+   */
+  useEffect(() => {
+    const bar = composerRef.current;
+    if (!bar) return;
+    const publish = () => {
+      document.documentElement.style.setProperty("--composerH", `${Math.round(bar.getBoundingClientRect().height)}px`);
+    };
+    publish();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(publish);
+    observer?.observe(bar);
+    window.addEventListener("resize", publish);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", publish);
+      document.documentElement.style.removeProperty("--composerH");
+    };
+  }, []);
   useEffect(() => {
     if (lookedForResumable.current || initialQuestion) return;
     lookedForResumable.current = true;
@@ -335,7 +346,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
           setSessionId(undefined);
           setWrapDismissed(false);
           started.current = false;
-          void send(openers[mode] || openers["text-5"], false, true);
+          void send(openerFor(mode), false, true);
         }}
       />
     );
@@ -452,7 +463,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
         question asked before the conversation starts. Writing is the default
         because it works in an open office, on a train and in a meeting; the
         voice is one tap away for whoever can use it. */}
-    <form className="composer" onSubmit={submit}>
+    <form className="composer" ref={composerRef} onSubmit={submit}>
       {!knowsVoice && !inviteHidden ? (
         <a className="voiceInvite" href="/voice" data-track="voice_invite">
           <span className="voiceInviteIcon" aria-hidden>🎙️</span>
