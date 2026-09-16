@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAPABILITIES } from "@/lib/learning/capabilities";
 import {
@@ -195,5 +196,37 @@ describe("il pagellino", () => {
   it("points at the two weakest, which is where the next sessions belong", () => {
     const marks = marksFrom({ listening: 20, speaking: 30, vocabulary: 90, grammar: 85 });
     expect(weakest(marks).map((m) => m.skill)).toEqual(["listening", "speaking"]);
+  });
+});
+
+describe("one page, not two", () => {
+  const nav = readFileSync("src/components/BottomNav.tsx", "utf8");
+  const oldPage = readFileSync("src/app/progress/page.tsx", "utf8");
+  const page = readFileSync("src/app/percorso/page.tsx", "utf8");
+
+  /**
+   * Progressi and Percorso read the same tables and disagreed about how to say
+   * it — skills out of a hundred on one, out of ten on the other. Somebody who
+   * opened both did not learn twice as much; they stopped trusting either.
+   */
+  it("sends the tab to the path", () => {
+    expect(nav).toContain('href="/percorso"');
+    expect(nav).not.toContain('href="/progress"');
+  });
+
+  it("keeps the old address working, because it is in sent emails", () => {
+    expect(oldPage).toContain('redirect("/percorso")');
+  });
+
+  it("carries over everything the old page had that the path did not", () => {
+    for (const piece of ["weekly_focus", "FROM mistakes", "FROM expressions", "/phrasebook", "/onboarding"]) {
+      expect(page, piece).toContain(piece);
+    }
+  });
+
+  it("does not show the same skill on two scales", () => {
+    // The marks are out of ten and nowhere else is a 0-100 bar.
+    expect(page).not.toMatch(/width:\s*`\$\{v\}%`/);
+    expect(page).toContain("mark.mark * 10");
   });
 });

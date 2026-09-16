@@ -191,7 +191,7 @@ export function eveningRecap(
   name: string | null,
   stats: { minutes: number; streak: number; expressions: number }
 ): Message {
-  const url = `${appBase()}/progress`;
+  const url = `${appBase()}/percorso`;
   const streakLine =
     stats.streak >= 2
       ? `<p style="${P}"><strong>${stats.streak} giorni di fila.</strong> Questa è la parte che conta: non la giornata buona, la catena.</p>`

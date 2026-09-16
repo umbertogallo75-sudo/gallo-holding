@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           "/onboarding",
           "/buddy",
           "/progress",
+          "/percorso",
           "/profile",
           "/rescue",
           "/voice",

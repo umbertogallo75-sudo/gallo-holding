@@ -26,6 +26,10 @@ function NavItem({ icon, label }: { icon: string; label: string }) {
  * silently and in any situation, and the voice is a microphone inside that
  * chat for whoever wants it.
  *
+ * The fourth tab is the path. It used to be "Progressi", pointing at a page
+ * that measured the same things as the path page on a different scale — two
+ * answers to one question, which is how somebody ends up trusting neither.
+ *
  * Allenamenti is here for the same reason. All sixteen activities used to sit
  * behind a dashed grey line at the foot of the home screen — the weakest
  * thing on the page — and every single person interviewed said they had never
@@ -37,7 +41,7 @@ export function BottomNav({ active }: { active: "home" | "allenamenti" | "buddy"
       <Link className={active === "home" ? "active" : ""} href="/home"><NavItem icon="🏠" label="Oggi" /></Link>
       <Link className={active === "allenamenti" ? "active" : ""} href="/allenamenti"><NavItem icon="📋" label="Allenamenti" /></Link>
       <Link className={active === "buddy" ? "active" : ""} href="/buddy"><NavItem icon="💬" label="Sam" /></Link>
-      <Link className={active === "progress" ? "active" : ""} href="/progress"><NavItem icon="📈" label="Progressi" /></Link>
+      <Link className={active === "progress" ? "active" : ""} href="/percorso"><NavItem icon="🗺️" label="Percorso" /></Link>
       <Link className={active === "profile" ? "active" : ""} href="/profile"><NavItem icon="👤" label="Profilo" /></Link>
     </nav>
   );

@@ -34,10 +34,12 @@ const CAP_LABELS = new Map(CAPABILITIES.map((c) => [c.key as string, c.it]));
 export default async function PercorsoPage() {
   const userId = await requireUserId();
   const database = db();
-  const [stateResult, capsResult, profileResult, turnsResult] = await Promise.all([
+  const [stateResult, capsResult, profileResult, mistakesResult, expressionsResult, turnsResult] = await Promise.all([
     database.execute({ sql: "SELECT * FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
     database.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
     database.execute({ sql: "SELECT path_started_at, created_at, professional_context, weekly_focus FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+    database.execute({ sql: "SELECT incorrect, correct FROM mistakes WHERE user_id = ? ORDER BY last_seen_at DESC LIMIT 5", args: [userId] }).catch(() => null),
+    database.execute({ sql: "SELECT expression FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", args: [userId] }).catch(() => null),
     // How much was actually practised: a percentage with no evidence behind it
     // is the thing that lets somebody believe they are doing fine.
     database.execute({ sql: "SELECT COUNT(*) AS n FROM messages WHERE user_id = ? AND role = 'user'", args: [userId] }).catch(() => null),
@@ -56,6 +58,9 @@ export default async function PercorsoPage() {
   const marks = marksFrom(stateResult.rows[0] ?? null);
   const average = averageMark(marks);
   const toWorkOn = weakest(marks);
+  const mistakes = mistakesResult?.rows ?? [];
+  const expressions = expressionsResult?.rows ?? [];
+  const level = stateResult.rows[0]?.cefr_level ? String(stateResult.rows[0].cefr_level) : null;
   const current = stages.find((stage) => stage.state === "current");
   const finished = !current;
 
@@ -63,7 +68,10 @@ export default async function PercorsoPage() {
     <main className="shell">
       <div className="topbar">
         <div className="brand">Il tuo percorso</div>
-        <Link className="chip" href="/home">← Home</Link>
+        <span style={{ display: "flex", gap: 6 }}>
+          {level ? <span className="chip">CEFR {level}</span> : null}
+          <Link className="chip" href="/home">← Home</Link>
+        </span>
       </div>
 
       <section className="hero">
@@ -89,6 +97,14 @@ export default async function PercorsoPage() {
         </p>
         <p className={`${styles.pace} ${styles[verdict.tone]}`}>{verdict.text}</p>
       </section>
+
+      {profile.weekly_focus ? (
+        <section className="card" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, var(--line))" }}>
+          <div className="kicker">📌 Il focus di questa settimana</div>
+          <p style={{ margin: "6px 0 2px", fontWeight: 700, fontSize: 17 }}>{String(profile.weekly_focus)}</p>
+          <p className="itHint">Si aggiorna ogni 7 giorni sui tuoi errori più ricorrenti: Sam orienta le conversazioni per fartelo praticare.</p>
+        </section>
+      ) : null}
 
       {!finished && current ? (
         <section className="card">
@@ -177,9 +193,41 @@ export default async function PercorsoPage() {
 
       <CoachVerdict />
 
+      {/* What used to live on a second page with a second set of numbers.
+          Two screens measuring the same thing on two different scales is how
+          somebody ends up not trusting either. */}
+      <section className="card">
+        <h2 style={{ marginTop: 0 }}>Le tue correzioni recenti</h2>
+        {mistakes.length ? (
+          mistakes.map((row, i) => (
+            <p key={i} style={{ margin: "7px 0" }}>
+              <span className="muted">{String(row.incorrect)}</span> → <strong>{String(row.correct)}</strong>
+            </p>
+          ))
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>Nessuna ancora. Compaiono da sole quando parli.</p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2 style={{ marginTop: 0 }}>Espressioni nuove</h2>
+        {expressions.length ? (
+          expressions.map((row, i) => <p key={i} style={{ margin: "7px 0" }}><strong>{String(row.expression)}</strong></p>)
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>Le espressioni utili si accumulano da sole, conversazione dopo conversazione.</p>
+        )}
+        <p style={{ marginTop: 10 }}>
+          <Link href="/phrasebook" className="pill" style={{ textDecoration: "none" }}>★ Vedi tutto il frasario</Link>
+        </p>
+      </section>
+
       <p className="itHint" style={{ textAlign: "center", margin: "16px 0 4px" }}>
         Le tappe non si superano con il tempo: si superano parlando. Sam le segna solo quando te le vede fare davvero —
         non si regalano.
+      </p>
+
+      <p className="composerNote" style={{ textAlign: "center", margin: "14px 0" }}>
+        <Link href="/onboarding" style={{ textDecoration: "underline" }}>Cambia livello di partenza o obiettivi</Link>
       </p>
 
       <BottomNav active="progress" />
