@@ -189,6 +189,16 @@ export default async function HomePage() {
       </Link>
     </div>
 
+    {/* The path, above everything else that is not today's session: testers
+        could not find a path because there was nowhere to look at one. */}
+    <Link href="/percorso" className="mode wide" style={{ display: "flex", marginTop: 12 }} data-track="path_opened" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 18%, var(--surface))" }}>🗺️</span>
+      <div>
+        <div className="modeTitle">Il tuo percorso</div>
+        <div className="modeMeta">Le tappe, a che punto sei e il pagellino di Sam, voto per voto</div>
+      </div>
+    </Link>
+
     {/* The archive. It sits with the other doors rather than inside the chat
         because it belongs to both halves of the app: the conversations you
         typed and the ones you had out loud are one history, and the only

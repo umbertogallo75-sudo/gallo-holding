@@ -1,0 +1,61 @@
+/* Il percorso, visto da chi lo percorre. */
+
+.barHead { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.barPct { font-size:1.4rem; font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.bar {
+  position:relative; height:10px; border-radius:999px; margin:10px 0 8px;
+  background:color-mix(in srgb, var(--ink) 10%, var(--surface)); overflow:visible;
+}
+.barFill { display:block; height:100%; border-radius:999px; background:var(--accent); transition:width .3s ease; }
+/* Dove sarebbe il calendario oggi: la differenza fra le due è l'unica cosa
+   davvero utile in questa pagina, quindi si vede. */
+.barMark { position:absolute; top:-4px; width:2px; height:18px; border-radius:2px; background:var(--ink); opacity:.45; }
+.barNote { margin:0; font-size:.8125rem; color:var(--muted); line-height:1.45; }
+.pace { margin:10px 0 0; font-size:.9375rem; line-height:1.5; }
+.ahead, .on { color:var(--brandText); }
+.behind { color:var(--amber); }
+.over { color:var(--muted); }
+
+.stages { list-style:none; margin:0; padding:0; display:grid; gap:0; }
+.stage { display:grid; grid-template-columns:auto 1fr; gap:12px; padding:0 0 18px; position:relative; }
+/* La linea che unisce le tappe: è quello che rende un elenco un percorso. */
+.stage::before {
+  content:""; position:absolute; left:13px; top:26px; bottom:0; width:2px;
+  background:color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.stage:last-child::before { display:none; }
+.dot {
+  width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800; border:2px solid var(--line); background:var(--surface); color:var(--muted);
+  position:relative; z-index:1;
+}
+.done .dot { background:var(--accent); border-color:var(--accent); color:#fff; }
+.current .dot { border-color:var(--accent); color:var(--brandText); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent); }
+.open .dot { border-style:dashed; }
+
+.stageBody { display:grid; gap:4px; padding-bottom:4px; }
+.weeks { font-size:.6875rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+.stageTitle { font-size:1.0625rem; letter-spacing:-.01em; }
+.current .stageTitle { color:var(--brandText); }
+.stageGoal { font-size:.9375rem; color:var(--muted); line-height:1.5; }
+.caps { list-style:none; margin:6px 0 0; padding:0; display:grid; gap:3px; font-size:.875rem; }
+.capDone { color:var(--brandText); }
+.capTodo { color:var(--muted); }
+.stageGo {
+  justify-self:start; margin-top:8px; padding:8px 14px; border-radius:999px; font-size:.875rem; font-weight:650;
+  border:1px solid var(--line); background:var(--surface); color:var(--brandText); text-decoration:none;
+}
+.stageGo:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.todo .stageTitle, .todo .stageGoal { opacity:.85; }
+
+.avg { font-size:.875rem; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums; }
+.marks { display:grid; gap:16px; margin-top:4px; }
+.mark { display:grid; gap:5px; }
+.markTop { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.score { font-size:1.125rem; font-weight:800; font-variant-numeric:tabular-nums; }
+.good { color:var(--brandText); }
+.ok { color:var(--ink); }
+.low { color:var(--amber); }
+.markMeaning { font-size:.8125rem; color:var(--muted); line-height:1.45; }
+.markAdvice { font-size:.8125rem; color:var(--brandText); text-decoration:none; }
+.markAdvice:hover { text-decoration:underline; }

@@ -30,6 +30,13 @@ export default async function ProgressPage() {
   return <main className="shell"><div className="topbar"><div className="brand">Progress</div><span style={{display:"flex",gap:6}}><span className="chip">CEFR {state?.cefr_level ? String(state.cefr_level) : "—"} · Month {phase}/3</span><a className="chip" href="/home">← Home</a></span></div>
     <NotificationReminder />
     <section className="hero"><div className="kicker">Cosa sai fare</div><h1>Cosa sta diventando facile?</h1><p className="muted">I punteggi si muovono piano, da quello che dimostri davvero nelle conversazioni.</p><p className="composerNote">Mese {phase} del tuo percorso verso l&rsquo;inglese professionale.</p></section>
+    <a href="/percorso" className="mode wide" style={{display:"flex",marginBottom:10,textDecoration:"none"}} data-track="path_opened" data-where="progress">
+      <span className="modeIcon" style={{background:"color-mix(in srgb, var(--accent) 18%, var(--surface))"}}>🗺️</span>
+      <div>
+        <div className="modeTitle">Il tuo percorso — mese {phase} di 3</div>
+        <div className="modeMeta">Le tappe una per una, quanto hai dimostrato davvero e il pagellino con i voti</div>
+      </div>
+    </a>
     {profileRow?.weekly_focus ? <section className="card" style={{borderColor:"color-mix(in srgb, var(--accent) 40%, var(--line))"}}><div className="kicker">📌 Il focus di questa settimana</div><p style={{margin:"6px 0 2px", fontWeight:700, fontSize:17}}>{String(profileRow.weekly_focus)}</p><p className="itHint">Il tuo obiettivo della settimana: il coach orienterà le conversazioni per fartelo praticare. Si aggiorna ogni 7 giorni sui tuoi errori più ricorrenti.</p></section> : null}
     <section className="card"><h2>Adesso sai</h2>
       {done.length ? done.map(c => <p key={c.key} style={{margin:"7px 0"}}>✓ <strong>{c.it}</strong></p>) : <p className="muted">Le abilità appariranno qui man mano che le dimostri in conversazione.</p>}

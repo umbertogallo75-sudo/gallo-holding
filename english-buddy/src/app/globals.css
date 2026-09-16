@@ -1170,3 +1170,9 @@ button:disabled .navSpin { opacity: 1; }
 /* Il controllo principale e la chiusura, sulla stessa riga: la pausa prende
    lo spazio che avanza perché è quella che si preme di corsa. */
 .voiceControls { display:flex; gap:8px; align-items:stretch; }
+
+/* Il giudizio scritto, dentro il pagellino. */
+.verdictHead { font-size:14px; font-weight:800; letter-spacing:-.01em; margin:14px 0 4px; }
+.verdictList { list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:14.5px; line-height:1.5; }
+.verdictList li { color:var(--brandText); }
+.verdictFocus li { color:var(--amber); }

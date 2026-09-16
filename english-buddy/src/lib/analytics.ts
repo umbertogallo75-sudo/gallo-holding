@@ -35,6 +35,9 @@ export type FunnelEvent =
   | "voice_resumed"
   /** A phrase the learner chose to keep, rather than one Sam chose for them. */
   | "phrase_saved"
+  /** The path, which people could not see before there was a page for it. */
+  | "path_opened"
+  | "path_stage_start"
   | "session_resumed"
   | "session_closed"
   | "session_opened"
