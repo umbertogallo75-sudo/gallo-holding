@@ -162,27 +162,73 @@ export function timePercent(week: number): number {
 }
 
 /**
- * The one honest sentence about the gap between the two.
+ * How much practice the path actually asks for.
  *
- * Shown because hiding it is how a progress screen becomes decoration: if the
- * calendar is at week nine and three capabilities are demonstrated, saying so
- * is the only useful thing on the page.
+ * Three short sessions a week is the floor the three months were designed
+ * around — roughly fifteen turns. It is written down here because "sei
+ * indietro" without a number is an opinion, and an opinion is easy to
+ * dismiss.
  */
-export function pace(week: number, percent: number): { tone: "ahead" | "on" | "behind" | "over"; text: string } {
+export const TURNS_PER_WEEK = 15;
+
+export type PaceTone = "ahead" | "on" | "behind" | "critical" | "over";
+
+/**
+ * The honest sentence about the gap, and it is meant to sting a little.
+ *
+ * A progress screen that congratulates somebody who has done almost nothing is
+ * worse than no progress screen: it tells them they are fine, and they stop.
+ * The three months are a commitment with a date on it, and the only useful
+ * thing to say to somebody who is not going to make it is that they are not
+ * going to make it — followed immediately by the number that would fix it.
+ */
+export function pace(
+  week: number,
+  percent: number,
+  turns = 0
+): { tone: PaceTone; text: string } {
+  const expectedTurns = Math.max(1, week) * TURNS_PER_WEEK;
+  const practised = turns / expectedTurns;
+
   if (week > PATH_WEEKS) {
+    if (percent >= 90) {
+      return {
+        tone: "over",
+        text: "Percorso mappato completato. Da qui non è più questione di cavarsela: è il vocabolario preciso del tuo mestiere, e quello non finisce mai.",
+      };
+    }
     return {
-      tone: "over",
-      text: percent >= 90
-        ? "Hai completato il percorso mappato. Da qui si continua sul tuo mestiere: vocabolario preciso, situazioni vere."
-        : "Le dodici settimane sono passate: nessun problema, il percorso non scade. Riprendi dalla tappa in corso.",
+      tone: "critical",
+      text: `Le dodici settimane sono finite e sei al ${percent}%. Il percorso non scade, ma questo non è un percorso finito: è un percorso lasciato a metà. Riparti dalla tappa in corso, oggi.`,
     };
   }
+
   const expected = timePercent(week);
-  if (percent >= expected + 10) return { tone: "ahead", text: "Sei avanti rispetto al calendario. Sam può alzare l'asticella: chiediglielo." };
-  if (percent >= expected - 15) return { tone: "on", text: "Sei in linea con il percorso. Continua così: bastano pochi minuti al giorno." };
+
+  // Not enough practice outranks everything else: a percentage means nothing
+  // if there is almost no evidence behind it.
+  if (week >= 2 && practised < 0.4) {
+    return {
+      tone: "critical",
+      text: `Sei troppo indietro con il programma. In ${week} settimane servivano circa ${expectedTurns} scambi con Sam e ne hai fatti ${turns}. Così non arrivi in fondo: servono tre sessioni a settimana, da questa settimana.`,
+    };
+  }
+
+  if (percent >= expected + 10) {
+    return { tone: "ahead", text: "Sei avanti sul programma. Non rallentare: chiedi a Sam di alzare l'asticella, è il momento in cui si guadagna di più." };
+  }
+  if (percent >= expected - 15) {
+    return { tone: "on", text: "Sei in linea con il programma. Restarci dipende solo dalla costanza: tre sessioni a settimana, non una in più." };
+  }
+  if (percent >= expected - 30) {
+    return {
+      tone: "behind",
+      text: `Sei indietro: il calendario dice ${expected}%, tu sei al ${percent}%. Recuperabile, ma non da solo — servono due sessioni in più a settimana da adesso.`,
+    };
+  }
   return {
-    tone: "behind",
-    text: "Sei indietro rispetto al calendario — succede, e si recupera: le tappe si superano parlando, non aspettando.",
+    tone: "critical",
+    text: `Sei troppo indietro con il programma: il calendario dice ${expected}%, tu sei al ${percent}%. Al ritmo di oggi le dodici settimane finiscono senza che tu sia operativo. Si rimedia solo parlando: comincia dalla tappa in corso, adesso.`,
   };
 }
 
@@ -237,12 +283,20 @@ export function markOf(value: number): number {
   return Math.max(1, Math.round((bounded / 10) * 2) / 2);
 }
 
+/**
+ * What a mark means, said as a demanding teacher would say it.
+ *
+ * The first version of this called a 6 "sufficiente: te la cavi", which is how
+ * a school marks a pass and exactly the wrong standard here: the bar is not
+ * passing, it is holding a meeting in English. A learner told they are doing
+ * fine at 6 stops working at 6.
+ */
 export function meaningOf(mark: number): string {
-  if (mark >= 9) return "Ci sei: qui sei autonomo anche sotto pressione.";
-  if (mark >= 7.5) return "Solido. Regge nelle situazioni vere, con qualche incertezza.";
-  if (mark >= 6) return "Sufficiente: te la cavi, ma ti costa fatica.";
-  if (mark >= 4.5) return "In costruzione: qui è dove si guadagna di più, adesso.";
-  return "Da costruire: è il punto più fragile, e per questo il più redditizio.";
+  if (mark >= 9) return "Solido. Reggi anche sotto pressione, con chi parla veloce.";
+  if (mark >= 7.5) return "Buono, non ancora automatico: in riunione vera perdi ancora dei pezzi.";
+  if (mark >= 6) return "Non basta. Te la cavi con chi ti aiuta, non con chi non ti aspetta.";
+  if (mark >= 4.5) return "Insufficiente: qui ti blocchi, e si sente. Va lavorato adesso.";
+  return "Grave. Finché resta così, tutto il resto vale la metà.";
 }
 
 export function marksFrom(state: Record<string, unknown> | null | undefined): Mark[] {

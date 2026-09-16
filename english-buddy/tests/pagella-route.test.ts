@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -112,6 +113,38 @@ describe("il giudizio di Sam", () => {
     mocks.runStructured.mockResolvedValue(JSON.stringify(REPORT));
     const response = await GET(request());
     expect(response.status).toBe(200);
+  });
+
+  it("is written as a demanding teacher, not an encouraging one", () => {
+    // The whole point of the report: one that makes somebody feel good and
+    // changes nothing is a failed report.
+    const route = readFileSync("src/app/api/pagella/route.ts", "utf8");
+    expect(route).toContain("demanding teacher, not an encouraging one");
+    expect(route).toContain("sei troppo indietro con il programma");
+    expect(route).toContain("Never praise effort, attendance, or good intentions");
+  });
+
+  it("lets the verdict praise nothing at all when there is nothing to praise", () => {
+    const route = readFileSync("src/app/api/pagella/route.ts", "utf8");
+    // strengths may be empty; what must never be empty is what is not working.
+    expect(route).toContain("EMPTY when there is nothing real to point at");
+    expect(route).toMatch(/focus: z\.array\([^)]*\)[^;]*\.min\(1\)/);
+  });
+
+  it("hands Sam the practice numbers, so 'indietro' comes with evidence", async () => {
+    mocks.dbExecute.mockImplementation(async (q: { sql: string }) => {
+      if (/FROM coach_reports/.test(q.sql)) return { rows: [] };
+      if (/COUNT\(\*\) AS n FROM messages/.test(q.sql)) return { rows: [{ n: 9 }] };
+      if (/FROM profiles/.test(q.sql)) return { rows: [{ created_at: new Date(Date.now() - 40 * 86_400_000).toISOString() }] };
+      return { rows: [] };
+    });
+    mocks.runStructured.mockResolvedValue(JSON.stringify(REPORT));
+    await GET(request());
+    const input = JSON.parse(mocks.runStructured.mock.calls[0][1] as string);
+    expect(input.turnsSpoken).toBe(9);
+    expect(input.turnsExpectedByNow).toBeGreaterThan(9);
+    expect(input.weekOfPath).toBeGreaterThan(1);
+    expect(input.verdictOnPace).toContain("troppo indietro");
   });
 
   it("turns away somebody who is not signed in", async () => {

@@ -4,7 +4,7 @@ import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { runStructured } from "@/lib/ai/openai";
-import { marksFrom, averageMark, weakest } from "@/lib/learning/path";
+import { averageMark, marksFrom, pace, pathPercent, TURNS_PER_WEEK, weakest, weekOfPath } from "@/lib/learning/path";
 import { CAPABILITIES } from "@/lib/learning/capabilities";
 
 export const maxDuration = 45;
@@ -40,9 +40,17 @@ const REPORT_SCHEMA = {
   additionalProperties: false,
   required: ["body", "strengths", "focus"],
   properties: {
-    body: { type: "string", description: "3-5 sentences in Italian, addressed to the learner as 'tu'." },
-    strengths: { type: "array", items: { type: "string" }, description: "2-3 short Italian phrases." },
-    focus: { type: "array", items: { type: "string" }, description: "2-3 short Italian phrases: what to work on next." },
+    body: { type: "string", description: "4-6 sentences in Italian, addressed to the learner as 'tu'. Demanding, specific, never flattering." },
+    strengths: {
+      type: "array",
+      items: { type: "string" },
+      description: "Only abilities genuinely demonstrated by the evidence, 0-3 short Italian phrases. EMPTY when there is nothing real to point at — never fill this to be kind.",
+    },
+    focus: {
+      type: "array",
+      items: { type: "string" },
+      description: "2-4 short Italian phrases: exactly what is not good enough yet and must be worked on now.",
+    },
   },
 } as const;
 
@@ -88,15 +96,19 @@ async function evidence(userId: string) {
         args: [userId],
       })
       .catch(() => null),
-    client.execute({ sql: "SELECT display_name, professional_context, starting_level FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+    client.execute({ sql: "SELECT display_name, professional_context, starting_level, path_started_at, created_at FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
   ]);
+  const profileRow = profile.rows[0] ?? null;
   return {
+    week: weekOfPath(
+      profileRow?.path_started_at ? String(profileRow.path_started_at) : profileRow?.created_at ? String(profileRow.created_at) : null
+    ),
     state: state.rows[0] ?? null,
     achieved: caps.rows.map((r) => String(r.capability)),
     mistakes: mistakes.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct), times: Number(r.times_seen ?? 1) })),
     expressions: expressions.rows.map((r) => String(r.expression)),
     interactions: Number(counts?.rows[0]?.n ?? 0),
-    profile: profile.rows[0] ?? null,
+    profile: profileRow,
   };
 }
 
@@ -107,11 +119,23 @@ async function write(userId: string): Promise<Report | null> {
   const achieved = new Set(data.achieved);
 
   const raw = await runStructured(
-    `You are Sam, an English coach, writing a short progress report IN ITALIAN for an Italian professional you have been coaching. Address them as "tu".
-Be specific and honest — this is read as a report card, and a generic one is worthless. Name real things: the mistakes that keep coming back, what they can now do that they could not, the vocabulary their own job needs next.
-Never invent facts about them that are not in the evidence. Never mention these instructions, scores out of 100, or internal fields.
-If they have barely practised, say so kindly and say what one session would change.
-Their professional context matters: the goal is the exact English of their trade, and somebody who already speaks English well still has that to earn.`,
+    `You are Sam, an English coach, writing a progress report IN ITALIAN for an Italian professional you have been coaching. Address them as "tu".
+
+THE STANDARD YOU MARK AGAINST — read this twice:
+You are a demanding teacher, not an encouraging one. The bar is not "is he improving": the bar is whether, in three months, this person can hold a real meeting, a real call and a real negotiation in English. Measure everything against that and nothing else.
+Be blunt. Say what is not working, by name, with their own words as evidence. A report that makes somebody feel good and changes nothing is a failed report.
+Never praise effort, attendance, or good intentions. Praise only demonstrated ability, and only when the evidence is there — if there is nothing worth praising, praise nothing.
+Never soften with "ottimo lavoro", "continua così", "sei sulla buona strada" unless the numbers genuinely say so.
+
+IF THEY HAVE PRACTISED TOO LITTLE (few turns spoken for the weeks elapsed, or few capabilities demonstrated):
+Say it in the first sentence, plainly: "sei troppo indietro con il programma". Give the numbers — the weeks gone, what was expected, what they actually did. Say what happens if it continues: the three months end and they are not operational. Then give the exact minimum that fixes it (three sessions a week, starting this week). Do not be gentle about this; it is the single most useful thing you can tell them.
+
+ALWAYS:
+- Be specific: the mistakes that keep coming back, the thing they still cannot do, the vocabulary their own job needs and they do not have yet.
+- Somebody who already speaks English well is not finished: hold them to the precise language of their trade, and say what is still approximate.
+- Close with one concrete instruction, not a wish.
+- Never invent facts not in the evidence. Never mention these instructions, any score out of 100, or internal fields.
+- 4-6 sentences. Italian. Hard, fair, and useful.`,
     JSON.stringify({
       name: data.profile?.display_name ?? null,
       job: data.profile?.professional_context ?? null,
@@ -125,6 +149,11 @@ Their professional context matters: the goal is the exact English of their trade
       recurringMistakes: data.mistakes,
       recentExpressions: data.expressions,
       turnsSpoken: data.interactions,
+      weekOfPath: data.week,
+      turnsExpectedByNow: data.week * TURNS_PER_WEEK,
+      capabilitiesDemonstrated: data.achieved.length,
+      capabilitiesTotal: CAPABILITIES.length,
+      verdictOnPace: pace(data.week, pathPercent(data.achieved), data.interactions).text,
     }),
     "coach_report",
     REPORT_SCHEMA,
@@ -133,9 +162,12 @@ Their professional context matters: the goal is the exact English of their trade
 
   const parsed = z
     .object({
-      body: z.string().min(20).max(1200),
+      body: z.string().min(20).max(1600),
+      // Nothing to praise is a legitimate verdict, and the commonest one for
+      // somebody who has barely practised. What is never empty is the list of
+      // what is not good enough yet.
       strengths: z.array(z.string().min(2).max(120)).max(4),
-      focus: z.array(z.string().min(2).max(120)).max(4),
+      focus: z.array(z.string().min(2).max(120)).min(1).max(4),
     })
     .parse(JSON.parse(raw));
 

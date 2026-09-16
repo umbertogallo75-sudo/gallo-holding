@@ -51,7 +51,8 @@ export function CoachVerdict() {
       <section className="card">
         <div className="kicker">Il giudizio di Sam</div>
         <p className="muted" style={{ margin: "8px 0 0" }}>
-          Arriva dopo qualche conversazione: senza averti sentito parlare, un giudizio sarebbe inventato.
+          Non c&rsquo;è ancora niente da giudicare: senza averti sentito parlare, qualsiasi voto sarebbe inventato. Fai una
+          conversazione e torna qui.
         </p>
       </section>
     );
@@ -63,7 +64,7 @@ export function CoachVerdict() {
       <p style={{ margin: "8px 0 0", fontSize: 15.5, lineHeight: 1.6 }}>{report.body}</p>
       {report.strengths.length ? (
         <>
-          <h3 className="verdictHead">Su cosa puoi contare</h3>
+          <h3 className="verdictHead">Cosa ti riconosco</h3>
           <ul className="verdictList">
             {report.strengths.map((line, i) => <li key={i}>✓ {line}</li>)}
           </ul>
@@ -71,7 +72,7 @@ export function CoachVerdict() {
       ) : null}
       {report.focus.length ? (
         <>
-          <h3 className="verdictHead">Dove conviene lavorare adesso</h3>
+          <h3 className="verdictHead">Cosa non va ancora bene</h3>
           <ul className="verdictList verdictFocus">
             {report.focus.map((line, i) => <li key={i}>→ {line}</li>)}
           </ul>

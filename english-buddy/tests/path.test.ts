@@ -10,6 +10,7 @@ import {
   STAGES,
   stageProgress,
   timePercent,
+  TURNS_PER_WEEK,
   weakest,
   weekOfPath,
 } from "@/lib/learning/path";
@@ -95,26 +96,62 @@ describe("the week you are in", () => {
 });
 
 describe("saying the gap out loud", () => {
-  it("tells somebody who is behind that they are, and that it is recoverable", () => {
-    const verdict = pace(9, 10);
+  /**
+   * A progress screen that congratulates somebody who has done almost nothing
+   * is worse than none: it tells them they are fine, and they stop. The
+   * standard here is not "is he improving" — it is whether he will hold a
+   * meeting in English in three months.
+   */
+  it("tells somebody who has barely practised that they are too far behind", () => {
+    const verdict = pace(6, 20, 10);
+    expect(verdict.tone).toBe("critical");
+    expect(verdict.text).toContain("troppo indietro con il programma");
+    // With the numbers, because "sei indietro" on its own is an opinion.
+    expect(verdict.text).toContain("10");
+    expect(verdict.text).toContain("tre sessioni a settimana");
+  });
+
+  it("says it even to somebody whose percentage looks respectable", () => {
+    // Capabilities without evidence behind them are the easiest way to
+    // believe you are doing fine.
+    expect(pace(8, 60, 12).tone).toBe("critical");
+  });
+
+  it("is merely firm with somebody who is practising but a bit behind", () => {
+    const verdict = pace(6, timePercent(6) - 20, 6 * TURNS_PER_WEEK);
     expect(verdict.tone).toBe("behind");
-    expect(verdict.text).toContain("si recupera");
+    expect(verdict.text).toContain("Recuperabile");
+    expect(verdict.text).toContain("due sessioni in più");
   });
 
   it("does not scold somebody who is broadly on track", () => {
-    expect(pace(6, timePercent(6)).tone).toBe("on");
-    expect(pace(6, timePercent(6) - 10).tone).toBe("on");
+    const practised = 6 * TURNS_PER_WEEK;
+    expect(pace(6, timePercent(6), practised).tone).toBe("on");
+    expect(pace(6, timePercent(6) - 10, practised).tone).toBe("on");
   });
 
-  it("notices somebody who is ahead", () => {
-    expect(pace(3, 60).tone).toBe("ahead");
+  it("does not congratulate anybody for attendance", () => {
+    const onTrack = pace(6, timePercent(6), 6 * TURNS_PER_WEEK).text;
+    expect(onTrack).not.toMatch(/bravo|ottimo|complimenti/i);
   });
 
-  it("never says the path expired", () => {
-    const over = pace(20, 30);
-    expect(over.tone).toBe("over");
-    expect(over.text).toContain("non scade");
-    expect(pace(20, 95).text).toContain("mestiere");
+  it("notices somebody who is ahead, and pushes them further", () => {
+    const verdict = pace(3, 60, 3 * TURNS_PER_WEEK);
+    expect(verdict.tone).toBe("ahead");
+    expect(verdict.text).toContain("alzare l'asticella");
+  });
+
+  it("gives a beginner one week before judging their pace", () => {
+    // Nobody is behind on day two.
+    expect(pace(1, 0, 0).tone).not.toBe("critical");
+  });
+
+  it("never says the path expired, and never calls an unfinished one finished", () => {
+    const abandoned = pace(20, 30, 40);
+    expect(abandoned.tone).toBe("critical");
+    expect(abandoned.text).toContain("non scade");
+    expect(abandoned.text).toContain("lasciato a metà");
+    expect(pace(20, 95, 400).text).toContain("mestiere");
   });
 });
 
@@ -135,6 +172,16 @@ describe("il pagellino", () => {
     expect(marks).toHaveLength(8);
     expect(marks.every((m) => m.mark === 5)).toBe(true);
     expect(averageMark(marks)).toBe(5);
+  });
+
+  it("holds a six to the real bar, not to a school pass", () => {
+    // "Sufficiente: te la cavi" was the wrong standard: a learner told they
+    // are fine at 6 stops working at 6.
+    const [listening] = marksFrom({ listening: 60 });
+    expect(listening.meaning).toContain("Non basta");
+    expect(marksFrom({ listening: 50 })[0].meaning).toContain("Insufficiente");
+    expect(marksFrom({ listening: 20 })[0].meaning).toContain("Grave");
+    expect(marksFrom({ listening: 95 })[0].meaning).toContain("Solido");
   });
 
   it("says what each mark means and what to do about it", () => {

@@ -34,10 +34,13 @@ const CAP_LABELS = new Map(CAPABILITIES.map((c) => [c.key as string, c.it]));
 export default async function PercorsoPage() {
   const userId = await requireUserId();
   const database = db();
-  const [stateResult, capsResult, profileResult] = await Promise.all([
+  const [stateResult, capsResult, profileResult, turnsResult] = await Promise.all([
     database.execute({ sql: "SELECT * FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
     database.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
     database.execute({ sql: "SELECT path_started_at, created_at, professional_context, weekly_focus FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
+    // How much was actually practised: a percentage with no evidence behind it
+    // is the thing that lets somebody believe they are doing fine.
+    database.execute({ sql: "SELECT COUNT(*) AS n FROM messages WHERE user_id = ? AND role = 'user'", args: [userId] }).catch(() => null),
   ]);
   const profile = profileResult.rows[0];
   if (!profile) redirect("/onboarding");
@@ -48,7 +51,8 @@ export default async function PercorsoPage() {
   const week = weekOfPath(profile.path_started_at ? String(profile.path_started_at) : profile.created_at ? String(profile.created_at) : null);
   const percent = pathPercent(achieved);
   const onTime = timePercent(week);
-  const verdict = pace(week, percent);
+  const turns = Number(turnsResult?.rows[0]?.n ?? 0);
+  const verdict = pace(week, percent, turns);
   const marks = marksFrom(stateResult.rows[0] ?? null);
   const average = averageMark(marks);
   const toWorkOn = weakest(marks);
@@ -139,8 +143,8 @@ export default async function PercorsoPage() {
       <div className="sectionHead"><h2>Il pagellino</h2><span className={styles.avg}>media {average.toFixed(1)}</span></div>
       <section className="card">
         <p className="itHint" style={{ marginTop: 0 }}>
-          Voti da 1 a 10, dati da Sam: non sono un test, sono la stima che aggiorna a ogni scambio su quello che ti
-          sente fare davvero.
+          Voti da 1 a 10, dati da Sam a ogni scambio su quello che ti sente fare davvero. Non sono voti di scuola: il 6
+          qui non è una promozione, è «non basta ancora per una riunione vera».
         </p>
         <div className={styles.marks}>
           {marks.map((mark) => (
@@ -174,7 +178,8 @@ export default async function PercorsoPage() {
       <CoachVerdict />
 
       <p className="itHint" style={{ textAlign: "center", margin: "16px 0 4px" }}>
-        Le tappe non si superano con il tempo: si superano parlando. Sam le segna quando te le vede fare davvero.
+        Le tappe non si superano con il tempo: si superano parlando. Sam le segna solo quando te le vede fare davvero —
+        non si regalano.
       </p>
 
       <BottomNav active="progress" />
