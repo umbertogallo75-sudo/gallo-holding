@@ -25,7 +25,7 @@ vi.mock("@/lib/learning/service", () => ({ ensureProfile: mocks.ensureProfile, s
 vi.mock("@/lib/ai/openai", () => ({ runStructured: mocks.runStructured }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: mocks.rateLimit, clientKey: () => "k" }));
 
-import { POST } from "@/app/api/frasi/route";
+import { DELETE, POST } from "@/app/api/frasi/route";
 
 /**
  * "Ricorda frase", asked for by testers in both places English happens.
@@ -105,6 +105,49 @@ describe("keeping a phrase", () => {
   });
 });
 
+describe("taking a phrase back out", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.afterCalls.length = 0;
+    mocks.getUserId.mockResolvedValue("u1");
+    mocks.rateLimit.mockReturnValue({ allowed: true });
+    mocks.dbExecute.mockResolvedValue({ rows: [] });
+    mocks.db.mockReturnValue({ execute: mocks.dbExecute });
+  });
+
+  it("removes exactly the phrase asked for, and only this learner's", async () => {
+    // A star that only fills is a trap: a phrase saved by a mistyped tap would
+    // keep coming back in the reviews and in the gym for weeks.
+    const response = await DELETE(
+      new Request("https://www.execlingo.it/api/frasi", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Let me get back to you" }),
+      })
+    );
+    expect(response.status).toBe(200);
+    const call = mocks.dbExecute.mock.calls[0][0];
+    expect(call.sql).toContain("DELETE FROM expressions WHERE user_id = ? AND expression = ?");
+    expect(call.args).toEqual(["u1", "Let me get back to you"]);
+  });
+
+  it("matches the phrase the way it was stored, spacing tidied", async () => {
+    await DELETE(
+      new Request("https://www.execlingo.it/api/frasi?text=Let%20me%20%20get%20back", { method: "DELETE" })
+    );
+    expect(mocks.dbExecute.mock.calls[0][0].args[1]).toBe("Let me get back");
+  });
+
+  it("turns away somebody who is not signed in", async () => {
+    mocks.getUserId.mockResolvedValue(null);
+    const response = await DELETE(
+      new Request("https://www.execlingo.it/api/frasi?text=anything", { method: "DELETE" })
+    );
+    expect(response.status).toBe(401);
+    expect(mocks.dbExecute).not.toHaveBeenCalled();
+  });
+});
+
 describe("where a phrase can be kept from", () => {
   const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
   const voice = readFileSync("src/app/voice/VoiceClient.tsx", "utf8");
@@ -125,5 +168,52 @@ describe("where a phrase can be kept from", () => {
 
   it("and from a conversation being reread later", () => {
     expect(transcript).toContain('from="transcript"');
+  });
+
+  it("and every star can be tapped again to take it back out", () => {
+    const button = readFileSync("src/components/RememberPhrase.tsx", "utf8");
+    expect(button).toContain('method: removing ? "DELETE" : "POST"');
+    expect(button).toContain('aria-pressed={state === "saved"}');
+    // Including in the phrasebook itself, where the row then disappears
+    // rather than waiting for a reload.
+    const row = readFileSync("src/components/PhraseRow.tsx", "utf8");
+    expect(row).toContain("onChange={(saved) => setGone(!saved)}");
+  });
+});
+
+describe("finding the phrasebook", () => {
+  it("is one tap from both places phrases are made", () => {
+    // "dov'è il menu, il frasario non lo si trova": it was a card a long way
+    // down the home screen and a link at the foot of another page.
+    expect(readFileSync("src/app/buddy/page.tsx", "utf8")).toContain('href="/phrasebook"');
+    expect(readFileSync("src/app/voice/page.tsx", "utf8")).toContain('href="/phrasebook"');
+  });
+
+  it("sits with the sessions on the home screen, above the catalogue", () => {
+    const home = readFileSync("src/app/home/page.tsx", "utf8");
+    const phrases = home.indexOf('href="/phrasebook"');
+    const catalogue = home.indexOf("The catalogue, shown rather than linked");
+    expect(phrases).toBeGreaterThan(-1);
+    expect(phrases).toBeLessThan(catalogue);
+  });
+});
+
+describe("reopening a conversation from the archive", () => {
+  it("offers it at the end of the transcript, which is where you decide", () => {
+    const page = readFileSync("src/app/sessioni/[id]/page.tsx", "utf8");
+    expect(page).toContain("Vuoi riaprire questa sessione?");
+    expect(page).toContain("`/voice?riprendi=${encodeURIComponent(id)}`");
+    expect(page).toContain("`/buddy?riprendi=${encodeURIComponent(id)}`");
+  });
+
+  it("goes straight into that conversation rather than offering a choice again", () => {
+    const chatSource = readFileSync("src/components/BuddyChat.tsx", "utf8");
+    expect(chatSource).toMatch(/if \(reopen\) \{\s*await resume\(reopen\);/);
+  });
+
+  it("but still waits for a tap before opening a microphone", () => {
+    const voiceSource = readFileSync("src/app/voice/VoiceClient.tsx", "utf8");
+    expect(voiceSource).toContain("setResumable({");
+    expect(voiceSource).not.toMatch(/if \(reopen\)[\s\S]{0,200}void start\(/);
   });
 });

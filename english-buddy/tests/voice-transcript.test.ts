@@ -42,7 +42,10 @@ describe("spoken and written stay on their own side", () => {
   });
 
   it("the microphone only ever offers back something that was spoken", () => {
-    expect(client).toContain('fetch("/api/sessioni?kind=voice")');
+    // Unless the archive named one: reopening a conversation on purpose is
+    // not the same question as "was anything left unfinished?".
+    expect(client).toContain('"/api/sessioni?kind=voice"');
+    expect(client).toContain('`/api/sessioni?id=${encodeURIComponent(reopen)}`');
   });
 
   it("every spoken mode has a name on the list of sessions", () => {

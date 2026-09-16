@@ -97,7 +97,7 @@ function AssistantBubble({ content }: { content: string }) {
   );
 }
 
-export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:string; initialQuestion?:string; first?:boolean; doc?:string }) {
+export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }: { mode:string; initialQuestion?:string; first?:boolean; doc?:string; reopen?:string }) {
   const [messages, setMessages] = useState<Msg[]>(
     initialQuestion ? [{ role:"assistant", content:initialQuestion }] : []
   );
@@ -281,6 +281,12 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     if (started.current) return;
     started.current = true;
     void (async () => {
+      // Arrived from the archive with a conversation already chosen: no offer
+      // to make, no new conversation to open — this is the one they picked.
+      if (reopen) {
+        await resume(reopen);
+        return;
+      }
       if (!initialQuestion) {
         try {
           // Written only: a conversation you had out loud is not something to

@@ -189,6 +189,26 @@ export default async function HomePage() {
       </Link>
     </div>
 
+    {/* The archive. It sits with the other doors rather than inside the chat
+        because it belongs to both halves of the app: the conversations you
+        typed and the ones you had out loud are one history, and the only
+        place that is true of is here. */}
+    <Link href="/sessioni" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="session_opened" data-where="home">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 14%, var(--surface))" }}>🗂️</span>
+      <div>
+        <div className="modeTitle">Le tue sessioni</div>
+        <div className="modeMeta">Riprendi quella lasciata a metà, o rileggi le conversazioni — scritte e a voce</div>
+      </div>
+    </Link>
+
+    <Link href="/phrasebook" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="home_shortcut" data-where="phrasebook">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 16%, var(--surface))" }}>★</span>
+      <div>
+        <div className="modeTitle">Le tue frasi</div>
+        <div className="modeMeta">Quelle che hai deciso di tenere e quelle che Sam ti ha insegnato, con l&rsquo;audio</div>
+      </div>
+    </Link>
+
     {/* The catalogue, shown rather than linked. A dashed line saying "tutti gli
         allenamenti" was the weakest thing on this page and nobody interviewed
         had ever noticed it; four cards you can see and push sideways say there
@@ -227,26 +247,6 @@ export default async function HomePage() {
       <div>
         <div className="modeTitle">Palestra</div>
         <div className="modeMeta">Ripetizioni brevi sulle parole che hai sbagliato. Due minuti che contano come ripasso</div>
-      </div>
-    </Link>
-
-    {/* The archive. It sits with the other doors rather than inside the chat
-        because it belongs to both halves of the app: the conversations you
-        typed and the ones you had out loud are one history, and the only
-        place that is true of is here. */}
-    <Link href="/sessioni" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="session_opened" data-where="home">
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 14%, var(--surface))" }}>🗂️</span>
-      <div>
-        <div className="modeTitle">Le tue sessioni</div>
-        <div className="modeMeta">Riprendi quella lasciata a metà, o rileggi le conversazioni — scritte e a voce</div>
-      </div>
-    </Link>
-
-    <Link href="/phrasebook" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="home_shortcut" data-where="phrasebook">
-      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 16%, var(--surface))" }}>★</span>
-      <div>
-        <div className="modeTitle">Le tue frasi</div>
-        <div className="modeMeta">Quelle che hai deciso di tenere e quelle che Sam ti ha insegnato, con l&rsquo;audio</div>
       </div>
     </Link>
 

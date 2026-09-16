@@ -59,13 +59,29 @@ export default async function SessionePage({ params }: { params: Promise<{ id: s
         ))}
       </div>
 
-      <p className="itHint" style={{ textAlign: "center", margin: "16px 0 4px" }}>
-        {spoken ? (
-          <>Questa è la trascrizione di quello che vi siete detti: per riprendere a parlare torna a <Link href="/voice">Sam a voce</Link>.</>
-        ) : (
-          <>Questa è una rilettura: per continuare a parlare apri una <Link href="/buddy">nuova conversazione</Link>.</>
-        )}
-      </p>
+      {/* The end of a conversation is exactly where somebody decides they want
+          it back: reading the last thing you said is what reminds you it was
+          never finished. */}
+      <section className="card" style={{ display: "grid", gap: 10, marginTop: 16 }}>
+        <strong style={{ fontSize: 15.5 }}>Vuoi riaprire questa sessione?</strong>
+        <span className="muted" style={{ fontSize: 14 }}>
+          {spoken
+            ? "Sam riprende da queste battute: non ricomincia da capo e non ti richiede quello che gli hai già detto."
+            : "Sam riprende da qui, con questa conversazione davanti: non ricomincia da capo."}
+        </span>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link
+            className="pill"
+            href={spoken ? `/voice?riprendi=${encodeURIComponent(id)}` : `/buddy?riprendi=${encodeURIComponent(id)}`}
+            data-track="session_resumed"
+          >
+            ↩︎ {spoken ? "Riprendi a voce" : "Riprendi a scrivere"}
+          </Link>
+          <Link className="pill" href={spoken ? "/voice" : "/buddy"}>
+            {spoken ? "Nuova conversazione a voce" : "Nuova conversazione"}
+          </Link>
+        </div>
+      </section>
 
       <BottomNav active="home" />
     </main>

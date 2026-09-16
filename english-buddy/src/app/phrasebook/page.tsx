@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { AddPhrase } from "@/components/AddPhrase";
 import { BottomNav } from "@/components/BottomNav";
-import { Copy } from "@/components/Copy";
-import { Speak } from "@/components/Speak";
+import { PhraseRow } from "@/components/PhraseRow";
 import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -21,13 +20,7 @@ export default async function PhrasebookPage() {
   const mastered = result.rows.filter((r) => Number(r.mastered));
 
   const renderRow = (row: (typeof result.rows)[number], index: number) => (
-    <div key={index} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, padding: "11px 0", borderBottom: "1px solid var(--line)" }}>
-      <div>
-        <strong style={{ fontSize: 16 }}>{String(row.expression)}</strong>
-        {row.meaning ? <div className="itHint">{String(row.meaning)}</div> : null}
-      </div>
-      <span style={{ display: "flex", gap: 4, flexShrink: 0 }}><Speak text={String(row.expression)} compact /><Copy text={String(row.expression)} /></span>
-    </div>
+    <PhraseRow key={index} text={String(row.expression)} meaning={row.meaning ? String(row.meaning) : null} />
   );
 
   return (

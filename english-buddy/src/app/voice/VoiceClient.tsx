@@ -107,7 +107,7 @@ function newSessionId(): string {
   }
 }
 
-export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactNode }) {
+export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: React.ReactNode; reopen?: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -262,14 +262,28 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     lookedRef.current = true;
     void (async () => {
       try {
-        const response = await fetch("/api/sessioni?kind=voice");
+        // Arrived from the archive with one already chosen, or asking which
+        // one was left unfinished. Either way the answer is an offer, never an
+        // automatic call: opening a microphone needs a deliberate tap.
+        const response = await fetch(reopen ? `/api/sessioni?id=${encodeURIComponent(reopen)}` : "/api/sessioni?kind=voice");
         const data = await response.json();
-        if (response.ok && data.resumable) setResumable(data.resumable);
+        if (!response.ok) return;
+        if (reopen && Array.isArray(data.transcript) && data.transcript.length) {
+          const firstUser = data.transcript.find((line: { role: string; content: string }) => line.role === "user");
+          setResumable({
+            id: reopen,
+            lastAt: "",
+            exchanges: data.facts?.exchanges ?? 0,
+            preview: firstUser?.content?.slice(0, 120),
+          });
+          return;
+        }
+        if (data.resumable) setResumable(data.resumable);
       } catch {
         // No offer, no harm: the start button is right there.
       }
     })();
-  }, []);
+  }, [reopen]);
 
   /**
    * Keep the newest line in view.

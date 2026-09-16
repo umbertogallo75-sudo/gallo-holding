@@ -74,6 +74,30 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, saved: text });
 }
 
+/**
+ * Taking one back out.
+ *
+ * A star you cannot un-star is a trap: the phrase saved by a mistyped tap
+ * stays in the phrasebook, comes back in the reviews, and turns up in the gym
+ * — so the cost of a wrong tap is not zero, it is weeks of being quizzed on
+ * something nobody meant to keep.
+ */
+export async function DELETE(request: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const url = new URL(request.url);
+  const fromQuery = url.searchParams.get("text");
+  const body = fromQuery ? null : ((await request.json().catch(() => null)) as { text?: string } | null);
+  const text = (fromQuery ?? body?.text ?? "").replace(/\s+/g, " ").trim();
+  if (text.length < 2 || text.length > 300) return NextResponse.json({ error: "Frase non valida" }, { status: 400 });
+
+  await db()
+    .execute({ sql: "DELETE FROM expressions WHERE user_id = ? AND expression = ?", args: [userId, text] })
+    .catch(() => null);
+  return NextResponse.json({ ok: true, removed: text });
+}
+
 /** What is in the phrasebook, newest first. */
 export async function GET() {
   const userId = await getUserId();
