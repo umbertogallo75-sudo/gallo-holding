@@ -29,12 +29,10 @@ export type FunnelEvent =
   // Which conversation engine a learner picked for the voice call: the only
   // way to tell whether the full-duplex one is actually preferred.
   // Sessions you come back to: resumed, deliberately finished, or reread.
-  // Who is allowed to be heard, and when: the two controls added after
-  // testers described a colleague walking in mid-lesson.
+  // The microphone switch, added after testers described a colleague walking
+  // in mid-lesson and Sam correcting a sentence nobody said to him.
   | "voice_paused"
   | "voice_resumed"
-  | "voice_ptt_on"
-  | "voice_ptt_off"
   /** A phrase the learner chose to keep, rather than one Sam chose for them. */
   | "phrase_saved"
   | "session_resumed"

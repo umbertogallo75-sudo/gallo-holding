@@ -62,7 +62,7 @@ describe("a session is the next step, not another first one", () => {
 });
 
 describe("who can be heard during a spoken lesson", () => {
-  it("can be paused without ending the call", () => {
+  it("can be closed and reopened without ending the call", () => {
     expect(voice).toContain("function pauseCall()");
     expect(voice).toContain("function resumeCall()");
     // The connection stays open, so coming back is immediate rather than a
@@ -70,26 +70,49 @@ describe("who can be heard during a spoken lesson", () => {
     expect(voice).not.toMatch(/function pauseCall\(\)[\s\S]{0,400}pcRef\.current\?\.close/);
   });
 
-  it("stops the clock and Sam's voice while paused", () => {
+  it("stops the clock and Sam's voice while the microphone is shut", () => {
     const body = voice.slice(voice.indexOf("function pauseCall()"), voice.indexOf("/** And back."));
     expect(body).toContain("pauseClock()");
     expect(body).toContain("audioRef.current?.pause()");
     expect(body).toContain("applyMic()");
   });
 
-  it("keeps the microphone shut in push-to-talk until the button is held", () => {
-    expect(voice).toContain("const open = !pausedRef.current && (!pttRef.current || talkingRef.current)");
-    // Disabled, not stopped: a stopped track needs the permission prompt again.
+  it("closes the microphone without stopping the track", () => {
+    // A stopped track cannot be restarted without asking for the microphone
+    // again, which on iOS means a permission prompt mid-lesson.
+    expect(voice).toContain("const open = !pausedRef.current");
     expect(voice).toContain("track.enabled = open");
-    expect(voice).not.toMatch(/function applyMic\(\)[\s\S]{0,300}getAudioTracks\(\)\.forEach\(\(t\) => t\.stop\(\)\)/);
+    expect(voice).not.toMatch(/function applyMic\(\)[\s\S]{0,300}\.stop\(\)/);
   });
 
-  it("closes the microphone again if the finger slides off the button", () => {
-    expect(voice).toContain("onPointerCancel={holdEnd}");
-    expect(voice).toContain("onLostPointerCapture={holdEnd}");
+  it("is one switch you tap, not a button you hold", () => {
+    // Hold-to-talk was the first attempt and the thumb covered the transcript,
+    // which is where you read what Sam just said.
+    expect(voice).toContain('{paused ? "🎙️ Avvia per parlare" : "⏸ Pausa"}');
+    expect(voice).toContain("onClick={paused ? resumeCall : pauseCall}");
+    expect(voice).not.toContain("onPointerDown");
+    expect(voice).not.toContain("Tieni premuto");
   });
 
   it("does not restart the clock behind a pause", () => {
     expect(voice).toContain("if (!pausedRef.current) startClock()");
+  });
+});
+
+describe("the call card holds what is put in it", () => {
+  const css = readFileSync("src/app/globals.css", "utf8");
+
+  it("is a column, not a grid of exactly three columns", () => {
+    // It was `grid-template-columns: auto 1fr auto`, which works until a
+    // fourth child arrives — then the controls are dealt into those columns
+    // and slide off the side of the phone.
+    const rule = css.slice(css.indexOf(".voiceLive {"), css.indexOf(".voiceHead {"));
+    expect(rule).toContain("flex-direction:column");
+    expect(rule).not.toContain("grid-template-columns");
+  });
+
+  it("gives the head and the controls their own rows", () => {
+    expect(css).toContain(".voiceHead { display:flex;");
+    expect(css).toContain(".voiceControls { display:flex;");
   });
 });

@@ -95,16 +95,6 @@ function lastEngine(): VoiceEngine {
   }
 }
 
-/** Whether this device asked for push-to-talk last time. */
-const PTT_KEY = "execlingo-voice-ptt";
-function lastPtt(): boolean {
-  try {
-    return window.localStorage.getItem(PTT_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
 /** An id for the row this call writes into, made before the call connects. */
 function newSessionId(): string {
   try {
@@ -183,19 +173,19 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   /**
    * Who is allowed to be heard, and when.
    *
-   * A spoken lesson does not happen in a studio. Somebody walks into the
-   * room, you answer them, the television is on — and Sam, who cannot tell
-   * your colleague from you, takes all of it as English practice and corrects
-   * a sentence nobody addressed to him. Two controls, because the two
-   * problems are different: one for "wait, I am not talking to you", and one
-   * for "I am talking to you now, and only now".
+   * A spoken lesson does not happen in a studio: somebody walks into the room,
+   * you answer them, the television is on — and Sam, who cannot tell your
+   * colleague from you, takes all of it as English practice and corrects a
+   * sentence nobody addressed to him.
+   *
+   * This was first built as hold-to-talk, and holding the button turned out to
+   * be the wrong instrument: a thumb parked on the screen covers the
+   * transcript, and the transcript is where you read what Sam just said. So it
+   * is one switch instead — closed while you deal with the room, open when you
+   * are talking to Sam — and both states are visible without holding anything.
    */
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
-  const [ptt, setPtt] = useState(false);
-  const pttRef = useRef(false);
-  const [talking, setTalking] = useState(false);
-  const talkingRef = useRef(false);
   /** A spoken conversation left unfinished, offered back on the way in. */
   const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number; preview?: string } | null>(null);
   const [resumedFrom, setResumedFrom] = useState(0);
@@ -403,9 +393,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
    * somebody is talking to a colleague.
    */
   function applyMic() {
-    const open = !pausedRef.current && (!pttRef.current || talkingRef.current);
+    const open = !pausedRef.current;
     streamRef.current?.getAudioTracks().forEach((track) => { track.enabled = open; });
-    orbRef.current?.style.setProperty("--level", open ? orbRef.current.style.getPropertyValue("--level") || "0" : "0");
+    if (!open) orbRef.current?.style.setProperty("--level", "0");
   }
 
   /** Everything stops: the microphone, the clock, and Sam mid-sentence. */
@@ -431,31 +421,6 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     try { void audioRef.current?.play().catch(() => null); } catch { /* ignore */ }
     if (!document.hidden) startClock();
     track("voice_resumed", { where: engineRef.current });
-  }
-
-  /** Push-to-talk: the microphone is shut until somebody holds the button. */
-  function setPushToTalk(on: boolean) {
-    pttRef.current = on;
-    setPtt(on);
-    talkingRef.current = false;
-    setTalking(false);
-    applyMic();
-    try { window.localStorage.setItem(PTT_KEY, on ? "1" : "0"); } catch { /* private browsing */ }
-    track(on ? "voice_ptt_on" : "voice_ptt_off", { where: engineRef.current });
-  }
-
-  function holdStart() {
-    if (pausedRef.current) return;
-    talkingRef.current = true;
-    setTalking(true);
-    applyMic();
-  }
-
-  function holdEnd() {
-    if (!talkingRef.current) return;
-    talkingRef.current = false;
-    setTalking(false);
-    applyMic();
   }
 
   function startClock() {
@@ -647,8 +612,6 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     sessionRef.current = newSessionId(); seqRef.current = 0; pendingRef.current = []; flushingRef.current = false;
     legRef.current = Math.random().toString(36).slice(2, 8);
     pausedRef.current = false; setPaused(false);
-    talkingRef.current = false; setTalking(false);
-    pttRef.current = lastPtt(); setPtt(pttRef.current);
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
@@ -679,10 +642,6 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       streamRef.current = stream;
-      // Whatever this device chose last time applies from the first second,
-      // not from the first tap: somebody who turned push-to-talk on did so
-      // because an open microphone was the problem.
-      applyMic();
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
@@ -892,72 +851,49 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       {status === "live" ? (
         <div className="voiceStage">
           <section className="card voiceLive">
-            <div
-              ref={orbRef}
-              className={
-                interrupted === "paused" || paused || (ptt && !talking)
-                  ? "voiceOrb"
-                  : `voiceOrb pulsing voiceOrbLive${phase === "hearing" || talking ? " listening" : ""}`
-              }
-            >
-              {paused ? "⏸" : "🎙️"}
+            {/* The card is a column, and the head is its own row.
+                It used to be a three-column grid — orb, timer, stop — which
+                worked exactly as long as there were three children. Adding
+                the controls put them into the same three columns, and they
+                spilled off the side of the phone. */}
+            <div className="voiceHead">
+              <div
+                ref={orbRef}
+                className={
+                  interrupted === "paused" || paused
+                    ? "voiceOrb"
+                    : `voiceOrb pulsing voiceOrbLive${phase === "hearing" ? " listening" : ""}`
+                }
+              >
+                {paused ? "⏸" : "🎙️"}
+              </div>
+              <p className="voiceTimer">
+                <span className="voicePhase">
+                  {paused ? "Microfono chiuso" : interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}
+                  {phase === "thinking" && !interrupted && !paused ? <span className="voiceDots" aria-hidden>…</span> : null}
+                </span>
+                {/* Only there when the two sit on one line; the stylesheet
+                    stacks them on a phone and hides it. */}
+                <span className="voiceSep" aria-hidden> · </span>
+                <span className="voiceClock">{mm}:{ss}</span>
+              </p>
             </div>
-            <p className="voiceTimer">
-              <span className="voicePhase">
-                {paused
-                  ? "In pausa"
-                  : interrupted === "paused"
-                    ? "In pausa"
-                    : ptt && !talking
-                      ? "Microfono chiuso"
-                      : PHASE_LABEL[phase]}
-                {phase === "thinking" && !interrupted && !paused ? <span className="voiceDots" aria-hidden>…</span> : null}
-              </span>
-              {/* Only there when the two sit on one line; the stylesheet stacks
-                  them on a phone and hides it. */}
-              <span className="voiceSep" aria-hidden> · </span>
-              <span className="voiceClock">{mm}:{ss}</span>
+
+            <p className="voiceHint">
+              {paused
+                ? "Sam aspetta e il tempo è fermo: puoi parlare con chi vuoi, non ti sente."
+                : "Sta ascoltando. Se entra qualcuno o devi rispondere a qualcun altro, metti in pausa."}
             </p>
 
-            {paused ? (
-              <>
-                <p className="composerNote">Sam aspetta. Il tempo è fermo e il microfono è chiuso: puoi parlare con chi vuoi.</p>
-                <button className="primary full" onClick={resumeCall}>▶︎ Riparti</button>
-              </>
-            ) : ptt ? (
-              <>
-                {/* Held, not tapped. A button you hold is a button whose state
-                    you can see on your own hand — there is no way to walk away
-                    from the phone having left the microphone open. */}
-                <button
-                  type="button"
-                  className={talking ? "voiceTalk voiceTalkOn" : "voiceTalk"}
-                  onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); holdStart(); }}
-                  onPointerUp={holdEnd}
-                  onPointerCancel={holdEnd}
-                  onLostPointerCapture={holdEnd}
-                  onContextMenu={(e) => e.preventDefault()}
-                >
-                  {talking ? "🔴 Ti sto ascoltando — lascia quando hai finito" : "🎙️ Tieni premuto per parlare"}
-                </button>
-                <p className="composerNote">Il microfono si apre solo mentre tieni premuto: quello che succede intorno non arriva a Sam.</p>
-              </>
-            ) : (
-              <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
-            )}
-
-            {!paused ? (
-              <label className="voiceToggle">
-                <input type="checkbox" checked={ptt} onChange={(e) => setPushToTalk(e.target.checked)} />
-                <span>Premi per parlare <span className="voiceToggleWhy">— microfono chiuso finché non tieni premuto</span></span>
-              </label>
-            ) : null}
-
             <div className="voiceControls">
-              {!paused ? (
-                <button className="secondary voiceHalf" onClick={pauseCall}>⏸ Pausa</button>
-              ) : null}
-              <button className="secondary voiceHalf voiceStop" onClick={stop}>⏹ Termina</button>
+              <button
+                type="button"
+                className={paused ? "voiceMain voiceMainGo" : "voiceMain"}
+                onClick={paused ? resumeCall : pauseCall}
+              >
+                {paused ? "🎙️ Avvia per parlare" : "⏸ Pausa"}
+              </button>
+              <button type="button" className="secondary voiceStop" onClick={stop}>⏹ Termina</button>
             </div>
             {nearLimit && !interrupted ? (
               <p className="voiceAlert">⏳ <strong>Ultimo minuto</strong> a voce — poi facciamo una pausa e continuiamo a scrivere.</p>
