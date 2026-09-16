@@ -80,18 +80,38 @@ describe("il giudizio di Sam", () => {
     expect(mocks.runStructured).toHaveBeenCalled();
   });
 
-  it("leaves an old verdict alone when nothing has been practised since", async () => {
-    // Age alone is not a reason: a verdict on a learner who has not spoken
-    // since still describes them exactly.
+  it("leaves a recent verdict alone when nothing has been practised since", async () => {
+    // A few days and no practice: the verdict still describes them exactly,
+    // and paying to rewrite the same words is waste.
     mocks.dbExecute.mockImplementation(async (q: { sql: string }) => {
       if (/FROM coach_reports/.test(q.sql)) {
-        return { rows: [stored({ created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(), interactions: 88 })] };
+        return { rows: [stored({ created_at: new Date(Date.now() - 5 * 86_400_000).toISOString(), interactions: 88 })] };
       }
       if (/COUNT\(\*\) AS n FROM messages/.test(q.sql)) return { rows: [{ n: 90 }] };
       return { rows: [] };
     });
     await GET(request());
     expect(mocks.runStructured).not.toHaveBeenCalled();
+  });
+
+  it("rewrites a very old one even for somebody who has done nothing since", async () => {
+    // The hole this closes: a verdict written while they were doing well, then
+    // three weeks of silence, produces no new turns — so the warm verdict
+    // stood there while the line above it said they were too far behind. The
+    // page contradicted itself in the one case where being believed matters.
+    mocks.dbExecute.mockImplementation(async (q: { sql: string }) => {
+      if (/FROM coach_reports/.test(q.sql)) {
+        return { rows: [stored({ created_at: new Date(Date.now() - 21 * 86_400_000).toISOString(), interactions: 90 })] };
+      }
+      if (/COUNT\(\*\) AS n FROM messages/.test(q.sql)) return { rows: [{ n: 90 }] };
+      return { rows: [] };
+    });
+    mocks.runStructured.mockResolvedValue(JSON.stringify(REPORT));
+    await GET(request());
+    expect(mocks.runStructured).toHaveBeenCalled();
+    // And Sam is told that the silence itself is the news.
+    const input = JSON.parse(mocks.runStructured.mock.calls[0][1] as string);
+    expect(input.turnsSinceLastReport).toBe(0);
   });
 
   it("keeps showing the old one when a new one cannot be written", async () => {

@@ -31,9 +31,24 @@ const SCHEMA = `CREATE TABLE IF NOT EXISTS coach_reports (
   created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );`;
 
-/** Below this much new practice, the old verdict still describes them. */
+/**
+ * When it is worth writing a new one.
+ *
+ * Normally: a few days old AND real practice since. Rereading the whole
+ * history costs, and a verdict that changed every time the page was opened
+ * would be worth nothing anyway.
+ *
+ * But "and" alone had a hole, and it was exactly the case this report exists
+ * for. Somebody whose verdict was written while they were doing well, who
+ * then stopped for three weeks, produces no new turns — so the old, warm
+ * verdict stood there indefinitely while the line above it said they were too
+ * far behind. The page contradicted itself in the one situation where being
+ * believed matters. So: stale enough on its own, whatever has or has not been
+ * practised — and having practised nothing is itself the thing to say.
+ */
 const NEW_INTERACTIONS = 15;
 const MAX_AGE_MS = 3 * 86_400_000;
+const FORCE_AGE_MS = 14 * 86_400_000;
 
 const REPORT_SCHEMA = {
   type: "object",
@@ -112,7 +127,7 @@ async function evidence(userId: string) {
   };
 }
 
-async function write(userId: string): Promise<Report | null> {
+async function write(userId: string, previous?: number): Promise<Report | null> {
   if (!process.env.OPENAI_API_KEY) return null;
   const data = await evidence(userId);
   const marks = marksFrom(data.state);
@@ -126,6 +141,9 @@ You are a demanding teacher, not an encouraging one. The bar is not "is he impro
 Be blunt. Say what is not working, by name, with their own words as evidence. A report that makes somebody feel good and changes nothing is a failed report.
 Never praise effort, attendance, or good intentions. Praise only demonstrated ability, and only when the evidence is there — if there is nothing worth praising, praise nothing.
 Never soften with "ottimo lavoro", "continua così", "sei sulla buona strada" unless the numbers genuinely say so.
+
+IF THEY HAVE DONE NOTHING SINCE YOUR LAST REPORT (turnsSinceLastReport is 0 or near it):
+That is the news. Open with it: they have not been back, and the previous report has therefore not been acted on. Repeat what you told them then, more directly, and say what the silence costs them in weeks.
 
 IF THEY HAVE PRACTISED TOO LITTLE (few turns spoken for the weeks elapsed, or few capabilities demonstrated):
 Say it in the first sentence, plainly: "sei troppo indietro con il programma". Give the numbers — the weeks gone, what was expected, what they actually did. Say what happens if it continues: the three months end and they are not operational. Then give the exact minimum that fixes it (three sessions a week, starting this week). Do not be gentle about this; it is the single most useful thing you can tell them.
@@ -154,6 +172,7 @@ ALWAYS:
       capabilitiesDemonstrated: data.achieved.length,
       capabilitiesTotal: CAPABILITIES.length,
       verdictOnPace: pace(data.week, pathPercent(data.achieved), data.interactions).text,
+      turnsSinceLastReport: typeof previous === "number" ? data.interactions - previous : null,
     }),
     "coach_report",
     REPORT_SCHEMA,
@@ -186,8 +205,9 @@ ALWAYS:
   return { ...parsed, createdAt: new Date().toISOString(), fresh: true };
 }
 
-function stale(report: Report, storedInteractions: number, now: number, currentInteractions: number): boolean {
+export function stale(report: Report, storedInteractions: number, now: number, currentInteractions: number): boolean {
   const age = report.createdAt ? now - Date.parse(report.createdAt) : Number.POSITIVE_INFINITY;
+  if (age > FORCE_AGE_MS) return true;
   return age > MAX_AGE_MS && currentInteractions - storedInteractions >= NEW_INTERACTIONS;
 }
 
@@ -212,7 +232,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const report = await write(userId);
+    const report = await write(userId, stored?.interactions);
     return NextResponse.json({ report: report ?? stored?.report ?? null });
   } catch (error) {
     console.error("pagella:", error);
