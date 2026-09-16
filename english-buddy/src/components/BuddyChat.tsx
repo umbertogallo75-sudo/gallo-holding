@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Speak } from "@/components/Speak";
+import { RememberPhrase } from "@/components/RememberPhrase";
 import { SessionRecap } from "@/components/SessionRecap";
 import { shouldWrapUp, type SessionFacts, type SessionScore } from "@/lib/learning/session-score";
 import { EnablePush } from "@/components/EnablePush";
@@ -401,6 +402,11 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
       {messages.map((m,i) => <div key={i} style={{display:"contents"}}>
         <div className={`bubble ${m.role === "assistant" ? "ai" : "user"}`}>
           {m.role === "assistant" ? <AssistantBubble content={m.content} /> : m.content}
+          {/* Anything Sam said can be kept. The sentence somebody has been
+              looking for is usually one he has just used in passing. */}
+          {m.role === "assistant" ? (
+            <span className="bubbleTools"><RememberPhrase text={m.content} from="chat" /></span>
+          ) : null}
         </div>
         {m.mistake ? (
           <div className="fixCard">
@@ -409,18 +415,27 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
               <span aria-hidden="true">✓</span>
               <span>{m.mistake.correct}</span>
               <Speak text={m.mistake.correct} compact />
+              <RememberPhrase text={m.mistake.correct} from="chat" compact />
             </div>
             {m.mistake.note ? <p className="fixNote">{m.mistake.note}</p> : null}
           </div>
         ) : m.correction ? (
           <div className="fixCard">
-            <div className="fixRow fixGood"><span aria-hidden="true">✓</span><span>{m.correction}</span></div>
+            <div className="fixRow fixGood">
+              <span aria-hidden="true">✓</span>
+              <span>{m.correction}</span>
+              <RememberPhrase text={m.correction} from="chat" compact />
+            </div>
           </div>
         ) : null}
         {m.expression ? (
           <div className="keepCard">
             <span className="keepTag">Da tenere</span>
-            <div className="keepRow"><strong>{m.expression.expression}</strong><Speak text={m.expression.expression} compact /></div>
+            <div className="keepRow">
+              <strong>{m.expression.expression}</strong>
+              <Speak text={m.expression.expression} compact />
+              <RememberPhrase text={m.expression.expression} from="chat" compact />
+            </div>
             {m.expression.meaning ? <p className="keepNote">{m.expression.meaning}</p> : null}
           </div>
         ) : null}

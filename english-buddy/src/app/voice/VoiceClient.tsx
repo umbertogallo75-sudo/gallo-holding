@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { track } from "@/lib/track-client";
+import { RememberPhrase } from "@/components/RememberPhrase";
 
 type Line = { role: "you" | "coach"; text: string };
 type Status = "idle" | "connecting" | "live" | "ended" | "error";
@@ -972,6 +973,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
                 {lines.map((l, i) => (
                   <p key={i} className={i === resumedFrom - 1 && resumedFrom > 0 ? "voiceLine voiceLineResumed" : "voiceLine"}>
                     <strong style={{ color: l.role === "coach" ? "var(--brandText)" : "inherit" }}>{l.role === "coach" ? "Coach: " : "You: "}</strong>{l.text}
+                    {/* A phrase heard in passing is the hardest kind to keep:
+                        it is gone by the time you have found a pen. */}
+                    {l.role === "coach" ? <RememberPhrase text={l.text} from="voice" compact /> : null}
                   </p>
                 ))}
                 {detached ? (

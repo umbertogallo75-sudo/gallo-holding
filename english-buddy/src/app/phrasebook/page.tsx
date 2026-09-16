@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AddPhrase } from "@/components/AddPhrase";
 import { BottomNav } from "@/components/BottomNav";
 import { Copy } from "@/components/Copy";
 import { Speak } from "@/components/Speak";
@@ -31,15 +32,16 @@ export default async function PhrasebookPage() {
 
   return (
     <main className="shell">
-      <div className="topbar"><div className="brand">Phrasebook</div><a className="chip" href="/progress">← Progress</a></div>
+      <div className="topbar"><div className="brand">Le tue frasi</div><a className="chip" href="/home">← Home</a></div>
       <section className="hero">
         <div className="kicker">Il tuo frasario</div>
         <h1>Tutto quello che hai imparato.</h1>
-        <p className="muted">Tutte le espressioni che hai imparato, con l&rsquo;audio. Ripassale al volo prima di una riunione o di un viaggio.</p>
+        <p className="muted">Le espressioni che hai imparato e quelle che hai deciso di tenere, con l&rsquo;audio. Ripassale al volo prima di una riunione o di un viaggio — tornano da sole nei ripassi e in Palestra.</p>
+        <AddPhrase />
       </section>
       <section className="card">
         <h2>In lavorazione ({learning.length})</h2>
-        {learning.length ? learning.map(renderRow) : <p className="muted">Le espressioni che incontri nelle conversazioni si raccoglieranno qui.</p>}
+        {learning.length ? learning.map(renderRow) : <p className="muted">Durante una conversazione, scritta o a voce, tocca <strong>☆ Ricorda</strong> sotto una frase e la ritrovi qui.</p>}
       </section>
       <section className="card">
         <h2>Padroneggiate ✓ ({mastered.length})</h2>

@@ -33,6 +33,7 @@ const bodySchema = z.object({
   "voice_resumed",
   "voice_ptt_on",
   "voice_ptt_off",
+  "phrase_saved",
   "session_resumed",
     "session_closed",
     "session_opened",

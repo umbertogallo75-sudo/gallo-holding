@@ -242,6 +242,14 @@ export default async function HomePage() {
       </div>
     </Link>
 
+    <Link href="/phrasebook" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="home_shortcut" data-where="phrasebook">
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--amber) 16%, var(--surface))" }}>★</span>
+      <div>
+        <div className="modeTitle">Le tue frasi</div>
+        <div className="modeMeta">Quelle che hai deciso di tenere e quelle che Sam ti ha insegnato, con l&rsquo;audio</div>
+      </div>
+    </Link>
+
     <Link href="/guida" className="mode wide" style={{ display: "flex", marginTop: 8 }} data-track="guide_open" data-where="home">
       <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 16%, var(--surface))" }}>▶︎</span>
       <div>

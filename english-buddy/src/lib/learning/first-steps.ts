@@ -25,6 +25,15 @@ export type FirstStep = {
   done: boolean;
 };
 
+/**
+ * How much of a step counts as having taken it.
+ *
+ * A spoken conversation stores its lines as they are said, so the same rule
+ * works for both: three turns is short, but it is a conversation, and it is
+ * what separates "I tried it" from "I opened it".
+ */
+const MIN_TURNS_FOR_DONE = 3;
+
 /** How long the checklist keeps offering itself before it stops asking. */
 export const FIRST_STEPS_DAYS = 14;
 
@@ -66,10 +75,19 @@ async function exists(client: Client, sql: string, userId: string): Promise<bool
 
 export async function firstSteps(userId: string, client: Client = db()): Promise<FirstStep[]> {
   const [modes, web, ios, android] = await Promise.all([
+    // Done means done, not opened.
+    //
+    // A session row exists from the moment a screen is opened, so a level
+    // check abandoned after ten seconds ticked the box and the checklist
+    // congratulated somebody who had not done it — which is most of what
+    // testers meant by "il wizard non serve a nulla". Three turns is the
+    // smallest thing that gave Sam anything to judge a level on.
     client
       .execute({
-        sql: "SELECT DISTINCT mode FROM sessions WHERE user_id = ? AND mode IN ('levelcheck', 'voice')",
-        args: [userId],
+        sql: `SELECT s.mode FROM sessions s JOIN messages m ON m.session_id = s.id AND m.role = 'user'
+              WHERE s.user_id = ? AND s.mode IN ('levelcheck', 'voice')
+              GROUP BY s.id HAVING COUNT(m.id) >= ?`,
+        args: [userId, MIN_TURNS_FOR_DONE],
       })
       .catch(() => ({ rows: [] as { mode?: unknown }[] })),
     exists(client, "SELECT 1 FROM push_subscriptions WHERE user_id = ? LIMIT 1", userId),

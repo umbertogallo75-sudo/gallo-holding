@@ -6,10 +6,12 @@ const client = createClient({ url: ":memory:" });
 
 async function reset(withPushTables = true) {
   await client.execute("DROP TABLE IF EXISTS sessions");
+  await client.execute("DROP TABLE IF EXISTS messages");
   await client.execute("DROP TABLE IF EXISTS push_subscriptions");
   await client.execute("DROP TABLE IF EXISTS apns_tokens");
   await client.execute("DROP TABLE IF EXISTS fcm_tokens");
   await client.execute("CREATE TABLE sessions (id TEXT, user_id TEXT, mode TEXT, started_at TEXT, ended_at TEXT)");
+  await client.execute("CREATE TABLE messages (id TEXT, user_id TEXT, session_id TEXT, role TEXT, content TEXT)");
   if (withPushTables) {
     await client.execute("CREATE TABLE push_subscriptions (endpoint TEXT, user_id TEXT)");
     await client.execute("CREATE TABLE apns_tokens (token TEXT, user_id TEXT)");
@@ -20,6 +22,14 @@ async function reset(withPushTables = true) {
 const done = (steps: Awaited<ReturnType<typeof firstSteps>>) =>
   Object.fromEntries(steps.map((s) => [s.key, s.done]));
 
+/** A session with `turns` things the learner actually said in it. */
+async function session(id: string, userId: string, mode: string, turns: number) {
+  await client.execute(`INSERT INTO sessions VALUES ('${id}','${userId}','${mode}','x','y')`);
+  for (let i = 0; i < turns; i++) {
+    await client.execute(`INSERT INTO messages VALUES ('${id}-${i}','${userId}','${id}','user','line ${i}')`);
+  }
+}
+
 describe("i primi passi", () => {
   beforeEach(() => reset());
 
@@ -28,9 +38,18 @@ describe("i primi passi", () => {
   });
 
   it("ticks a step from what was actually done, not from a box", async () => {
-    await client.execute("INSERT INTO sessions VALUES ('s1','u1','levelcheck','x','y')");
-    await client.execute("INSERT INTO sessions VALUES ('s2','u1','voice','x','y')");
+    await session("s1", "u1", "levelcheck", 4);
+    await session("s2", "u1", "voice", 4);
     expect(done(await firstSteps("u1", client))).toEqual({ level: true, voice: true, reminders: false });
+  });
+
+  it("does not congratulate somebody who opened a step and closed it", async () => {
+    // A session row exists from the moment the screen opens, so this used to
+    // tick the box for a level check nobody had taken — and then the home
+    // screen told them it was done.
+    await session("s1", "u1", "levelcheck", 1);
+    await session("s2", "u1", "voice", 0);
+    expect(done(await firstSteps("u1", client))).toEqual({ level: false, voice: false, reminders: false });
   });
 
   it("counts any phone Sam can reach, not one in particular", async () => {
@@ -39,7 +58,7 @@ describe("i primi passi", () => {
   });
 
   it("does not credit one person's work to another", async () => {
-    await client.execute("INSERT INTO sessions VALUES ('s1','u2','voice','x','y')");
+    await session("s1", "u2", "voice", 5);
     expect(done(await firstSteps("u1", client))).toEqual({ level: false, voice: false, reminders: false });
   });
 

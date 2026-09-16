@@ -35,6 +35,8 @@ export type FunnelEvent =
   | "voice_resumed"
   | "voice_ptt_on"
   | "voice_ptt_off"
+  /** A phrase the learner chose to keep, rather than one Sam chose for them. */
+  | "phrase_saved"
   | "session_resumed"
   | "session_closed"
   | "session_opened"

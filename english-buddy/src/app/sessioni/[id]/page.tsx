@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
+import { RememberPhrase } from "@/components/RememberPhrase";
+import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { isVoiceMode, sessionMode, sessionReport, sessionTranscript } from "@/lib/learning/sessions";
 import styles from "../sessioni.module.css";
@@ -44,6 +46,15 @@ export default async function SessionePage({ params }: { params: Promise<{ id: s
             <span className={styles.who}>{line.role === "user" ? "Tu" : "Sam"}</span>
             {line.content}
             {line.correction ? <span className={styles.fix}>✎ {line.correction}</span> : null}
+            {/* Rereading is where you recognise the phrase you needed: this is
+                the natural place to keep it. */}
+            {line.role === "assistant" ? (
+              <span className={styles.tools}>
+                <Speak text={line.content} compact />
+                <RememberPhrase text={line.content} from="transcript" />
+              </span>
+            ) : null}
+            {line.correction ? <span className={styles.tools}><RememberPhrase text={line.correction} from="transcript" /></span> : null}
           </div>
         ))}
       </div>
