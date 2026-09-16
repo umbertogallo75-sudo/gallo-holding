@@ -7,7 +7,7 @@ import { shouldWrapUp, type SessionFacts, type SessionScore } from "@/lib/learni
 import { EnablePush } from "@/components/EnablePush";
 import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
-import { openerFor } from "@/lib/learning/openers";
+import { openerFor, RESUME_PROMPT } from "@/lib/learning/openers";
 
 type Mistake = { incorrect:string; correct:string; note?:string };
 type Expression = { expression:string; meaning?:string };
@@ -112,7 +112,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
    * stored; what was missing was anywhere to keep the fact that you were
    * still in it, so a phone call meant coming back to a blank screen.
    */
-  const [resumable, setResumable] = useState<{ id: string; exchanges: number; lastAt: string } | null>(null);
+  const [resumable, setResumable] = useState<{ id: string; exchanges: number; lastAt: string; preview?: string } | null>(null);
   const [recap, setRecap] = useState<{ score: SessionScore; facts: SessionFacts } | null>(null);
   const [closing, setClosing] = useState(false);
   /** Offered once per session: a wrap-up is a suggestion, never a wall. */
@@ -218,6 +218,10 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
       setSessionId(id);
       started.current = true;
       track("session_resumed", { where: mode.slice(0, 20) });
+      // And then he says something. Restoring the messages alone left the
+      // learner looking at an old conversation with no sign that the coach
+      // still had it — which is what "non la riprende davvero" meant.
+      void send(RESUME_PROMPT, false);
     } catch {
       // The conversation simply starts fresh, which is where it was anyway.
     }
@@ -262,15 +266,38 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
     finally { setSuggesting(false); }
   }
 
+  /**
+   * What happens on arrival, in the right order.
+   *
+   * Sam used to open a brand-new conversation the instant the screen
+   * appeared, and the offer to resume the old one arrived a moment later —
+   * so by the time anybody could accept it, a new session existed with the
+   * usual greeting in it, and accepting only swapped the messages on screen.
+   * That is why "riprendi" did not feel like resuming anything. The question
+   * is now asked before the conversation starts, not alongside it.
+   */
   useEffect(() => {
-    if (!started.current) { started.current = true; void send(openerFor(mode), false, true); }
+    if (started.current) return;
+    started.current = true;
+    void (async () => {
+      if (!initialQuestion) {
+        try {
+          // Written only: a conversation you had out loud is not something to
+          // reopen as text.
+          const response = await fetch("/api/sessioni?kind=text");
+          const data = await response.json();
+          if (response.ok && data.resumable) {
+            setResumable(data.resumable);
+            return;
+          }
+        } catch {
+          // No offer, no harm: the new conversation starts as it always did.
+        }
+      }
+      void send(openerFor(mode), false, true);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- opener fires exactly once per mount
   }, [mode]);
-
-  // Is there one to pick up? Asked once, and only when arriving without a
-  // question of its own — a notification that carries a question is starting
-  // something new by definition.
-  const lookedForResumable = useRef(false);
 
   /**
    * The bar tells the conversation how much room it is taking.
@@ -297,21 +324,6 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
       document.documentElement.style.removeProperty("--composerH");
     };
   }, []);
-  useEffect(() => {
-    if (lookedForResumable.current || initialQuestion) return;
-    lookedForResumable.current = true;
-    void (async () => {
-      try {
-        // Written only: being offered back a conversation you had out loud,
-        // reopened as text mid-sentence, is not resuming it.
-        const r = await fetch("/api/sessioni?kind=text");
-        const data = await r.json();
-        if (r.ok && data.resumable) setResumable(data.resumable);
-      } catch {
-        // No offer, no harm: the new conversation is already underway.
-      }
-    })();
-  }, [initialQuestion]);
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
@@ -360,11 +372,16 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc }: { mode:
       <div className="card" style={{ display: "grid", gap: 8, margin: "0 0 12px" }}>
         <strong style={{ fontSize: 15 }}>Avevi una conversazione aperta</strong>
         <span className="muted" style={{ fontSize: 14 }}>
-          {resumable.exchanges} messaggi. Riprendi da dove eri, o comincia da capo.
+          {resumable.preview ? <>«{resumable.preview}» · </> : null}
+          {resumable.exchanges} {resumable.exchanges === 1 ? "tuo messaggio" : "tuoi messaggi"}. Riprendi da lì, o comincia una conversazione nuova.
         </span>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="button" className="pill" onClick={() => void resume(resumable.id)}>↩︎ Riprendi</button>
-          <button type="button" className="pill" onClick={() => setResumable(null)}>Comincia da capo</button>
+          <button
+            type="button"
+            className="pill"
+            onClick={() => { setResumable(null); void send(openerFor(mode), false, true); }}
+          >Comincia da capo</button>
         </div>
       </div>
     ) : null}

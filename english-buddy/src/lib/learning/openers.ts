@@ -33,11 +33,24 @@ export const OPENERS: Record<string, string> = {
   doc: "Let's work on the document I uploaded. Start with what it is and the words I will need.",
 };
 
+/**
+ * The line that restarts an interrupted conversation.
+ *
+ * Resuming used to mean the old messages reappearing and nothing else
+ * happening: the learner was looking at a conversation with no sign that the
+ * coach remembered it, and the next thing Sam said usually asked about
+ * something they had already covered. This asks him to say one line that
+ * proves he has the thread — and, like the opener, it is an instruction, not
+ * something anybody said, so it is never stored or shown.
+ */
+export const RESUME_PROMPT =
+  "We were interrupted and I am back. Continue our conversation exactly where it stopped: one short line that shows you remember what we were talking about, then carry on with the next step. Do not greet me as if we had just met, do not summarise what we said, and do not ask me again anything I already told you.";
+
 export function openerFor(mode: string): string {
   return OPENERS[mode] ?? OPENERS["text-5"];
 }
 
-const SYNTHETIC = new Set(Object.values(OPENERS).map((line) => line.trim()));
+const SYNTHETIC = new Set([...Object.values(OPENERS), RESUME_PROMPT].map((line) => line.trim()));
 
 /**
  * Recognises one of those lines in stored history.

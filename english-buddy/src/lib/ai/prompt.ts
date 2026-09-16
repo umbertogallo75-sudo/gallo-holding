@@ -1,5 +1,6 @@
 import type { LearningContext } from "@/lib/learning/service";
 import { CAPABILITIES, PHASE_FOCUS } from "@/lib/learning/capabilities";
+import { continuityBlock } from "@/lib/learning/continuity";
 
 const modeGuidance: Record<string, string> = {
   "text-2": "Micro session (~2 minutes). One question, one short exchange. Keep every turn under 40 words.",
@@ -33,6 +34,7 @@ Never invent facts about the document beyond what is written below — if they a
 };
 
 export function coachInstructions(memory: LearningContext, mode: string, extraContext?: string) {
+  const continuity = continuityBlock(memory.continuity ?? null);
   const profile = memory.profile;
   const startingLevel = profile?.startingLevel || null;
   const beginner = startingLevel === "zero" || startingLevel === "basics" || ["A1", "A2"].includes(memory.level || "");
@@ -101,6 +103,7 @@ ${JSON.stringify(memory.recentMistakes)}
 
 Recent conversation this session:
 ${JSON.stringify(memory.recentMessages)}
+${continuity}
 
 Recent performance signals (calibrate difficulty on these, not on time elapsed): ${memory.mistakes7d} mistakes seen in the last 7 days, ${memory.masteredExpressions} expressions mastered so far, ${memory.capabilitiesAchieved.length} capabilities demonstrated.
 

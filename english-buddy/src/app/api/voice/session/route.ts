@@ -9,6 +9,7 @@ import { modelFor } from "@/lib/ai/models";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { DEFAULT_ENGINE, isVoiceEngine } from "@/lib/voice/engines";
 import { resumeVoiceSession, type VoiceLine } from "@/lib/learning/voice-sessions";
+import { continuityBlock, readContinuity } from "@/lib/learning/continuity";
 
 export const maxDuration = 30;
 
@@ -42,11 +43,17 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "Voice is not configured" }, { status: 500 });
 
-  const result = await db().execute({
-    sql: `SELECT p.display_name, p.professional_context, p.starting_level, p.translation_support, p.path_started_at, p.created_at, ls.cefr_level
-          FROM profiles p LEFT JOIN learning_state ls ON ls.user_id = p.id WHERE p.id = ? LIMIT 1`,
-    args: [userId],
-  });
+  // The profile and what happened last time, asked together: a spoken session
+  // that opens by asking again what they do for a living is the same failure
+  // as a written one that does.
+  const [result, continuity] = await Promise.all([
+    db().execute({
+      sql: `SELECT p.display_name, p.professional_context, p.starting_level, p.translation_support, p.path_started_at, p.created_at, ls.cefr_level
+            FROM profiles p LEFT JOIN learning_state ls ON ls.user_id = p.id WHERE p.id = ? LIMIT 1`,
+      args: [userId],
+    }),
+    readContinuity(userId, null).catch(() => null),
+  ]);
   const row = result.rows[0];
   const level = row?.cefr_level ? String(row.cefr_level) : "B1";
   const beginner = ["A1", "A2"].includes(level) || ["zero", "basics"].includes(String(row?.starting_level ?? ""));
@@ -82,6 +89,9 @@ Conversation rules:
   const resumed = typeof body?.resume === "string" && body.resume.length >= 8
     ? await resumeVoiceSession(userId, body.resume).catch(() => null)
     : null;
+  // Picking up this very call outranks continuity with older ones: one is the
+  // conversation being continued, the other is the history behind it.
+  instructions += continuityBlock(continuity);
   if (resumed) instructions += pickUpBlock(resumed.recap);
   const session = resumed ? { sessionId: resumed.id, recap: resumed.recap } : {};
 

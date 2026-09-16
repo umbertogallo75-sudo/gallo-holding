@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { skillNames, type CoachMistake, type SkillName } from "@/lib/ai/types";
 import { isMastered, nextIntervalDays, nextReviewAt } from "./spaced-repetition";
 import { isCapabilityKey, monthPhase } from "./capabilities";
+import { readContinuity, type Continuity } from "./continuity";
 import { bandForScore, stepToward } from "./levels";
 
 /**
@@ -31,6 +32,8 @@ export type LearningContext = {
   dueMistakes: { incorrect: string; correct: string }[];
   dueExpressions: { expression: string; meaning: string | null }[];
   recentMessages: { role: string; content: string }[];
+  /** What happened in the sessions before this one: the thread to pick up. */
+  continuity: Continuity | null;
   todayMinutes: number;
   todayInteractions: number;
 };
@@ -60,7 +63,7 @@ export async function getRelevantLearningContext(
   client: Client = db()
 ): Promise<LearningContext> {
   const timestamp = now();
-  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult, signalsResult] =
+  const [profileResult, stateResult, mistakesResult, dueMistakesResult, dueExpressionsResult, messagesResult, metricsResult, capabilitiesResult, signalsResult, continuity] =
     await Promise.all([
       client.execute({ sql: "SELECT display_name, native_language, professional_context, starting_level, translation_support, path_started_at, created_at, weekly_focus FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
       client.execute({ sql: "SELECT cefr_level, primary_goal FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
@@ -74,6 +77,9 @@ export async function getRelevantLearningContext(
         sql: "SELECT (SELECT COUNT(*) FROM mistakes WHERE user_id = ?1 AND last_seen_at >= ?2) AS m7, (SELECT COUNT(*) FROM expressions WHERE user_id = ?1 AND mastered = 1) AS mastered",
         args: [userId, new Date(Date.now() - 7 * 86_400_000).toISOString()],
       }),
+      // What happened last time. Asked alongside the rest, so remembering the
+      // previous conversation costs nothing on the clock.
+      readContinuity(userId, sessionId, client).catch(() => null),
     ]);
 
   const profile = profileResult.rows[0];
@@ -103,6 +109,7 @@ export async function getRelevantLearningContext(
     dueMistakes: dueMistakesResult.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct) })),
     dueExpressions: dueExpressionsResult.rows.map((r) => ({ expression: String(r.expression), meaning: r.meaning ? String(r.meaning) : null })),
     recentMessages: [...messagesResult.rows].reverse().map((r) => ({ role: String(r.role), content: String(r.content) })),
+    continuity,
     todayMinutes: Number(metrics?.minutes_practiced ?? 0),
     todayInteractions: Number(metrics?.interactions ?? 0),
   };

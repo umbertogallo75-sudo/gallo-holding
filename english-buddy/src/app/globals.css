@@ -1121,3 +1121,29 @@ button:disabled .navSpin { opacity: 1; }
 .agendaTime { flex-shrink:0; width:46px; font-weight:750; font-size:15px; font-variant-numeric:tabular-nums;
   color:var(--ink); }
 
+
+/* Chi può essere sentito, e quando.
+
+   Una lezione parlata non avviene in uno studio: entra qualcuno, rispondi,
+   la televisione è accesa — e Sam, che non distingue il tuo collega da te,
+   prende tutto per pratica d'inglese. Due controlli, perché i due problemi
+   sono diversi: "aspetta, non sto parlando con te" e "sto parlando con te
+   adesso, e solo adesso". */
+.voiceTalk {
+  display:block; width:100%; margin:6px 0 0; padding:20px 16px; border-radius:20px;
+  border:2px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  background:color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color:var(--ink); font:inherit; font-size:16.5px; font-weight:700; cursor:pointer;
+  /* Il pollice tiene premuto: lo scorrimento non deve rubargli il gesto. */
+  touch-action:none; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  transition:transform .08s ease, background .12s ease, border-color .12s ease;
+}
+.voiceTalkOn {
+  border-color:#c4483a; background:color-mix(in srgb, #c4483a 14%, var(--surface));
+  transform:scale(.985); box-shadow:0 0 0 6px color-mix(in srgb, #c4483a 12%, transparent);
+}
+.voiceToggle { display:flex; align-items:flex-start; gap:10px; margin:12px 0 0; font-size:14.5px; line-height:1.45; text-align:left; cursor:pointer; }
+.voiceToggle input { width:20px; height:20px; margin-top:1px; flex-shrink:0; accent-color:var(--accent); }
+.voiceToggleWhy { color:var(--muted); }
+.voiceControls { display:flex; gap:8px; margin-top:12px; }
+.voiceHalf { flex:1; min-width:0; }

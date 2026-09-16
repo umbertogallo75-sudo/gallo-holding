@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useWakeLock } from "@/lib/use-wake-lock";
+import { track } from "@/lib/track-client";
 
 type Line = { role: "you" | "coach"; text: string };
 type Status = "idle" | "connecting" | "live" | "ended" | "error";
@@ -93,6 +94,16 @@ function lastEngine(): VoiceEngine {
   }
 }
 
+/** Whether this device asked for push-to-talk last time. */
+const PTT_KEY = "execlingo-voice-ptt";
+function lastPtt(): boolean {
+  try {
+    return window.localStorage.getItem(PTT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** An id for the row this call writes into, made before the call connects. */
 function newSessionId(): string {
   try {
@@ -168,8 +179,24 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
   const pendingRef = useRef<{ seq: number; role: "you" | "coach"; text: string }[]>([]);
   const flushingRef = useRef(false);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * Who is allowed to be heard, and when.
+   *
+   * A spoken lesson does not happen in a studio. Somebody walks into the
+   * room, you answer them, the television is on — and Sam, who cannot tell
+   * your colleague from you, takes all of it as English practice and corrects
+   * a sentence nobody addressed to him. Two controls, because the two
+   * problems are different: one for "wait, I am not talking to you", and one
+   * for "I am talking to you now, and only now".
+   */
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const [ptt, setPtt] = useState(false);
+  const pttRef = useRef(false);
+  const [talking, setTalking] = useState(false);
+  const talkingRef = useRef(false);
   /** A spoken conversation left unfinished, offered back on the way in. */
-  const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number } | null>(null);
+  const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number; preview?: string } | null>(null);
   const [resumedFrom, setResumedFrom] = useState(0);
   const lookedRef = useRef(false);
 
@@ -217,7 +244,10 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
         return;
       }
       setInterrupted(null);
-      startClock();
+      // A call somebody deliberately paused stays paused: coming back to the
+      // app is not the same as coming back to the conversation.
+      if (!pausedRef.current) startClock();
+      applyMic();
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
@@ -360,6 +390,71 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     if (meterRef.current) { clearInterval(meterRef.current); meterRef.current = null; }
     levelRef.current = 0;
     orbRef.current?.style.setProperty("--level", "0");
+  }
+
+  /**
+   * Opens or closes the microphone to match the two controls.
+   *
+   * `enabled` rather than stopping the track: a stopped track cannot be
+   * restarted without asking for the microphone again, which on iOS means a
+   * permission prompt in the middle of a lesson. Disabled, the track keeps
+   * flowing as silence — which is exactly what the far end should hear while
+   * somebody is talking to a colleague.
+   */
+  function applyMic() {
+    const open = !pausedRef.current && (!pttRef.current || talkingRef.current);
+    streamRef.current?.getAudioTracks().forEach((track) => { track.enabled = open; });
+    orbRef.current?.style.setProperty("--level", open ? orbRef.current.style.getPropertyValue("--level") || "0" : "0");
+  }
+
+  /** Everything stops: the microphone, the clock, and Sam mid-sentence. */
+  function pauseCall() {
+    if (statusRef.current !== "live" || pausedRef.current) return;
+    pausedRef.current = true;
+    setPaused(true);
+    applyMic();
+    pauseClock();
+    // Sam keeps talking to the room otherwise, which is the situation this
+    // button exists to end.
+    try { audioRef.current?.pause(); } catch { /* the element may be gone */ }
+    setPhase("waiting");
+    track("voice_paused", { where: engineRef.current });
+  }
+
+  /** And back. The connection was never closed, so this is immediate. */
+  function resumeCall() {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    applyMic();
+    try { void audioRef.current?.play().catch(() => null); } catch { /* ignore */ }
+    if (!document.hidden) startClock();
+    track("voice_resumed", { where: engineRef.current });
+  }
+
+  /** Push-to-talk: the microphone is shut until somebody holds the button. */
+  function setPushToTalk(on: boolean) {
+    pttRef.current = on;
+    setPtt(on);
+    talkingRef.current = false;
+    setTalking(false);
+    applyMic();
+    try { window.localStorage.setItem(PTT_KEY, on ? "1" : "0"); } catch { /* private browsing */ }
+    track(on ? "voice_ptt_on" : "voice_ptt_off", { where: engineRef.current });
+  }
+
+  function holdStart() {
+    if (pausedRef.current) return;
+    talkingRef.current = true;
+    setTalking(true);
+    applyMic();
+  }
+
+  function holdEnd() {
+    if (!talkingRef.current) return;
+    talkingRef.current = false;
+    setTalking(false);
+    applyMic();
   }
 
   function startClock() {
@@ -550,6 +645,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
     setResumable(null); setResumedFrom(0);
     sessionRef.current = newSessionId(); seqRef.current = 0; pendingRef.current = []; flushingRef.current = false;
     legRef.current = Math.random().toString(36).slice(2, 8);
+    pausedRef.current = false; setPaused(false);
+    talkingRef.current = false; setTalking(false);
+    pttRef.current = lastPtt(); setPtt(pttRef.current);
     setError(""); setLines([]); setSeconds(0); secondsRef.current = 0; linesRef.current = [];
     setInterrupted(null); awaySinceRef.current = null; setPhase("waiting");
     setNearLimit(false); setReachedLimit(false); warnedRef.current = false;
@@ -580,6 +678,10 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       streamRef.current = stream;
+      // Whatever this device chose last time applies from the first second,
+      // not from the first tap: somebody who turned push-to-talk on did so
+      // because an open microphone was the problem.
+      applyMic();
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
@@ -591,7 +693,12 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
       // something else takes the audio session — a call, usually — and
       // unmutes it when it gives it back.
       mic.onmute = () => { if (statusRef.current === "live") { pauseClock(); setInterrupted("paused"); } };
-      mic.onunmute = () => { if (statusRef.current === "live" && !document.hidden) { setInterrupted(null); startClock(); } };
+      mic.onunmute = () => {
+        if (statusRef.current !== "live" || document.hidden) return;
+        setInterrupted(null);
+        applyMic();
+        if (!pausedRef.current) startClock();
+      };
       mic.onended = () => { if (statusRef.current === "live") endInterrupted(); };
       pc.addTrack(mic, stream);
 
@@ -740,8 +847,9 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           {resumable && status !== "ended" ? (
             <div className="voiceResume">
               <p className="voiceResumeText">
-                🎙️ Avevi una conversazione a voce lasciata a metà — {resumable.exchanges}{" "}
-                {resumable.exchanges === 1 ? "battuta" : "battute"}. Sam se la ricorda.
+                🎙️ Avevi una conversazione a voce lasciata a metà.{" "}
+                {resumable.preview ? <>Parlavate di «{resumable.preview}». </> : null}
+                Sam se la ricorda e riparte da lì.
               </p>
               <button
                 type="button"
@@ -785,22 +893,71 @@ export function VoiceClient({ mode, hero }: { mode?: string; hero?: React.ReactN
           <section className="card voiceLive">
             <div
               ref={orbRef}
-              className={interrupted === "paused" ? "voiceOrb" : `voiceOrb pulsing voiceOrbLive${phase === "hearing" ? " listening" : ""}`}
+              className={
+                interrupted === "paused" || paused || (ptt && !talking)
+                  ? "voiceOrb"
+                  : `voiceOrb pulsing voiceOrbLive${phase === "hearing" || talking ? " listening" : ""}`
+              }
             >
-              🎙️
+              {paused ? "⏸" : "🎙️"}
             </div>
             <p className="voiceTimer">
               <span className="voicePhase">
-                {interrupted === "paused" ? "In pausa" : PHASE_LABEL[phase]}
-                {phase === "thinking" && !interrupted ? <span className="voiceDots" aria-hidden>…</span> : null}
+                {paused
+                  ? "In pausa"
+                  : interrupted === "paused"
+                    ? "In pausa"
+                    : ptt && !talking
+                      ? "Microfono chiuso"
+                      : PHASE_LABEL[phase]}
+                {phase === "thinking" && !interrupted && !paused ? <span className="voiceDots" aria-hidden>…</span> : null}
               </span>
               {/* Only there when the two sit on one line; the stylesheet stacks
                   them on a phone and hides it. */}
               <span className="voiceSep" aria-hidden> · </span>
               <span className="voiceClock">{mm}:{ss}</span>
             </p>
-            <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
-            <button className="secondary full voiceStop" onClick={stop}>⏹ Termina</button>
+
+            {paused ? (
+              <>
+                <p className="composerNote">Sam aspetta. Il tempo è fermo e il microfono è chiuso: puoi parlare con chi vuoi.</p>
+                <button className="primary full" onClick={resumeCall}>▶︎ Riparti</button>
+              </>
+            ) : ptt ? (
+              <>
+                {/* Held, not tapped. A button you hold is a button whose state
+                    you can see on your own hand — there is no way to walk away
+                    from the phone having left the microphone open. */}
+                <button
+                  type="button"
+                  className={talking ? "voiceTalk voiceTalkOn" : "voiceTalk"}
+                  onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); holdStart(); }}
+                  onPointerUp={holdEnd}
+                  onPointerCancel={holdEnd}
+                  onLostPointerCapture={holdEnd}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  {talking ? "🔴 Ti sto ascoltando — lascia quando hai finito" : "🎙️ Tieni premuto per parlare"}
+                </button>
+                <p className="composerNote">Il microfono si apre solo mentre tieni premuto: quello che succede intorno non arriva a Sam.</p>
+              </>
+            ) : (
+              <p className="composerNote">Parla normalmente in inglese: il coach ti sente e ti risponde a voce.</p>
+            )}
+
+            {!paused ? (
+              <label className="voiceToggle">
+                <input type="checkbox" checked={ptt} onChange={(e) => setPushToTalk(e.target.checked)} />
+                <span>Premi per parlare <span className="voiceToggleWhy">— microfono chiuso finché non tieni premuto</span></span>
+              </label>
+            ) : null}
+
+            <div className="voiceControls">
+              {!paused ? (
+                <button className="secondary voiceHalf" onClick={pauseCall}>⏸ Pausa</button>
+              ) : null}
+              <button className="secondary voiceHalf voiceStop" onClick={stop}>⏹ Termina</button>
+            </div>
             {nearLimit && !interrupted ? (
               <p className="voiceAlert">⏳ <strong>Ultimo minuto</strong> a voce — poi facciamo una pausa e continuiamo a scrivere.</p>
             ) : null}
