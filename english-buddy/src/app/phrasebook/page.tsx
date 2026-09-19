@@ -12,12 +12,22 @@ export default async function PhrasebookPage() {
   const profileResult = await database.execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
   if (!profileResult.rows.length) redirect("/onboarding");
 
-  const result = await database.execute({
-    sql: "SELECT expression, meaning, mastered FROM expressions WHERE user_id = ? ORDER BY mastered ASC, created_at DESC LIMIT 200",
-    args: [userId],
-  });
-  const learning = result.rows.filter((r) => !Number(r.mastered));
-  const mastered = result.rows.filter((r) => Number(r.mastered));
+  // The two lists are the point: what they chose, and what Sam proposed.
+  // A column that may not exist yet on an older database — the ordering
+  // simply falls back to "everything is Sam's", which is how it was.
+  const result = await database
+    .execute({
+      sql: "SELECT expression, meaning, mastered, saved_by_user FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 200",
+      args: [userId],
+    })
+    .catch(() =>
+      database.execute({
+        sql: "SELECT expression, meaning, mastered FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 200",
+        args: [userId],
+      })
+    );
+  const mine = result.rows.filter((row) => Number(row.saved_by_user ?? 0) === 1);
+  const fromSam = result.rows.filter((row) => Number(row.saved_by_user ?? 0) !== 1);
 
   const renderRow = (row: (typeof result.rows)[number], index: number) => (
     <PhraseRow key={index} text={String(row.expression)} meaning={row.meaning ? String(row.meaning) : null} />
@@ -33,13 +43,28 @@ export default async function PhrasebookPage() {
         <AddPhrase />
       </section>
       <section className="card">
-        <h2>In lavorazione ({learning.length})</h2>
-        {learning.length ? learning.map(renderRow) : <p className="muted">Durante una conversazione, scritta o a voce, tocca <strong>☆ Ricorda</strong> sotto una frase e la ritrovi qui.</p>}
+        <h2>Le tue ({mine.length})</h2>
+        <p className="itHint" style={{ marginTop: 0 }}>
+          Quelle che hai deciso tu di tenere, toccando ☆ durante una conversazione o scrivendole qui sopra. Ritocca la
+          stella per toglierle.
+        </p>
+        {mine.length ? mine.map(renderRow) : (
+          <p className="muted">
+            Ancora nessuna. Durante una conversazione, scritta o a voce, tocca <strong>☆ Ricorda</strong> sotto una
+            frase e la ritrovi qui.
+          </p>
+        )}
       </section>
+
       <section className="card">
-        <h2>Padroneggiate ✓ ({mastered.length})</h2>
-        {mastered.length ? mastered.map(renderRow) : <p className="muted">Dopo abbastanza ripassi riusciti, le espressioni si fissano qui.</p>}
+        <h2>Proposte da Sam ({fromSam.length})</h2>
+        <p className="itHint" style={{ marginTop: 0 }}>
+          Le espressioni che ti ha insegnato lui. Tornano nei ripassi e in Palestra: se una non ti interessa, toccala e
+          sparisce.
+        </p>
+        {fromSam.length ? fromSam.map(renderRow) : <p className="muted">Si accumulano da sole, conversazione dopo conversazione.</p>}
       </section>
+
       <BottomNav active="progress" />
     </main>
   );

@@ -6,7 +6,7 @@ import { track } from "@/lib/track-client";
 import { BONUS_SECONDS, buildRun, RUN_SECONDS, verdict, type Question } from "@/lib/games/listen";
 import type { Entry } from "@/lib/games/glossary";
 import * as sound from "@/lib/games/sound";
-import { hush, say } from "@/lib/games/speak";
+import { hush, prime, say, unlockGameAudio } from "@/lib/games/speak";
 import styles from "../games.module.css";
 import quiz from "../quiz.module.css";
 
@@ -115,10 +115,16 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
       if (index + 1 >= run.length) return setPhase("over");
       setIndex(index + 1);
       say(run[index + 1].word);
+      // The one after that is fetched while this one is being answered, so
+      // Sam's own voice costs nothing in waiting.
+      if (run[index + 2]) prime(run[index + 2].word);
     }, 900);
   }
 
   function start() {
+    // The element has to be woken inside the tap: iOS ends the permission at
+    // the first network round trip.
+    unlockGameAudio();
     sound.armSound();
     sound.setMuted(sound.readMuted());
     posted.current = false;
@@ -132,6 +138,7 @@ export function ListenGame({ opening, own }: { opening: Question[]; own: Entry[]
     serverRun.current = false;
     setRun(next);
     say(next[0].word);
+    if (next[1]) prime(next[1].word);
     track("game_started", { where: "ascolta" });
   }
 

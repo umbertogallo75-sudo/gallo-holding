@@ -49,7 +49,7 @@ export function pickFirstSession(
   if (why === "Trattative e clienti") {
     return level === "business"
       ? { mode: "negotiation", title: "Simulazione di trattativa", why: "Prezzi, tempi, obiezioni: Sam fa la controparte." }
-      : { mode: "mission", title: "Una missione con un cliente", why: "Un obiettivo per scena, con Sam dall'altra parte." };
+      : { mode: "guided", title: "Venti minuti condotti da Sam", why: "Lui dice il piano e ti porta dentro: espressioni, domande, role-play." };
   }
 
   const mode = conversation(dailyMinutes);

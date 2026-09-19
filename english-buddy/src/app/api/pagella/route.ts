@@ -103,7 +103,7 @@ async function evidence(userId: string) {
   const [state, caps, mistakes, expressions, counts, profile] = await Promise.all([
     client.execute({ sql: "SELECT * FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
     client.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
-    client.execute({ sql: "SELECT incorrect, correct, times_seen FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY times_seen DESC LIMIT 8", args: [userId] }),
+    client.execute({ sql: "SELECT incorrect, correct, category, times_seen FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY times_seen DESC LIMIT 8", args: [userId] }),
     client.execute({ sql: "SELECT expression FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10", args: [userId] }),
     client
       .execute({
@@ -120,7 +120,12 @@ async function evidence(userId: string) {
     ),
     state: state.rows[0] ?? null,
     achieved: caps.rows.map((r) => String(r.capability)),
-    mistakes: mistakes.rows.map((r) => ({ incorrect: String(r.incorrect), correct: String(r.correct), times: Number(r.times_seen ?? 1) })),
+    mistakes: mistakes.rows.map((r) => ({
+      incorrect: String(r.incorrect),
+      correct: String(r.correct),
+      category: String(r.category ?? "other"),
+      times: Number(r.times_seen ?? 1),
+    })),
     expressions: expressions.rows.map((r) => String(r.expression)),
     interactions: Number(counts?.rows[0]?.n ?? 0),
     profile: profileRow,
@@ -130,7 +135,7 @@ async function evidence(userId: string) {
 async function write(userId: string, previous?: number): Promise<Report | null> {
   if (!process.env.OPENAI_API_KEY) return null;
   const data = await evidence(userId);
-  const marks = marksFrom(data.state);
+  const marks = marksFrom(data.state, data.mistakes.map((m) => ({ ...m, category: m.category })));
   const achieved = new Set(data.achieved);
 
   const raw = await runStructured(
@@ -148,6 +153,10 @@ That is the news. Open with it: they have not been back, and the previous report
 IF THEY HAVE PRACTISED TOO LITTLE (few turns spoken for the weeks elapsed, or few capabilities demonstrated):
 Say it in the first sentence, plainly: "sei troppo indietro con il programma". Give the numbers — the weeks gone, what was expected, what they actually did. Say what happens if it continues: the three months end and they are not operational. Then give the exact minimum that fixes it (three sessions a week, starting this week). Do not be gentle about this; it is the single most useful thing you can tell them.
 
+CONSISTENCY — a report that contradicts the conversations is worth nothing:
+Do not praise in the moment and destroy on paper. If you have been telling them their answers sound natural, a report that calls their English poor reads as dishonesty, and the two together make the whole thing untrustworthy. Be the same coach in both places: demanding during the conversation, and here simply saying out loud, with the numbers, what you have been correcting all along.
+Every judgement has to be attached to something they actually did. Never give a low mark without naming the mistake behind it — "mi dai 5 sulla grammatica senza spiegarmi davvero perché" is the complaint this exists to answer. Name the tense, the article, the word order, and quote their sentence.
+
 ALWAYS:
 - Be specific: the mistakes that keep coming back, the thing they still cannot do, the vocabulary their own job needs and they do not have yet.
 - Somebody who already speaks English well is not finished: hold them to the precise language of their trade, and say what is still approximate.
@@ -160,6 +169,9 @@ ALWAYS:
       startingLevel: data.profile?.starting_level ?? null,
       cefr: data.state?.cefr_level ?? null,
       marksOutOfTen: Object.fromEntries(marks.map((m) => [m.label, m.mark])),
+      // The sentences behind each low mark, so the verdict can name them
+      // instead of asserting a number.
+      evidenceBehindMarks: Object.fromEntries(marks.filter((m) => m.evidence.length).map((m) => [m.label, m.evidence])),
       average: averageMark(marks),
       weakest: weakest(marks).map((m) => m.label),
       canDo: CAPABILITIES.filter((c) => achieved.has(c.key)).map((c) => c.it),

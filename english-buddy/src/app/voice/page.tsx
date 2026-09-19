@@ -11,13 +11,18 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
   if (!profileResult.rows.length) redirect("/onboarding");
   const params = await searchParams;
   const diary = params.mode === "diary";
+  // "Ripeti dietro a Sam" belongs at the microphone: it is about how something
+  // sounds, and a written chat cannot hear it. It used to live in the chat and
+  // send people to the voice screen halfway through, where the exercise was
+  // lost — a tester said exactly that.
+  const shadow = params.mode === "shadow";
   // A call reopened from the archive, by its id.
   const reopen = params.riprendi?.slice(0, 64);
 
   return (
     <main className="shell">
       <div className="topbar">
-        <div className="brand">{diary ? "Diary" : "Voice"}</div>
+        <div className="brand">{shadow ? "Ripeti" : diary ? "Diary" : "Voice"}</div>
         <span style={{ display: "flex", gap: 6 }}>
           <a className="chip" href="/phrasebook" title="Il tuo frasario">★</a>
           <a className="chip" href="/home">← Home</a>
@@ -29,13 +34,13 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
           not the conversation, and on a phone it is what pushes the last
           spoken line below the fold. */}
       <VoiceClient
-        mode={diary ? "diary" : "voice"}
+        mode={shadow ? "shadow" : diary ? "diary" : "voice"}
         reopen={reopen}
         hero={
           <section className="hero">
-            <div className="kicker">{diary ? "Diario parlato" : "Voce dal vivo"}</div>
-            <h1>{diary ? "Raccontami la tua giornata." : "Parla. Parla davvero."}</h1>
-            <p className="muted">{diary ? "Un minuto a voce: Sam ascolta e poi ti aiuta a dirla meglio. È l'abitudine più potente per sbloccare il parlato." : "La strada più veloce verso la sicurezza è la tua stessa voce."}</p>
+            <div className="kicker">{shadow ? "Pronuncia" : diary ? "Diario parlato" : "Voce dal vivo"}</div>
+            <h1>{shadow ? "Ripeti dietro a Sam." : diary ? "Raccontami la tua giornata." : "Parla. Parla davvero."}</h1>
+            <p className="muted">{shadow ? "Lui dice una frase, tu la ripeti ad alta voce, e lui ti dice dove cade l'accento e cosa non suona. Non conta se sbagli la frase: conta come suona." : diary ? "Un minuto a voce: Sam ascolta e poi ti aiuta a dirla meglio. È l'abitudine più potente per sbloccare il parlato." : "La strada più veloce verso la sicurezza è la tua stessa voce."}</p>
           </section>
         }
       />

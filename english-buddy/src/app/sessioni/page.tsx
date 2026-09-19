@@ -18,6 +18,7 @@ const MODE_LABELS: Record<string, string> = {
   rescue: "Mi serve adesso",
   voice: "A voce",
   diary: "Diario parlato",
+  shadow: "Ripeti dietro a Sam",
   text: "Conversazione",
 };
 

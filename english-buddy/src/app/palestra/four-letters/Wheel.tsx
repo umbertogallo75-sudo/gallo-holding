@@ -35,7 +35,6 @@ export type WheelProps = {
  */
 export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit, onClear, submitOnTap = true }: WheelProps) {
   const box = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
 
   const seats = letters.length;
   // Percentages of the wheel, handed straight to left/top. Derived, not
@@ -50,31 +49,72 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
     return Number.isInteger(seat) ? seat : null;
   }
 
+  /**
+   * A tap and a drag are two different gestures, and they were one.
+   *
+   * Pressing a tile started a drag immediately: it cleared whatever was
+   * already selected and, on release, submitted. So in Parola lunga — where a
+   * word is built letter by letter — every new tap wiped the letters before
+   * it, and joining two letters on the same side of the circle without
+   * crossing a third was the only way through. A tester put it as "difficoltà
+   * di unire lettere che sono nello stesso emiciclo"; it was not the geometry,
+   * it was the gesture.
+   *
+   * Now a press is only a drag once the finger reaches a different tile.
+   * Until then it is a tap, and a tap adds one letter to what is already
+   * there.
+   */
+  const startSeat = useRef<number | null>(null);
+  const dragged = useRef(false);
+
   function onPointerDown(event: React.PointerEvent) {
     if (state !== "idle") return;
     const seat = seatAt(event.clientX, event.clientY);
     if (seat === null) return;
-    dragging.current = true;
+    startSeat.current = seat;
+    dragged.current = false;
     box.current?.setPointerCapture(event.pointerId);
-    onClear();
-    onPick(seat);
   }
 
   function onPointerMove(event: React.PointerEvent) {
-    if (!dragging.current || state !== "idle") return;
+    if (startSeat.current === null || state !== "idle") return;
     const seat = seatAt(event.clientX, event.clientY);
-    if (seat !== null) onPick(seat);
+    if (seat === null) return;
+    if (!dragged.current) {
+      // Still on the tile it started on: not a drag yet.
+      if (seat === startSeat.current) return;
+      dragged.current = true;
+      onClear();
+      onPick(startSeat.current);
+    }
+    onPick(seat);
   }
 
   function onPointerUp(event: React.PointerEvent) {
-    if (!dragging.current) return;
-    dragging.current = false;
+    const wasDrag = dragged.current;
+    const seat = startSeat.current;
+    startSeat.current = null;
+    dragged.current = false;
     try {
       box.current?.releasePointerCapture(event.pointerId);
     } catch {
       /* the pointer was already gone */
     }
-    onSubmit();
+    if (state !== "idle") return;
+    if (wasDrag) {
+      onSubmit();
+      return;
+    }
+    if (seat === null) return;
+    // A tap. Where a tap is the whole move (Quattro lettere) it starts a fresh
+    // word; where a word is built letter by letter it adds to it.
+    if (submitOnTap) {
+      onClear();
+      onPick(seat);
+      onSubmit();
+    } else {
+      onPick(seat);
+    }
   }
 
   const trail = picked.map((seat) => centres[seat]).filter(Boolean);
@@ -132,9 +172,11 @@ export function Wheel({ letters, picked, remaining, low, state, onPick, onSubmit
                 "--tile": TILE_COLOURS[seat % TILE_COLOURS.length],
               } as React.CSSProperties
             }
-            onClick={() => {
-              // A plain tap, for anyone who does not want to drag.
-              if (dragging.current || state !== "idle") return;
+            onClick={(event) => {
+              // Only a keyboard-generated click gets here: a real tap was
+              // already handled on pointer-up, and doing it twice would add
+              // the letter twice.
+              if (event.detail !== 0 || state !== "idle") return;
               onPick(seat);
               if (submitOnTap) onSubmit();
             }}

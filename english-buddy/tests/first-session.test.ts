@@ -25,7 +25,10 @@ describe("pickFirstSession", () => {
 
   it("gives the negotiation only to somebody with a base", () => {
     expect(pickFirstSession("business", "Trattative e clienti", 5).mode).toBe("negotiation");
-    expect(pickFirstSession("independent", "Trattative e clienti", 5).mode).toBe("mission");
+    // Anybody below that gets the session that leads instead. "Missione" was
+    // dropped from the catalogue: a tester could not tell what it was, and it
+    // handed the microphone over halfway through and lost itself.
+    expect(pickFirstSession("independent", "Trattative e clienti", 5).mode).toBe("guided");
   });
 
   it("sizes the conversation to the minutes actually offered", () => {

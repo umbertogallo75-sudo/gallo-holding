@@ -38,7 +38,7 @@ export default async function PercorsoPage() {
     database.execute({ sql: "SELECT * FROM learning_state WHERE user_id = ? LIMIT 1", args: [userId] }),
     database.execute({ sql: "SELECT capability FROM user_capabilities WHERE user_id = ?", args: [userId] }),
     database.execute({ sql: "SELECT path_started_at, created_at, professional_context, weekly_focus FROM profiles WHERE id = ? LIMIT 1", args: [userId] }),
-    database.execute({ sql: "SELECT incorrect, correct FROM mistakes WHERE user_id = ? ORDER BY last_seen_at DESC LIMIT 5", args: [userId] }).catch(() => null),
+    database.execute({ sql: "SELECT incorrect, correct, category FROM mistakes WHERE user_id = ? AND mastered = 0 ORDER BY times_seen DESC, last_seen_at DESC LIMIT 30", args: [userId] }).catch(() => null),
     database.execute({ sql: "SELECT expression FROM expressions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", args: [userId] }).catch(() => null),
     // How much was actually practised: a percentage with no evidence behind it
     // is the thing that lets somebody believe they are doing fine.
@@ -53,12 +53,15 @@ export default async function PercorsoPage() {
   const week = weekOfPath(profile.path_started_at ? String(profile.path_started_at) : profile.created_at ? String(profile.created_at) : null);
   const percent = pathPercent(achieved);
   const onTime = timePercent(week);
+  const mistakes = mistakesResult?.rows ?? [];
   const turns = Number(turnsResult?.rows[0]?.n ?? 0);
   const verdict = pace(week, percent, turns);
-  const marks = marksFrom(stateResult.rows[0] ?? null);
+  const marks = marksFrom(
+    stateResult.rows[0] ?? null,
+    mistakes.map((row) => ({ incorrect: String(row.incorrect), correct: String(row.correct), category: String(row.category ?? "other") }))
+  );
   const average = averageMark(marks);
   const toWorkOn = weakest(marks);
-  const mistakes = mistakesResult?.rows ?? [];
   const expressions = expressionsResult?.rows ?? [];
   const level = stateResult.rows[0]?.cefr_level ? String(stateResult.rows[0].cefr_level) : null;
   const current = stages.find((stage) => stage.state === "current");
@@ -175,6 +178,13 @@ export default async function PercorsoPage() {
                 <span className={styles.barFill} style={{ width: `${mark.mark * 10}%` }} />
               </div>
               <span className={styles.markMeaning}>{mark.meaning}</span>
+              {/* Why this number and not another one: their own sentences.
+                  "Mi dai 5 sulla grammatica senza spiegarmi davvero perché." */}
+              {mark.evidence.length ? (
+                <ul className={styles.markWhy}>
+                  {mark.evidence.map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              ) : null}
               <Link className={styles.markAdvice} href={mark.href}>{mark.advice}</Link>
             </div>
           ))}
@@ -199,7 +209,7 @@ export default async function PercorsoPage() {
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Le tue correzioni recenti</h2>
         {mistakes.length ? (
-          mistakes.map((row, i) => (
+          mistakes.slice(0, 5).map((row, i) => (
             <p key={i} style={{ margin: "7px 0" }}>
               <span className="muted">{String(row.incorrect)}</span> → <strong>{String(row.correct)}</strong>
             </p>

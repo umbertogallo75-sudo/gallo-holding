@@ -38,7 +38,7 @@ const MIN_TURNS = 2;
  */
 export type SessionKind = "text" | "voice" | "all";
 /** The modes that happened at the microphone. */
-export const VOICE_MODES = ["voice", "diary"] as const;
+export const VOICE_MODES = ["voice", "diary", "shadow"] as const;
 const VOICE_LIST = VOICE_MODES.map((mode) => `'${mode}'`).join(", ");
 
 function kindClause(kind: SessionKind): string {

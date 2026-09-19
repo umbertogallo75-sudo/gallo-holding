@@ -56,12 +56,14 @@ describe("keeping a phrase", () => {
   it("keeps it straight away, before anything else is attempted", async () => {
     const response = await POST(request({ text: "Let me get back to you on that", from: "voice" }));
     expect(response.status).toBe(200);
-    expect(mocks.saveExpression).toHaveBeenCalledWith("u1", "Let me get back to you on that", null);
+    // Marked as theirs, so the phrasebook can show their choices apart from
+    // the ones Sam recorded on their behalf.
+    expect(mocks.saveExpression).toHaveBeenCalledWith("u1", "Let me get back to you on that", null, expect.anything(), true);
   });
 
   it("tidies the spacing so the same phrase is not kept twice", async () => {
     await POST(request({ text: "  Let me   get back \n to you  " }));
-    expect(mocks.saveExpression).toHaveBeenCalledWith("u1", "Let me get back to you", null);
+    expect(mocks.saveExpression).toHaveBeenCalledWith("u1", "Let me get back to you", null, expect.anything(), true);
   });
 
   it("fills in the Italian afterwards, and never over one already there", async () => {

@@ -46,7 +46,8 @@ export async function POST(request: Request) {
   const text = parsed.data.text.replace(/\s+/g, " ").trim();
 
   await ensureProfile(userId);
-  await saveExpression(userId, text, null);
+  // Theirs, not Sam's: the phrasebook shows the two apart.
+  await saveExpression(userId, text, null, db(), true);
 
   // The Italian, afterwards and best-effort: the phrase is already safe.
   after(async () => {

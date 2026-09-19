@@ -1,0 +1,33 @@
+/* Ascolta e scrivi: niente microfono su questa schermata. */
+.accentHead { margin-top:18px; font-size:.6875rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--g-muted, var(--muted)); }
+.accents { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin:8px 0 4px; }
+.accent {
+  display:grid; gap:2px; justify-items:center; text-align:center; padding:12px 8px; border-radius:16px;
+  border:1.5px solid var(--g-line, var(--line)); background:var(--g-surface, var(--surface));
+  color:var(--g-ink, var(--ink)); font:inherit; cursor:pointer;
+}
+.accentOn { border-color:var(--g-accent, var(--accent)); box-shadow:0 0 0 1px var(--g-accent, var(--accent)) inset; }
+.flag { font-size:24px; line-height:1.1; }
+.accent strong { font-size:14.5px; }
+.accentNote { font-size:11.5px; color:var(--g-muted, var(--muted)); line-height:1.3; }
+
+.stage { display:grid; justify-items:center; gap:10px; margin-top:18px; }
+.hint { margin:0; font-size:13.5px; color:var(--g-muted, var(--muted)); text-align:center; }
+.form { width:100%; display:grid; gap:10px; }
+.field {
+  width:100%; padding:14px; border-radius:16px; font-size:17px; line-height:1.5; font-family:inherit;
+  border:1.5px solid var(--g-line, var(--line)); background:var(--g-surface, var(--surface)); color:var(--g-ink, var(--ink));
+  resize:none;
+}
+.field:focus { outline:2px solid var(--g-accent, var(--accent)); outline-offset:1px; }
+
+.answerOk, .answerMiss { width:100%; display:grid; gap:8px; padding:14px; border-radius:16px; border:1.5px solid; }
+.answerOk { border-color:#7bbf3a; background:color-mix(in srgb, #7bbf3a 12%, transparent); }
+.answerMiss { border-color:#e0562f; background:color-mix(in srgb, #e0562f 12%, transparent); }
+.answerSentence { margin:0; font-size:18px; line-height:1.45; font-weight:650; }
+.missed { margin:0; font-size:14px; color:var(--g-muted, var(--muted)); }
+
+.review { display:grid; gap:4px; margin:14px 0; text-align:left; width:100%; }
+.reviewOk, .reviewMiss { margin:0; font-size:14px; line-height:1.45; }
+.reviewOk { color:#5d9c2e; }
+.reviewMiss { color:var(--g-muted, var(--muted)); }

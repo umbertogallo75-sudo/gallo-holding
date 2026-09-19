@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { Copy } from "@/components/Copy";
+import { Speak } from "@/components/Speak";
 
 /**
  * The screen you keep beside the laptop while the meeting is happening.
@@ -69,7 +70,7 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
   useWakeLock(true, 90 * 60_000);
   const [open, setOpen] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<{ natural: string; business: string } | null>(null);
+  const [answer, setAnswer] = useState<{ simple: string; natural: string; business: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   // A meeting lasts longer than the screen timeout, and nobody wants to unlock
@@ -94,7 +95,7 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
     }).catch(() => null);
     const data = await response?.json().catch(() => null);
     setLoading(false);
-    if (response?.ok && data?.business) setAnswer({ natural: data.natural, business: data.business });
+    if (response?.ok && data?.business) setAnswer({ simple: data.simple ?? "", natural: data.natural, business: data.business });
   }
 
   return (
@@ -142,16 +143,32 @@ export function MeetingClient({ phrases, title }: { phrases: Phrase[]; title: st
             {loading ? "…" : "Dimmi"}
           </button>
         </form>
+        {/* The same three registers as "Mi serve adesso", with the same audio.
+            It used to show two of them and no sound, which made one feature
+            look like two that disagreed — a tester asked what the difference
+            was, and the honest answer was: less. */}
         {answer ? (
           <div style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-              <p style={{ fontSize: 20, lineHeight: 1.4, margin: "0 0 6px", fontWeight: 700 }}>{answer.business}</p>
-              <Copy text={answer.business} />
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-              <p className="muted" style={{ fontSize: 16, margin: 0 }}>{answer.natural}</p>
-              <Copy text={answer.natural} />
-            </div>
+            {([
+              { key: "business", label: "In riunione", text: answer.business, strong: true },
+              { key: "natural", label: "Naturale", text: answer.natural, strong: false },
+              { key: "simple", label: "Facile da dire", text: answer.simple, strong: false },
+            ] as const).map((version) =>
+              version.text ? (
+                <div key={version.key} style={{ marginBottom: 12 }}>
+                  <div className="kicker" style={{ marginBottom: 2 }}>{version.label}</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <p style={{ fontSize: version.strong ? 20 : 17, lineHeight: 1.4, margin: 0, fontWeight: version.strong ? 700 : 500 }}>
+                      {version.text}
+                    </p>
+                    <span style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      <Speak text={version.text} compact />
+                      <Copy text={version.text} />
+                    </span>
+                  </div>
+                </div>
+              ) : null
+            )}
           </div>
         ) : null}
       </section>

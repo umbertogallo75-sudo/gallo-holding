@@ -169,13 +169,51 @@ export async function saveMistake(userId: string, mistake: CoachMistake, client:
   }
 }
 
-export async function saveExpression(userId: string, expression: string, meaning: string | null, client: Client = db()) {
-  await client.execute({
-    sql: `INSERT INTO expressions (id, user_id, expression, meaning, next_review_at, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(user_id, expression) DO NOTHING`,
-    args: [randomUUID(), userId, expression, meaning, nextReviewAt(1), now()],
-  });
+/**
+ * Keeps an expression, and remembers whose idea it was.
+ *
+ * "Le tue frasi così com'è è poco efficace perché l'utente non ne ha
+ * controllo": the phrasebook filled itself with whatever Sam judged worth
+ * keeping, and the learner's own choices were mixed in among them with no way
+ * to tell which was which. Same table, one flag — the page can then show the
+ * ones they chose first, and Sam's as a proposal they can adopt or throw out.
+ */
+export async function saveExpression(
+  userId: string,
+  expression: string,
+  meaning: string | null,
+  client: Client = db(),
+  byUser = false
+) {
+  const args = [randomUUID(), userId, expression, meaning, nextReviewAt(1), now()];
+  try {
+    await client.execute({
+      sql: `INSERT INTO expressions (id, user_id, expression, meaning, next_review_at, created_at, saved_by_user)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, expression) DO UPDATE SET saved_by_user = MAX(saved_by_user, excluded.saved_by_user)`,
+      args: [...args, byUser ? 1 : 0],
+    });
+  } catch {
+    // The column arrives with this change. Add it and write it properly; if
+    // that is refused too, the expression is still kept — unattributed, which
+    // is how every one of them was kept until now.
+    try {
+      await client.execute("ALTER TABLE expressions ADD COLUMN saved_by_user INTEGER NOT NULL DEFAULT 0");
+      await client.execute({
+        sql: `INSERT INTO expressions (id, user_id, expression, meaning, next_review_at, created_at, saved_by_user)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(user_id, expression) DO UPDATE SET saved_by_user = MAX(saved_by_user, excluded.saved_by_user)`,
+        args: [...args, byUser ? 1 : 0],
+      });
+    } catch {
+      await client.execute({
+        sql: `INSERT INTO expressions (id, user_id, expression, meaning, next_review_at, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(user_id, expression) DO NOTHING`,
+        args,
+      });
+    }
+  }
 }
 
 /**

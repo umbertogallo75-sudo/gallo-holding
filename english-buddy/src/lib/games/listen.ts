@@ -52,6 +52,29 @@ export function tooClose(a: string, b: string): boolean {
 }
 
 /**
+ * How near two Italian glosses are, without being the same thing.
+ *
+ * Shared letter-triples plus a similar length: crude, but it is enough to put
+ * "fattura" beside "preventivo" instead of beside "ordine del giorno", and
+ * that is the whole difference between a question and a giveaway.
+ */
+export function nearness(a: string, b: string): number {
+  const grams = (text: string) => {
+    const clean = text.toLowerCase().replace(/[^a-zàèéìòù ]/g, "");
+    const out = new Set<string>();
+    for (let i = 0; i < clean.length - 2; i += 1) out.add(clean.slice(i, i + 3));
+    return out;
+  };
+  const left = grams(a);
+  const right = grams(b);
+  let shared = 0;
+  for (const gram of right) if (left.has(gram)) shared += 1;
+  const overlap = shared / Math.max(1, Math.min(left.size, right.size));
+  const lengthGap = Math.abs(a.length - b.length) / Math.max(a.length, b.length, 1);
+  return overlap - lengthGap * 0.5;
+}
+
+/**
  * Builds a run. `own` are the learner's own expressions, which go in first so
  * the game reviews what they are actually learning; the glossary fills the
  * rest.
@@ -72,12 +95,21 @@ export function buildRun(own: Entry[], random: () => number, count = QUESTIONS):
 
   return chosen.map((entry) => {
     const decoys: string[] = [];
-    // Bounded: after enough tries any remaining collision is accepted rather
-    // than looping forever on a glossary that has run out of distinct meanings.
-    for (let attempt = 0; attempt < 60 && decoys.length < OPTIONS - 1; attempt += 1) {
-      const candidate = GLOSSARY[Math.floor(random() * GLOSSARY.length)];
-      if (candidate.word.toLowerCase() === entry.word.toLowerCase()) continue;
-      if (tooClose(candidate.it, entry.it)) continue;
+    // The wrong answers are the exercise.
+    //
+    // They used to be picked at random from the whole glossary, which meant a
+    // word about invoices sat beside one about airports and the answer could
+    // be found without hearing anything — "troppo semplice individuare la
+    // risposta esatta", as a tester put it. Candidates are now ranked by how
+    // near they are to the right answer, and the nearest ones that are still
+    // fairly distinguishable are the ones offered.
+    const ranked = shuffle(GLOSSARY, random)
+      .filter((candidate) => candidate.word.toLowerCase() !== entry.word.toLowerCase())
+      .filter((candidate) => !tooClose(candidate.it, entry.it))
+      .map((candidate) => ({ candidate, near: nearness(candidate.it, entry.it) }))
+      .sort((a, b) => b.near - a.near);
+    for (const { candidate } of ranked) {
+      if (decoys.length >= OPTIONS - 1) break;
       if (decoys.some((decoy) => tooClose(decoy, candidate.it))) continue;
       decoys.push(candidate.it);
     }

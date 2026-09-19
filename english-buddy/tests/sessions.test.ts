@@ -145,13 +145,13 @@ describe("the line between spoken and written", () => {
   it("never offers the chat a conversation that happened at the microphone", async () => {
     const { client, calls } = fakeClient(() => [session]);
     await resumableSession("u1", { kind: "text" }, client);
-    expect(calls[0].sql).toContain("s.mode NOT IN ('voice', 'diary')");
+    expect(calls[0].sql).toContain("s.mode NOT IN ('voice', 'diary', 'shadow')");
   });
 
   it("never offers the microphone a conversation that happened in writing", async () => {
     const { client, calls } = fakeClient(() => [session]);
     await resumableSession("u1", { kind: "voice" }, client);
-    expect(calls[0].sql).toContain("s.mode IN ('voice', 'diary')");
+    expect(calls[0].sql).toContain("s.mode IN ('voice', 'diary', 'shadow')");
   });
 
   it("keeps one history when nobody asked for half of it", async () => {

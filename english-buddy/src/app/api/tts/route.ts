@@ -10,7 +10,7 @@ export const maxDuration = 30;
 const bodySchema = z.object({
   text: z.string().trim().min(1).max(400),
   rate: z.number().min(0.5).max(1.2).optional(),
-  lang: z.enum(["en-US", "en-GB"]).optional(),
+  lang: z.enum(["en-US", "en-GB", "en-AU", "en-IE", "en-SCT"]).optional(),
 });
 
 /**

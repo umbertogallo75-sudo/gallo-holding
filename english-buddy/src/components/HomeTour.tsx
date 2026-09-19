@@ -24,7 +24,7 @@ const STOPS = [
   {
     selector: ".trainRail",
     title: "Se vuoi scegliere tu",
-    text: "Sedici allenamenti: a voce, ascolto, missioni, ripasso. Li trovi tutti nella scheda Allenamenti, qui sotto.",
+    text: "Conversazioni ed esercizi, separati: parlare quanto vuoi da una parte, esercizi con una fine dall'altra. Tutti nella scheda Allenamenti, qui sotto.",
   },
   {
     selector: 'nav.bottomNav a[href="/buddy"]',

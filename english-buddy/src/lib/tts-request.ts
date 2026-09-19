@@ -6,7 +6,24 @@
  * in the dashboard could turn every listen button into a 400 without anyone
  * touching the code. The branch is worth a test.
  */
-export type TtsLang = "en-US" | "en-GB";
+export type TtsLang = "en-US" | "en-GB" | "en-AU" | "en-IE" | "en-SCT";
+
+/**
+ * The accents Sam can be asked for.
+ *
+ * Named rather than coded, because the accent travels in the delivery note
+ * the model reads. The reason they exist at all is a tester's: the English
+ * you will actually have to understand belongs to somebody in particular —
+ * the Scottish supplier, the Australian client — and somebody who has only
+ * ever heard one accent has not learned to listen, only to recognise.
+ */
+const ACCENT_NAMES: Record<TtsLang, string> = {
+  "en-US": "standard American English",
+  "en-GB": "standard British English (RP)",
+  "en-AU": "Australian English",
+  "en-IE": "Irish English",
+  "en-SCT": "Scottish English",
+};
 
 export function isLegacyTts(model: string): boolean {
   return model.startsWith("tts-1");
@@ -16,7 +33,7 @@ export function isLegacyTts(model: string): boolean {
 export function delivery(slow: boolean, lang: TtsLang): string {
   return [
     "Voice: a warm, calm male mentor. Encouraging, never rushed, never loud.",
-    `Accent: standard ${lang === "en-GB" ? "British English (RP)" : "American English"}.`,
+    `Accent: ${ACCENT_NAMES[lang] ?? ACCENT_NAMES["en-US"]}. Keep it natural and clear, never a caricature.`,
     slow
       ? "Delivery: distinctly slower than conversation, every syllable articulated, a small pause between words. An Italian learner is repeating after you."
       : "Delivery: natural conversational pace, but crisp — no mumbling, no swallowed word endings. This audio is the pronunciation model the learner copies.",

@@ -253,6 +253,14 @@ export type Mark = {
   /** The single most useful thing to do to raise it. */
   advice: string;
   href: string;
+  /**
+   * Why this mark and not another one — the learner's own mistakes.
+   *
+   * "Mi dai 5 sulla grammatica senza spiegarmi davvero perché." A number with
+   * nothing behind it is not a judgement, it is an assertion, and an
+   * assertion is either believed or resented. These are their sentences.
+   */
+  evidence: string[];
 };
 
 const SKILL_LABELS: Record<SkillName, string> = {
@@ -299,9 +307,31 @@ export function meaningOf(mark: number): string {
   return "Grave. Finché resta così, tutto il resto vale la metà.";
 }
 
-export function marksFrom(state: Record<string, unknown> | null | undefined): Mark[] {
+/**
+ * Which recorded mistakes belong under which mark.
+ *
+ * The categories are the ones the coach already tags every mistake with, so
+ * this is not a new judgement: it is showing the learner the evidence that
+ * produced the number they are looking at.
+ */
+const SKILL_CATEGORIES: Partial<Record<SkillName, string[]>> = {
+  grammar: ["grammar", "tense", "article", "preposition"],
+  vocabulary: ["vocabulary"],
+  business_conversation: ["business_expression", "register"],
+  speaking: ["word_order"],
+};
+
+export function marksFrom(
+  state: Record<string, unknown> | null | undefined,
+  mistakes: { incorrect: string; correct: string; category?: string }[] = []
+): Mark[] {
   return skillNames.map((skill) => {
     const mark = markOf(Number(state?.[skill] ?? 50));
+    const categories = SKILL_CATEGORIES[skill] ?? [];
+    const evidence = mistakes
+      .filter((m) => categories.includes(String(m.category ?? "other")))
+      .slice(0, 3)
+      .map((m) => `«${m.incorrect}» → «${m.correct}»`);
     return {
       skill,
       label: SKILL_LABELS[skill],
@@ -309,6 +339,7 @@ export function marksFrom(state: Record<string, unknown> | null | undefined): Ma
       meaning: meaningOf(mark),
       advice: SKILL_ADVICE[skill].advice,
       href: SKILL_ADVICE[skill].href,
+      evidence,
     };
   });
 }
