@@ -110,8 +110,17 @@ describe("the spoken conversation on screen", () => {
 
   it("carries the conversation into the microphone instead of starting another", () => {
     const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
-    expect(chat).toContain("const voiceHref = sessionId ? `/voice?riprendi=${encodeURIComponent(sessionId)}` : \"/voice\"");
+    expect(chat).toContain("`/voice?riprendi=${encodeURIComponent(sessionId)}`");
     expect(voice).toContain("Stai continuando la conversazione di adesso");
+  });
+
+  it("carries a question that arrived by notification, which has no session yet", () => {
+    // "Quando arriva la notifica e poi vai in Voice perdi la memoria sulla
+    // domanda che ti aveva posto e lui si mette in attesa. Rimani bloccato."
+    const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
+    expect(chat).toContain("`/voice?domanda=${encodeURIComponent(initialQuestion.slice(0, 300))}`");
+    expect(voiceRoute).toContain("THE QUESTION THEY CAME TO ANSWER");
+    expect(voiceRoute).toContain("Open the call by asking it again out loud");
   });
 
   it("quotes the last thing Sam said, not the first", () => {

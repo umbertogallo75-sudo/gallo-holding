@@ -5,7 +5,7 @@ import { requireUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { VoiceClient } from "./VoiceClient";
 
-export default async function VoicePage({ searchParams }: { searchParams: Promise<{ mode?: string; riprendi?: string }> }) {
+export default async function VoicePage({ searchParams }: { searchParams: Promise<{ mode?: string; riprendi?: string; domanda?: string }> }) {
   const userId = await requireUserId();
   const profileResult = await db().execute({ sql: "SELECT id FROM profiles WHERE id = ? LIMIT 1", args: [userId] });
   if (!profileResult.rows.length) redirect("/onboarding");
@@ -18,6 +18,8 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
   const shadow = params.mode === "shadow";
   // A call reopened from the archive, by its id.
   const reopen = params.riprendi?.slice(0, 64);
+  /** A question Sam asked by notification, brought to the microphone. */
+  const question = params.domanda?.slice(0, 300);
 
   return (
     <main className="shell">
@@ -36,6 +38,7 @@ export default async function VoicePage({ searchParams }: { searchParams: Promis
       <VoiceClient
         mode={shadow ? "shadow" : diary ? "diary" : "voice"}
         reopen={reopen}
+        question={question}
         hero={
           <section className="hero">
             <div className="kicker">{shadow ? "Pronuncia" : diary ? "Diario parlato" : "Voce dal vivo"}</div>

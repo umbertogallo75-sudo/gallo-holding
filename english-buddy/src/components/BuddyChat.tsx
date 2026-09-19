@@ -345,7 +345,15 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
    * lavoro e poi ripartiamo da qua? Non c'è logica". Same thread, other
    * medium.
    */
-  const voiceHref = sessionId ? `/voice?riprendi=${encodeURIComponent(sessionId)}` : "/voice";
+  const voiceHref = sessionId
+    ? `/voice?riprendi=${encodeURIComponent(sessionId)}`
+    : initialQuestion
+      ? // Arrived from a notification and not yet answered: there is no session
+        // to continue, but there is a question on the screen. Without this the
+        // microphone opened on an empty room and waited — "perdi la memoria
+        // sulla domanda che ti aveva posto e rimani bloccato".
+        `/voice?domanda=${encodeURIComponent(initialQuestion.slice(0, 300))}`
+      : "/voice";
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
   /** Sam has spoken, the person has not, and the box is still empty. */

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (billingEnforced() && !(await getEntitlement(userId)).access) {
     return NextResponse.json({ error: embeddedShellOf(request) === "android" ? ANDROID_PAYWALL_MESSAGE : embeddedShellOf(request) === "ios" ? EMBEDDED_PAYWALL_MESSAGE : PAYWALL_MESSAGE, upgradeUrl: "/abbonamento" }, { status: 402 });
   }
-  const body = (await request.json().catch(() => ({}))) as { mode?: string; engine?: string; sdp?: string; resume?: string };
+  const body = (await request.json().catch(() => ({}))) as { mode?: string; engine?: string; sdp?: string; resume?: string; question?: string };
   const diary = body?.mode === "diary";
   const shadow = body?.mode === "shadow";
   // Which conversation engine the learner picked. Anything unrecognised falls
@@ -103,6 +103,16 @@ Do NOT correct grammar or teach vocabulary here: they are repeating your sentenc
   // Picking up this very call outranks continuity with older ones: one is the
   // conversation being continued, the other is the history behind it.
   instructions += continuityBlock(continuity);
+
+  // A question asked by notification, brought to the microphone. Without it
+  // the call opened on silence and waited for somebody who was expecting to
+  // answer the thing on their screen — and they were stuck.
+  const pending = typeof body?.question === "string" ? body.question.trim().slice(0, 300) : "";
+  if (pending) {
+    instructions += `\n\nTHE QUESTION THEY CAME TO ANSWER:
+You sent them this a moment ago, in writing: "${pending}"
+They have just tapped the microphone to answer it. Open the call by asking it again out loud, in one short line and in your own words — not by greeting them, not by offering a choice of subjects, and never by asking something else. Then listen.`;
+  }
   if (resumed) instructions += pickUpBlock(resumed.recap);
   const session = resumed ? { sessionId: resumed.id, recap: resumed.recap } : {};
 

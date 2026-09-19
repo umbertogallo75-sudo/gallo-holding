@@ -107,7 +107,18 @@ function newSessionId(): string {
   }
 }
 
-export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: React.ReactNode; reopen?: string }) {
+export function VoiceClient({
+  mode,
+  hero,
+  reopen,
+  question,
+}: {
+  mode?: string;
+  hero?: React.ReactNode;
+  reopen?: string;
+  /** What Sam asked by notification, so the call opens on it rather than on silence. */
+  question?: string;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -651,7 +662,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
       // means the session is asked for after the offer exists, not before.
       let tokenData: { clientSecret?: string; model?: string; error?: string; sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] } = {};
       if (engine === "realtime") {
-        const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice", engine, resume: resumeId }) });
+        const tokenResponse = await fetch("/api/voice/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: mode || "voice", engine, resume: resumeId, question }) });
         tokenData = await tokenResponse.json();
         if (!tokenResponse.ok) throw new Error(tokenData.error || "Voice unavailable");
         adopt(tokenData);
@@ -748,7 +759,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
         const liveResponse = await fetch("/api/voice/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: mode || "voice", engine, sdp: offer.sdp, resume: resumeId }),
+          body: JSON.stringify({ mode: mode || "voice", engine, sdp: offer.sdp, resume: resumeId, question }),
         });
         const liveData = (await liveResponse.json()) as { sdp?: string; error?: string; sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] };
         if (!liveResponse.ok || !liveData.sdp) throw new Error(liveData.error || "Voice unavailable");
@@ -848,6 +859,11 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
             </>
           )}
           {status === "error" ? <div className="notice" style={{ margin: "10px 0" }}>{error}</div> : null}
+          {question && !resumable && status !== "ended" ? (
+            <div className="voiceResume">
+              <p className="voiceResumeText">💬 Sam ti aveva chiesto: «{question}». Rispondigli a voce.</p>
+            </div>
+          ) : null}
           {resumable && status !== "ended" ? (
             <div className="voiceResume">
               <p className="voiceResumeText">
