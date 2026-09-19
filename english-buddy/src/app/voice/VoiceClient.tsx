@@ -144,6 +144,9 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
   const meterRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Transcript deltas, which is all the Live engine sends: no completed event. */
   const draftRef = useRef<{ you: string; coach: string }>({ you: "", coach: "" });
+  /** The sentence being said right now, shown while it is still arriving. */
+  const [streaming, setStreaming] = useState<Line | null>(null);
+  const liveLineRef = useRef<Line | null>(null);
   const awaySinceRef = useRef<number | null>(null);
   const statusRef = useRef<Status>("idle");
   /**
@@ -187,7 +190,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
   /** A spoken conversation left unfinished, offered back on the way in. */
-  const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number; preview?: string } | null>(null);
+  const [resumable, setResumable] = useState<{ id: string; lastAt: string; exchanges: number; preview?: string; continuing?: boolean } | null>(null);
   const [resumedFrom, setResumedFrom] = useState(0);
   const lookedRef = useRef(false);
 
@@ -269,12 +272,17 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
         const data = await response.json();
         if (!response.ok) return;
         if (reopen && Array.isArray(data.transcript) && data.transcript.length) {
-          const firstUser = data.transcript.find((line: { role: string; content: string }) => line.role === "user");
+          // The last thing Sam said, because that is the thing being answered
+          // — quoting the opening line instead is how the screen ended up
+          // naming a different conversation from the one just on screen.
+          const lines = data.transcript as { role: string; content: string }[];
+          const lastCoach = [...lines].reverse().find((line) => line.role === "assistant");
           setResumable({
             id: reopen,
             lastAt: "",
             exchanges: data.facts?.exchanges ?? 0,
-            preview: firstUser?.content?.slice(0, 120),
+            preview: lastCoach?.content?.slice(0, 160),
+            continuing: true,
           });
           return;
         }
@@ -487,6 +495,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
     // Whatever the Live engine was halfway through saying belongs in the
     // transcript: no event is coming to finish it.
     flushDrafts();
+    liveLineRef.current = null; setStreaming(null);
     pcRef.current?.close(); pcRef.current = null;
     channelRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null;
@@ -513,6 +522,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
   function push(role: "you" | "coach", text: string) {
     const clean = text.trim();
     if (!clean) return;
+    liveLineRef.current = null;
     linesRef.current = [...linesRef.current.slice(-30), { role, text: clean }];
     setLines(linesRef.current);
     pendingRef.current = [...pendingRef.current, { seq: seqRef.current, role, text: clean }];
@@ -633,6 +643,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
     engineRef.current = engine;
     liveRef.current = INITIAL;
     draftRef.current = { you: "", coach: "" };
+    liveLineRef.current = null; setStreaming(null);
     try {
       // Realtime mints a short-lived secret first and lets the browser
       // negotiate straight with OpenAI. Live takes the offer on our server
@@ -701,8 +712,27 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
       channel.onmessage = (message) => {
         try {
           const event = JSON.parse(message.data as string) as { type?: string; transcript?: string; delta?: string };
-          if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) push("you", event.transcript);
-          if ((event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") && event.transcript) push("coach", event.transcript);
+          if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) {
+            setStreaming(null);
+            push("you", event.transcript);
+          }
+          if ((event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") && event.transcript) {
+            setStreaming(null);
+            push("coach", event.transcript);
+          }
+          // The words as they are said, instead of a block that lands when the
+          // sentence is already over. A tester described repeating after Sam
+          // and losing the thread waiting for the text to appear: on this
+          // engine the deltas were arriving all along and were being thrown
+          // away.
+          if ((event.type === "response.output_audio_transcript.delta" || event.type === "response.audio_transcript.delta") && event.delta) {
+            liveLineRef.current = { role: "coach", text: liveLineRef.current?.role === "coach" ? liveLineRef.current.text + event.delta : event.delta };
+            setStreaming(liveLineRef.current);
+          }
+          if (event.type === "conversation.item.input_audio_transcription.delta" && event.delta) {
+            liveLineRef.current = { role: "you", text: liveLineRef.current?.role === "you" ? liveLineRef.current.text + event.delta : event.delta };
+            setStreaming(liveLineRef.current);
+          }
           // Live sends transcripts only as fragments, with no completed event
           // and no item id — so a line is closed by a silence, not by a signal.
           if (event.type === "session.input_transcript.delta" && event.delta) collect("you", event.delta);
@@ -821,9 +851,17 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
           {resumable && status !== "ended" ? (
             <div className="voiceResume">
               <p className="voiceResumeText">
-                🎙️ Avevi una conversazione a voce lasciata a metà.{" "}
-                {resumable.preview ? <>Parlavate di «{resumable.preview}». </> : null}
-                Sam se la ricorda e riparte da lì.
+                {resumable.continuing ? (
+                  <>
+                    🎙️ Stai continuando la conversazione di adesso.
+                    {resumable.preview ? <> Sam ti aveva chiesto: «{resumable.preview}»</> : null}
+                  </>
+                ) : (
+                  <>
+                    🎙️ Avevi una conversazione a voce lasciata a metà.
+                    {resumable.preview ? <> Sam ti aveva detto: «{resumable.preview}»</> : null} Se la ricorda e riparte da lì.
+                  </>
+                )}
               </p>
               <button
                 type="button"
@@ -831,7 +869,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
                 data-track="session_resumed"
                 onClick={() => { void start(lastEngine(), resumable.id); }}
               >
-                ↩︎ Riprendi da dove eravate
+                {resumable.continuing ? "🎙️ Rispondi a voce" : "↩︎ Riprendi da dove eravate"}
               </button>
             </div>
           ) : null}
@@ -896,7 +934,7 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
             <p className="voiceHint">
               {paused
                 ? "Sam aspetta e il tempo è fermo: puoi parlare con chi vuoi, non ti sente."
-                : "Sta ascoltando. Se entra qualcuno o devi rispondere a qualcun altro, metti in pausa."}
+                : "Sam sta ascoltando: puoi mettere in pausa la conversazione o terminarla quando preferisci."}
             </p>
 
             <div className="voiceControls">
@@ -916,8 +954,8 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
               <p className="voiceAlert">📞 Audio sospeso — probabilmente una telefonata. <strong>Il tempo è fermo</strong>: torna qui e riprendi da dove eravate.</p>
             ) : null}
           </section>
-          {lines.length > 0 ? (
-            <section className="card">
+          {lines.length > 0 || streaming ? (
+            <section className="card voiceTranscript">
               <div className="kicker">Trascrizione dal vivo</div>
               <div className="voiceLog" ref={logRef} onScroll={onLogScroll}>
                 {lines.map((l, i) => (
@@ -928,6 +966,14 @@ export function VoiceClient({ mode, hero, reopen }: { mode?: string; hero?: Reac
                     {l.role === "coach" ? <RememberPhrase text={l.text} from="voice" compact /> : null}
                   </p>
                 ))}
+                {streaming && streaming.text.trim() ? (
+                  <p className="voiceLine voiceLineLive">
+                    <strong style={{ color: streaming.role === "coach" ? "var(--brandText)" : "inherit" }}>
+                      {streaming.role === "coach" ? "Coach: " : "You: "}
+                    </strong>
+                    {streaming.text}
+                  </p>
+                ) : null}
                 {detached ? (
                   <button type="button" className="voiceCatchUp" onClick={catchUp}>↓ Segui la conversazione</button>
                 ) : null}

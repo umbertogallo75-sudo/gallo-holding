@@ -881,7 +881,11 @@ p { line-height:1.55; font-size:16px; }
   height: calc(100dvh - var(--voiceChrome));
 }
 .voiceStage > .card { margin: 0; }
-.voiceStage > .card:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* Solo la trascrizione si allunga. Era ":last-child", quindi quando non
+   c'era ancora niente da trascrivere a riempire lo schermo era la scheda
+   della chiamata: un riquadro vuoto alto quanto il telefono, con due pulsanti
+   in cima. */
+.voiceStage > .voiceTranscript { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .voiceLog {
   /* dvh and not vh: on mobile Safari 100vh is the height the page would have
      with the address bar hidden, so a vh box is taller than what is on screen.
@@ -944,7 +948,7 @@ p { line-height:1.55; font-size:16px; }
   .voiceStage { height:auto; min-height:0; }
   /* The stage is no longer sized, so its children must stop stretching to
      fill it — a flex child of an auto-height parent collapses to nothing. */
-  .voiceStage > .card:last-child { flex:none; min-height:auto; display:block; }
+  .voiceStage > .voiceTranscript { flex:none; min-height:auto; display:block; }
   .voiceLive .voiceOrb { width:44px; height:44px; font-size:20px; }
   /* Sideways there is no vertical room to spend: the hint goes, and the head
      and the controls share one line again. */
@@ -1176,3 +1180,7 @@ button:disabled .navSpin { opacity: 1; }
 .verdictList { list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:14.5px; line-height:1.5; }
 .verdictList li { color:var(--brandText); }
 .verdictFocus li { color:var(--amber); }
+
+/* La frase che sta arrivando adesso: si distingue da quelle già dette, così
+   nessuno la rilegge come definitiva mentre è ancora a metà. */
+.voiceLineLive { opacity:.72; }

@@ -3,6 +3,7 @@ import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
 import { ensureProfile } from "./service";
 import { isVoiceMode, RESUMABLE_HOURS } from "./sessions";
+import { isSyntheticOpener } from "./openers";
 
 /**
  * A spoken conversation, written down while it is still happening.
@@ -87,9 +88,15 @@ export async function resumeVoiceSession(
     })
     .catch(() => null);
   const row = found?.rows[0];
-  if (!row || !isVoiceMode(String(row.mode)) || String(row.started_at) < since) return null;
+  // Any conversation of theirs, not only a spoken one. Sam asks a question in
+  // writing, you tap the microphone to answer it out loud: that is one
+  // conversation continuing, and refusing it because the first half was typed
+  // is what made the two halves contradict each other on screen.
+  if (!row || String(row.started_at) < since) return null;
 
-  const recap = await voiceRecap(resumeId, RECAP_LINES, client);
+  const recap = (await voiceRecap(resumeId, RECAP_LINES, client)).filter(
+    (line) => !(line.role === "you" && isSyntheticOpener(line.text))
+  );
   if (!recap.length) return null;
   // Coming back to it means it is not over, whatever a previous hang-up wrote.
   await client

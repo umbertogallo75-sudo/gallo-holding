@@ -287,7 +287,9 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
         await resume(reopen);
         return;
       }
-      if (!initialQuestion) {
+      // An entry test measures where somebody is today; continuing an old
+      // conversation into it would measure the old one.
+      if (!initialQuestion && mode !== "levelcheck") {
         try {
           // Written only: a conversation you had out loud is not something to
           // reopen as text.
@@ -332,6 +334,18 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
     };
   }, []);
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
+
+  /**
+   * The microphone carries the conversation with it.
+   *
+   * It used to be a bare link to /voice, so tapping it after Sam had just
+   * asked you something dropped you into a different conversation — often the
+   * offer to resume an unrelated call from days ago. A tester wrote it down
+   * exactly: "mi hai appena detto che dovevamo ripartire da che faccio a
+   * lavoro e poi ripartiamo da qua? Non c'è logica". Same thread, other
+   * medium.
+   */
+  const voiceHref = sessionId ? `/voice?riprendi=${encodeURIComponent(sessionId)}` : "/voice";
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
   /** Sam has spoken, the person has not, and the box is still empty. */
@@ -503,7 +517,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
         voice is one tap away for whoever can use it. */}
     <form className="composer" ref={composerRef} onSubmit={submit}>
       {!knowsVoice && !inviteHidden ? (
-        <a className="voiceInvite" href="/voice" data-track="voice_invite">
+        <a className="voiceInvite" href={voiceHref} data-track="voice_invite">
           <span className="voiceInviteIcon" aria-hidden>🎙️</span>
           <span className="voiceInviteText">
             <strong>Preferisci parlare?</strong>
@@ -519,7 +533,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
         </a>
       ) : null}
       <textarea aria-label="La tua risposta" placeholder="Rispondi in inglese…" value={text} onChange={e=>setText(e.target.value)} />
-      <a className="composerMic" href="/voice" aria-label="Parla con Sam a voce" title="Parla a voce">🎙️<span className="composerMicLabel">Voce</span></a>
+      <a className="composerMic" href={voiceHref} aria-label="Rispondi a voce a Sam" title="Rispondi a voce">🎙️<span className="composerMicLabel">Voce</span></a>
       <button className="primary" disabled={!text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
     </form>
   </>;

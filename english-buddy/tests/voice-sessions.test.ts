@@ -178,9 +178,14 @@ describe("resumeVoiceSession", () => {
     expect(queries.some((q) => /SET ended_at = NULL/.test(q.sql))).toBe(true);
   });
 
-  it("refuses a written conversation — that is not something to resume at the microphone", async () => {
+  it("continues a conversation that started in writing, because it is the same conversation", async () => {
+    // Sam asks a question in the chat, you tap the microphone to answer it out
+    // loud. Refusing because the first half was typed is what made the two
+    // halves name different conversations on screen.
     const { client } = withSession({ id: MINE, mode: "guided", started_at: now });
-    expect(await resumeVoiceSession("u1", MINE, client)).toBeNull();
+    const found = await resumeVoiceSession("u1", MINE, client);
+    expect(found?.id).toBe(MINE);
+    expect(found?.recap.length).toBeGreaterThan(0);
   });
 
   it("refuses one that is too old to be picking up", async () => {
@@ -192,6 +197,19 @@ describe("resumeVoiceSession", () => {
   it("refuses one that is not this learner's", async () => {
     const { client } = withSession(null);
     expect(await resumeVoiceSession("u1", THEIRS, client)).toBeNull();
+  });
+
+  it("does not offer back the instruction that opened the conversation", async () => {
+    // A resumed conversation whose only line is the synthetic opener has
+    // nothing in it that anybody said.
+    const { client } = fake((sql) => {
+      if (/SELECT id, mode, started_at FROM sessions/.test(sql)) return [{ id: MINE, mode: "voice", started_at: now }];
+      if (/SELECT role, content FROM messages/.test(sql)) {
+        return [{ role: "user", content: "Start a short natural English conversation with me." }];
+      }
+      return [];
+    });
+    expect(await resumeVoiceSession("u1", MINE, client)).toBeNull();
   });
 
   it("offers nothing back when nothing was ever said", async () => {
