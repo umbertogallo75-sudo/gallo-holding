@@ -24,7 +24,17 @@ const analysisSchema = z.object({
   titleIt: z.string(),
   summaryIt: z.string(),
   kind: z.string(),
-  terms: z.array(z.object({ term: z.string(), meaning: z.string() })),
+  /**
+   * The sentences that actually decide something, quoted and translated.
+   *
+   * The file is deliberately never kept, so "show me the original" cannot mean
+   * the whole document — but it can mean the lines that carry the money, the
+   * dates and the obligations. A tester said he could not see the original and
+   * did not trust the translation: this is both answers at once, because the
+   * English is right there beside the Italian.
+   */
+  passages: z.array(z.object({ en: z.string(), it: z.string() })).default([]),
+  terms: z.array(z.object({ term: z.string(), meaning: z.string(), context: z.string().optional() })),
   questions: z.array(z.string()),
   scenario: z.string(),
 });
@@ -34,20 +44,37 @@ export type DocAnalysis = z.infer<typeof analysisSchema>;
 const jsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["pages", "titleIt", "summaryIt", "kind", "terms", "questions", "scenario"],
+  required: ["pages", "titleIt", "summaryIt", "kind", "passages", "terms", "questions", "scenario"],
   properties: {
     pages: { type: "number", description: "How many pages the document actually has." },
     titleIt: { type: "string", description: "A short title in Italian, at most eight words." },
     summaryIt: { type: "string", description: "What the document says, in Italian, four to six sentences." },
     kind: { type: "string", description: "What kind of document it is, in Italian: contratto, offerta, presentazione, bilancio, capitolato…" },
-    terms: {
+    passages: {
       type: "array",
-      description: "Between six and twelve English terms from this document that matter in the room, each with a short Italian meaning.",
+      description: "Four to eight sentences copied VERBATIM from the document — the ones carrying money, dates, obligations or risk — each with a faithful Italian translation.",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["term", "meaning"],
-        properties: { term: { type: "string" }, meaning: { type: "string" } },
+        required: ["en", "it"],
+        properties: {
+          en: { type: "string", description: "The sentence exactly as written in the document. Never paraphrased." },
+          it: { type: "string", description: "Faithful Italian translation of that exact sentence." },
+        },
+      },
+    },
+    terms: {
+      type: "array",
+      description: "Between six and twelve English terms from this document that matter in the room.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["term", "meaning", "context"],
+        properties: {
+          term: { type: "string" },
+          meaning: { type: "string" },
+          context: { type: "string", description: "The words around it in the document, so it is not a word floating on its own." },
+        },
       },
     },
     questions: {
@@ -68,8 +95,9 @@ Read the document and produce:
 - pages: how many pages it really has. Count them; do not guess.
 - titleIt: a short title in Italian, at most eight words, naming this specific document rather than its category.
 - kind: what kind of document it is, in Italian, one or two words.
-- summaryIt: what it says, in Italian, four to six sentences. Include the numbers, dates and obligations that would matter in a meeting. Say only what is in the document.
-- terms: six to twelve English expressions taken FROM THIS DOCUMENT that will come back in the room — the vocabulary of this deal, not general business English they already know. A short Italian meaning each.
+- summaryIt: what it says, in Italian, four to six sentences. Include the numbers, dates and obligations that would matter in a meeting. Say only what is in the document, and be exact: a number or a date reported wrongly here is worse than no summary at all.
+- passages: four to eight sentences copied VERBATIM from the document — the ones that carry money, dates, obligations, penalties or risk — each with a faithful Italian translation. Copy the English exactly as written, never paraphrase it, never tidy it. This is what they read to check you, and being checkable is the point.
+- terms: six to twelve English expressions taken FROM THIS DOCUMENT that will come back in the room — the vocabulary of this deal, not general business English they already know. For each: a short Italian meaning, and context, the words around it in the document, so it is not a word floating on its own.
 - questions: three to six questions, in English, that they are realistically going to be asked about this document. The uncomfortable ones too.
 - scenario: one line in English setting up a role-play — who you will play, and what they have to achieve.
 
@@ -90,6 +118,7 @@ export async function analyseDocument(file: { filename: string; base64: string }
   if (!parsed.success) throw new Error("Non sono riuscito a leggere questo documento.");
   return {
     ...parsed.data,
+    passages: parsed.data.passages.slice(0, 8),
     terms: parsed.data.terms.slice(0, 12),
     questions: parsed.data.questions.slice(0, 6),
   };
@@ -111,11 +140,13 @@ export function countPagesRoughly(bytes: Buffer): number | null {
 
 /** The one line of context a coaching session needs about the document. */
 export function trainingContext(analysis: DocAnalysis): string {
-  const terms = analysis.terms.map((t) => `${t.term} (${t.meaning})`).join("; ");
+  const terms = analysis.terms.map((t) => `${t.term} (${t.meaning})${t.context ? ` — in the document: "${t.context}"` : ""}`).join("; ");
+  const passages = (analysis.passages ?? []).map((p) => `- "${p.en}"`).join("\n");
   const questions = analysis.questions.map((q) => `- ${q}`).join("\n");
   return `THE DOCUMENT THIS SESSION IS ABOUT
 Kind: ${analysis.kind}. Title: ${analysis.titleIt}.
 What it says (in Italian, for your understanding — speak English to the user): ${analysis.summaryIt}
+${passages ? `\nThe sentences that decide something, exactly as written:\n${passages}\n` : ""}
 
 Expressions from this document to teach and keep coming back to: ${terms}
 

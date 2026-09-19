@@ -1184,3 +1184,14 @@ button:disabled .navSpin { opacity: 1; }
 /* La frase che sta arrivando adesso: si distingue da quelle già dette, così
    nessuno la rilegge come definitiva mentre è ancora a metà. */
 .voiceLineLive { opacity:.72; }
+
+/* La traduzione, accanto all'originale: si legge come testo, non come una
+   nota a margine, perché è la parte che rende la mail comprensibile. */
+.mailTranslation { margin:6px 0 0; font-size:15.5px; line-height:1.6; white-space:pre-wrap; }
+
+/* I passaggi del documento: l'inglese esatto e l'italiano accanto. Si legge
+   come un testo a fronte, che è il modo in cui una traduzione si controlla. */
+.docPassage { margin-top:12px; padding-left:12px; border-left:2px solid color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.docPassageEn { margin:0; font-size:15px; line-height:1.55; display:flex; align-items:flex-start; gap:8px; }
+.docPassageIt { margin:4px 0 0; font-size:14.5px; line-height:1.55; color:var(--muted); }
+.docTermContext { width:100%; margin:4px 0 0; font-size:13px; line-height:1.5; color:var(--muted); font-style:italic; }

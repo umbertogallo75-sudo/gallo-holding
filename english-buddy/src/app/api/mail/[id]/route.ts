@@ -88,8 +88,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     // A retry rebuilds the lot; a tone change or an instruction touches only
     // the reply, because what the email says has not changed.
     if (parsed.data.action === "retry") await attachAnswer(id, answer, client);
-    else await replaceReply(id, userId, answer.replyEn, client);
-    return NextResponse.json({ ok: true, reply: answer.replyEn, summaryIt: answer.summaryIt, asks: answer.asks });
+    else await replaceReply(id, userId, answer.replyEn, answer.replyIt, client);
+    return NextResponse.json({
+      ok: true,
+      reply: answer.replyEn,
+      replyIt: answer.replyIt,
+      summaryIt: answer.summaryIt,
+      translationIt: answer.translationIt,
+      asks: answer.asks,
+    });
   } catch (error) {
     console.error("mail rewrite failed:", error);
     return NextResponse.json({ error: "Sam non è riuscito a rispondere adesso. Riprova fra un attimo." }, { status: 502 });

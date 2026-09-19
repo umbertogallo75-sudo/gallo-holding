@@ -16,9 +16,11 @@ import { runStructured } from "@/lib/ai/openai";
 
 const answerSchema = z.object({
   counterpart: z.string(),
+  translationIt: z.string().default(""),
   summaryIt: z.string(),
   asks: z.array(z.string()),
   replyEn: z.string(),
+  replyIt: z.string().default(""),
   expressions: z.array(z.object({ expression: z.string(), meaning: z.string() })),
 });
 
@@ -27,9 +29,10 @@ export type MailAnswer = z.infer<typeof answerSchema>;
 const jsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["counterpart", "summaryIt", "asks", "replyEn", "expressions"],
+  required: ["counterpart", "translationIt", "summaryIt", "asks", "replyEn", "replyIt", "expressions"],
   properties: {
     counterpart: { type: "string", description: "Who wrote the original email: name, or company, or empty if unclear." },
+    translationIt: { type: "string", description: "The email translated into Italian in full, faithfully, keeping its paragraphs." },
     summaryIt: { type: "string", description: "What the email says, in Italian, 2-4 sentences, plain language." },
     asks: {
       type: "array",
@@ -37,6 +40,7 @@ const jsonSchema = {
       items: { type: "string" },
     },
     replyEn: { type: "string", description: "A complete reply in English, ready to send." },
+    replyIt: { type: "string", description: "The same reply translated into Italian, so they know exactly what they are sending." },
     expressions: {
       type: "array",
       description: "Exactly two useful expressions taken from this email, with a short Italian meaning.",
@@ -53,13 +57,16 @@ const jsonSchema = {
 function instructions(level: string, tone: string): string {
   return `You are Sam, the English coach inside ExecLingo, helping an Italian business professional deal with an email written in English. Their working level is ${level}.
 
-Give them four things:
+Give them these things:
 - counterpart: who wrote the original message. A forwarded email carries the sender's own name in the forwarded header inside the body — use that, not the person who forwarded it to you.
+- translationIt: the email translated into Italian IN FULL and faithfully — every paragraph, nothing left out, nothing added, no summarising. This is what they read to know what was actually written to them, so it must be the whole thing and it must be accurate. Skip signatures, disclaimers and forwarding headers only.
 - summaryIt: what the email says, in Italian, in two to four sentences. Plain language, no jargon. If the email carries a deadline, a number or a price, that goes in.
 - asks: what they are actually being asked to do or decide, in Italian, one short line each. If nothing is being asked, return an empty list rather than inventing something.
 - replyEn: a reply in English they can send as it is. ${tone}
 
 CRITICAL about the reply: write it as the user, in the first person, and never invent facts — no prices they did not mention, no dates they did not offer, no commitments they did not make. Where a real decision is needed, leave a clearly marked gap like [la tua data] or [il tuo prezzo] so they see exactly what to fill in. Match the register of the original: a lawyer gets formal English, a colleague gets a normal one. Keep it to the length the situation deserves — most business replies are four to eight lines.
+
+- replyIt: your reply translated into Italian, faithfully. Somebody who is not confident in English will not send a message they cannot read: without this they either send it blind or do not use the feature. Keep the same gaps ([la tua data]) in the same places.
 
 Then expressions: exactly two phrases worth learning from this email — the kind that comes back in every negotiation or meeting — each with a short Italian meaning. Not basic vocabulary they already know.
 

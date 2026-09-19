@@ -24,6 +24,8 @@ export function MailDetail({ item }: { item: MailItem }) {
   const router = useRouter();
   const [reply, setReply] = useState(item.replyEn);
   const [summary, setSummary] = useState(item.summaryIt);
+  const [translation, setTranslation] = useState(item.translationIt);
+  const [replyIt, setReplyIt] = useState(item.replyIt);
   const [asks, setAsks] = useState(item.asks);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +33,16 @@ export function MailDetail({ item }: { item: MailItem }) {
   const [instruction, setInstruction] = useState("");
   const [trusted, setTrusted] = useState(item.senderKnown);
   const [sentTo, setSentTo] = useState("");
-  const [original, setOriginal] = useState(false);
+  /**
+   * The original, open.
+   *
+   * It used to be at the foot of the page behind "Mostra il testo originale",
+   * under a summary — and a tester said exactly what that costs: "parte con un
+   * riassunto dell'email che non mi aiuta a comprendere cosa realmente abbia
+   * scritto il mio interlocutore". What was written to you comes first; what
+   * Sam makes of it comes after.
+   */
+  const [original, setOriginal] = useState(true);
 
   async function act(action: "retry" | "tone" | "instruct" | "email", extra: Record<string, string> = {}, label = "") {
     setBusy(label || action); setError("");
@@ -45,6 +56,8 @@ export function MailDetail({ item }: { item: MailItem }) {
       if (!response.ok) { setError(data.error || "Non ha funzionato."); return; }
       if (data.reply) setReply(data.reply);
       if (data.summaryIt) setSummary(data.summaryIt);
+      if (data.translationIt) setTranslation(data.translationIt);
+      if (typeof data.replyIt === "string") setReplyIt(data.replyIt);
       if (Array.isArray(data.asks)) setAsks(data.asks);
       if (data.sentTo) setSentTo(String(data.sentTo));
       setInstruction("");
@@ -107,8 +120,25 @@ export function MailDetail({ item }: { item: MailItem }) {
         ) : null}
       </section>
 
+      {item.bodyText ? (
+        <section className="card">
+          <div className="kicker">Quello che ti hanno scritto</div>
+          <button type="button" className="mailOriginalToggle" onClick={() => setOriginal(!original)}>
+            {original ? "Nascondi il testo originale" : "Mostra il testo originale"}
+          </button>
+          {original ? <pre className="mailOriginal">{item.bodyText}</pre> : null}
+        </section>
+      ) : null}
+
+      {translation ? (
+        <section className="card">
+          <div className="kicker">Tradotta, parola per parola</div>
+          <p className="mailTranslation">{translation}</p>
+        </section>
+      ) : null}
+
       <section className="card">
-        <div className="kicker">Cosa dice</div>
+        <div className="kicker">{translation ? "In due righe" : "Cosa dice"}</div>
         <p style={{ marginBottom: asks.length ? 14 : 0 }}>{summary}</p>
         {asks.length ? (
           <>
@@ -123,6 +153,14 @@ export function MailDetail({ item }: { item: MailItem }) {
       <section className="card">
         <div className="kicker">La tua risposta</div>
         <p className="mailReply">{reply}</p>
+        {/* Nobody sends a message they cannot read: without this they either
+            send it blind or stop using the feature. */}
+        {replyIt ? (
+          <>
+            <div className="kicker" style={{ marginTop: 14 }}>Che in italiano dice</div>
+            <p className="mailTranslation">{replyIt}</p>
+          </>
+        ) : null}
         <div className="aliasRow" style={{ marginTop: 12 }}>
           <button type="button" className="primary" onClick={copy}>{copied ? "✓ Copiata" : "📋 Copia la risposta"}</button>
           <Speak text={reply} compact />
@@ -183,15 +221,6 @@ export function MailDetail({ item }: { item: MailItem }) {
               {expression.meaning ? <p className="keepNote" style={{ width: "100%", margin: "2px 0 0" }}>{expression.meaning}</p> : null}
             </div>
           ))}
-        </section>
-      ) : null}
-
-      {item.bodyText ? (
-        <section className="card">
-          <button type="button" className="mailOriginalToggle" onClick={() => setOriginal(!original)}>
-            {original ? "Nascondi il testo originale" : "Mostra il testo originale"}
-          </button>
-          {original ? <pre className="mailOriginal">{item.bodyText}</pre> : null}
         </section>
       ) : null}
 

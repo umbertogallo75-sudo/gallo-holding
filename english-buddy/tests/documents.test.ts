@@ -26,7 +26,8 @@ const analysis: DocAnalysis = {
   titleIt: "Offerta fornitura Q3",
   summaryIt: "Prezzo a 12 euro, consegna a giugno, pagamento a 60 giorni.",
   kind: "offerta",
-  terms: [{ term: "lead time", meaning: "tempo di consegna" }],
+  passages: [{ en: "Payment terms are 60 days from invoice date.", it: "Il pagamento è a 60 giorni dalla data fattura." }],
+  terms: [{ term: "lead time", meaning: "tempo di consegna", context: "the lead time is eight weeks" }],
   questions: ["Can you hold that price for twelve months?"],
   scenario: "You are the supplier; the user must defend the price.",
 };

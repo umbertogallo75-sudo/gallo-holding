@@ -36,8 +36,10 @@ CREATE TABLE IF NOT EXISTS mail_items (
   status TEXT NOT NULL DEFAULT 'pending',
   sender_known INTEGER NOT NULL DEFAULT 0,
   summary_it TEXT,
+  translation_it TEXT,
   asks_json TEXT,
   reply_en TEXT,
+  reply_it TEXT,
   counterpart TEXT,
   expressions_json TEXT
 );
@@ -161,8 +163,12 @@ export type MailItem = {
   status: "pending" | "ready" | "failed";
   senderKnown: boolean;
   summaryIt: string;
+  /** The email itself in Italian: what they read to know what was written. */
+  translationIt: string;
   asks: string[];
   replyEn: string;
+  /** The reply in Italian: nobody sends a message they cannot read. */
+  replyIt: string;
   counterpart: string;
   expressions: { expression: string; meaning: string }[];
 };
@@ -182,8 +188,10 @@ function toItem(row: Record<string, unknown>): MailItem {
     status: (String(row.status ?? "pending") as MailItem["status"]),
     senderKnown: Number(row.sender_known ?? 0) === 1,
     summaryIt: String(row.summary_it ?? ""),
+    translationIt: String(row.translation_it ?? ""),
     asks: parse<string[]>(row.asks_json, []),
     replyEn: String(row.reply_en ?? ""),
+    replyIt: String(row.reply_it ?? ""),
     counterpart: String(row.counterpart ?? ""),
     expressions: parse<MailItem["expressions"]>(row.expressions_json, []),
   };
@@ -240,32 +248,73 @@ export async function saveIncoming(
 
 export async function attachAnswer(
   id: string,
-  answer: { summaryIt: string; asks: string[]; replyEn: string; counterpart: string; expressions: MailItem["expressions"] },
+  answer: {
+    summaryIt: string;
+    translationIt?: string;
+    asks: string[];
+    replyEn: string;
+    replyIt?: string;
+    counterpart: string;
+    expressions: MailItem["expressions"];
+  },
   client: Client = db()
 ): Promise<void> {
-  await client.execute({
-    sql: `UPDATE mail_items SET status = 'ready', summary_it = ?, asks_json = ?, reply_en = ?, counterpart = ?, expressions_json = ?
-          WHERE id = ?`,
-    args: [
-      answer.summaryIt,
-      JSON.stringify(answer.asks),
-      answer.replyEn,
-      answer.counterpart,
-      JSON.stringify(answer.expressions),
-      id,
-    ],
-  });
+  const base = [answer.summaryIt, JSON.stringify(answer.asks), answer.replyEn, answer.counterpart, JSON.stringify(answer.expressions)];
+  try {
+    await client.execute({
+      sql: `UPDATE mail_items SET status = 'ready', summary_it = ?, asks_json = ?, reply_en = ?, counterpart = ?, expressions_json = ?,
+                  translation_it = ?, reply_it = ?
+            WHERE id = ?`,
+      args: [...base, answer.translationIt ?? "", answer.replyIt ?? "", id],
+    });
+  } catch {
+    // The two translation columns arrive with this change and the table was
+    // created before it. Add them and write the whole answer properly; if even
+    // that is refused, the email is still answered — without its Italian,
+    // which is a smaller loss than losing the answer.
+    try {
+      await client.execute("ALTER TABLE mail_items ADD COLUMN translation_it TEXT").catch(() => null);
+      await client.execute("ALTER TABLE mail_items ADD COLUMN reply_it TEXT").catch(() => null);
+      await client.execute({
+        sql: `UPDATE mail_items SET status = 'ready', summary_it = ?, asks_json = ?, reply_en = ?, counterpart = ?, expressions_json = ?,
+                    translation_it = ?, reply_it = ?
+              WHERE id = ?`,
+        args: [...base, answer.translationIt ?? "", answer.replyIt ?? "", id],
+      });
+    } catch {
+      await client.execute({
+        sql: `UPDATE mail_items SET status = 'ready', summary_it = ?, asks_json = ?, reply_en = ?, counterpart = ?, expressions_json = ?
+              WHERE id = ?`,
+        args: [...base, id],
+      });
+    }
+  }
 }
 
 export async function markFailed(id: string, client: Client = db()): Promise<void> {
   await client.execute({ sql: "UPDATE mail_items SET status = 'failed' WHERE id = ?", args: [id] });
 }
 
-export async function replaceReply(id: string, userId: string, reply: string, client: Client = db()): Promise<void> {
-  await client.execute({
-    sql: "UPDATE mail_items SET reply_en = ? WHERE id = ? AND user_id = ?",
-    args: [reply, id, userId],
-  });
+export async function replaceReply(
+  id: string,
+  userId: string,
+  reply: string,
+  replyIt = "",
+  client: Client = db()
+): Promise<void> {
+  try {
+    await client.execute({
+      sql: "UPDATE mail_items SET reply_en = ?, reply_it = ? WHERE id = ? AND user_id = ?",
+      args: [reply, replyIt, id, userId],
+    });
+  } catch {
+    // Same lazy column as above: the reply is what matters, its Italian is
+    // what would be nice.
+    await client.execute({
+      sql: "UPDATE mail_items SET reply_en = ? WHERE id = ? AND user_id = ?",
+      args: [reply, id, userId],
+    });
+  }
 }
 
 export async function listMail(userId: string, client: Client = db()): Promise<MailItem[]> {

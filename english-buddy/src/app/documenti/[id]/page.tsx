@@ -32,6 +32,29 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         </p>
       </section>
 
+      {/* The sentences that decide something, exactly as written, with their
+          Italian beside them. The file itself is never kept, so this is what
+          "show me the original" can honestly mean — and having the English
+          there is what makes the translation checkable instead of asking to
+          be believed. */}
+      {analysis.passages?.length ? (
+        <section className="card">
+          <div className="kicker">I passaggi che contano</div>
+          <p className="itHint" style={{ marginTop: 4 }}>
+            Copiati dal documento parola per parola, con la traduzione accanto: così puoi controllarla.
+          </p>
+          {analysis.passages.map((passage) => (
+            <div key={passage.en} className="docPassage">
+              <p className="docPassageEn">
+                {passage.en}
+                <Speak text={passage.en} compact />
+              </p>
+              <p className="docPassageIt">{passage.it}</p>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
       <Link href={`/buddy?mode=doc&doc=${doc.id}`} className="todayCard" data-track="doc_train">
         <div className="todayKicker">Allenamento su questo documento</div>
         <div className="todayTitle">Preparati per davvero</div>
@@ -41,12 +64,13 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
 
       {analysis.terms.length ? (
         <section className="card">
-          <div className="kicker">Le parole di questo documento</div>
+          <div className="kicker">Le parole che torneranno in riunione</div>
           {analysis.terms.map((term) => (
             <div key={term.term} className="keepRow" style={{ marginTop: 10 }}>
               <strong>{term.term}</strong>
               <Speak text={term.term} compact />
               <p className="keepNote" style={{ width: "100%", margin: "2px 0 0" }}>{term.meaning}</p>
+              {term.context ? <p className="docTermContext">«{term.context}»</p> : null}
             </div>
           ))}
         </section>
@@ -54,7 +78,10 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
 
       {analysis.questions.length ? (
         <section className="card">
-          <div className="kicker">Cosa ti chiederanno</div>
+          <div className="kicker">Le domande su cui ti alleni</div>
+          <p className="itHint" style={{ marginTop: 4 }}>
+            Sam te le farà davvero nell&rsquo;allenamento qui sopra, una alla volta, e ti aiuterà a rispondere.
+          </p>
           <ul className="mailAsks">
             {analysis.questions.map((question) => (
               <li key={question} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
