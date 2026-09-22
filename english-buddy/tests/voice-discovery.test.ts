@@ -34,9 +34,11 @@ describe("finding the spoken conversation", () => {
     expect(css).toContain(".voiceInvite { flex:1 0 100%; order:-1;");
   });
 
-  it("offers something to say instead of a blank box", () => {
-    expect(chat).toContain("STARTERS");
-    expect(chat).toContain("Non sai come cominciare?");
+  it("offers a subject to talk about instead of a blank box", () => {
+    // Not rescue phrases: at the start you do not need a way out of a
+    // sentence, you need to know what the conversation is about.
+    expect(chat).toContain("TOPICS.map");
+    expect(chat).toContain("Vuoi parlare di qualcosa in particolare?");
     // Shown only before the person has written anything, and never mid-thought.
     expect(chat).toContain('const blank = !loading && !text');
   });

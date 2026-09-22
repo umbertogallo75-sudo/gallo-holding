@@ -8,7 +8,7 @@ import { shouldWrapUp, type SessionFacts, type SessionScore } from "@/lib/learni
 import { EnablePush } from "@/components/EnablePush";
 import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
-import { openerFor, RESUME_PROMPT } from "@/lib/learning/openers";
+import { openerFor, RESUME_PROMPT, TOPICS } from "@/lib/learning/openers";
 
 type Mistake = { incorrect:string; correct:string; note?:string };
 type Expression = { expression:string; meaning?:string };
@@ -33,20 +33,6 @@ function subscribeToNetwork(callback: () => void) {
 }
 
 
-/**
- * What to say when you cannot think of anything.
- *
- * A blank box after Sam's first question is where the first session dies:
- * people who came to practise English are asked to produce English before
- * they have warmed up at all. These three are deliberately not answers — they
- * are the phrases that keep a real conversation alive when you are lost, and
- * they work whatever Sam has just asked.
- */
-const STARTERS = [
-  "Sorry, can you repeat that more slowly?",
-  "Can you explain that word, please?",
-  "How do you say … in English?",
-] as const;
 
 /** Whether the voice call still needs introducing on this device. */
 const VOICE_KNOWN_KEY = "execlingo-voice-known";
@@ -124,6 +110,18 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   /** Typed while the coach was still answering; sent as soon as he lands. */
   const queued = useRef<string>(undefined);
   const composerRef = useRef<HTMLFormElement | null>(null);
+  /**
+   * The conversation stays in view.
+   *
+   * There was no scroll handling here at all, and it showed worst exactly
+   * where it mattered: resuming reloaded twenty messages at once and left the
+   * page at the top, so what you saw was the FIRST question of the old
+   * conversation while Sam's new line sat below the fold. A tester reported it
+   * as "riprendi riparte dalla prima domanda" — he was reading the top of his
+   * own transcript.
+   */
+  const endRef = useRef<HTMLDivElement | null>(null);
+  const follow = useRef(true);
   failedRef.current = failedMessage;
 
   // Weak-network safety net: live offline flag + automatic re-send of the
@@ -218,6 +216,9 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
       );
       setSessionId(id);
       started.current = true;
+      // Whatever the page was showing, a resumed conversation belongs at its
+      // end: that is the part nobody has read yet.
+      follow.current = true;
       track("session_resumed", { where: mode.slice(0, 20) });
       // And then he says something. Restoring the messages alone left the
       // learner looking at an old conversation with no sign that the coach
@@ -317,6 +318,27 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
    * that height, and it guessed low — so the newest message was hidden behind
    * the bar, which is precisely the message somebody is waiting to read.
    */
+  /**
+   * Instant and not smooth, deliberately: a smooth scroll is still travelling
+   * when the next message lands, and on the way it fires scroll events short
+   * of the bottom, which the handler below would read as the reader having
+   * deliberately scrolled away.
+   */
+  useEffect(() => {
+    if (!follow.current) return;
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, loading, recap, resumable]);
+
+  /** Reading something further up is a decision: stop dragging them back. */
+  useEffect(() => {
+    const onScroll = () => {
+      const gap = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      follow.current = gap < 180;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useEffect(() => {
     const bar = composerRef.current;
     if (!bar) return;
@@ -399,7 +421,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
     )}
     {resumable ? (
       <div className="card" style={{ display: "grid", gap: 8, margin: "0 0 12px" }}>
-        <strong style={{ fontSize: 15 }}>Avevi una conversazione aperta</strong>
+        <strong style={{ fontSize: 15 }}>Avevi una conversazione a metà</strong>
         <span className="muted" style={{ fontSize: 14 }}>
           {resumable.preview ? <>«{resumable.preview}» · </> : null}
           {resumable.exchanges} {resumable.exchanges === 1 ? "tuo messaggio" : "tuoi messaggi"}. Riprendi da lì, o comincia una conversazione nuova.
@@ -410,7 +432,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
             type="button"
             className="pill"
             onClick={() => { setResumable(null); void send(openerFor(mode), false, true); }}
-          >Comincia da capo</button>
+          >Inizia una nuova conversazione</button>
         </div>
       </div>
     ) : null}
@@ -492,12 +514,28 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
         <a href="/home" className="secondary full" style={{ display: "block", textAlign: "center", marginTop: 10, textDecoration: "none" }}>Torna alla home</a>
       </section>
     ) : null}
+    {/* Three subjects, not three rescue phrases. The phrases were what you
+        need when you are stuck in the middle of a conversation; at the start
+        you need to know what to talk about. */}
     {blank ? (
       <div className="starters">
-        <div className="composerNote" style={{ marginBottom: 2 }}>Non sai come cominciare? Tocca una frase, poi modificala pure:</div>
-        {STARTERS.map((phrase) => (
-          <button key={phrase} type="button" className="starter" data-track="chat_starter" onClick={() => setText(phrase)}>
-            <span aria-hidden>💬</span>{phrase}
+        <div className="composerNote" style={{ marginBottom: 2 }}>
+          Vuoi parlare di qualcosa in particolare? Scegli, oppure scrivi quello che ti pare.
+        </div>
+        {TOPICS.map((topic) => (
+          <button
+            key={topic.key}
+            type="button"
+            className="starter"
+            data-track="chat_topic"
+            data-where={topic.key}
+            onClick={() => void send(topic.prompt, false)}
+          >
+            <span aria-hidden>{topic.icon}</span>
+            <span className="starterText">
+              <strong>{topic.label}</strong>
+              <span className="starterHint">{topic.hint}</span>
+            </span>
           </button>
         ))}
       </div>
@@ -513,6 +551,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
           ))}
         </div>
       )}
+      <div ref={endRef} aria-hidden />
       {canAskHelp && suggestions.length === 0 && (
         <button type="button" className="helpBtn" disabled={suggesting} onClick={askForHelp}>
           {suggesting ? "Thinking…" : "I don't know what to say · Non so cosa dire"}

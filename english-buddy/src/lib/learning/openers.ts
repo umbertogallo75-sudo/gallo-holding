@@ -44,13 +44,56 @@ export const OPENERS: Record<string, string> = {
  * something anybody said, so it is never stored or shown.
  */
 export const RESUME_PROMPT =
-  "We were interrupted and I am back. Continue our conversation exactly where it stopped: one short line that shows you remember what we were talking about, then carry on with the next step. Do not greet me as if we had just met, do not summarise what we said, and do not ask me again anything I already told you.";
+  "We were interrupted and I am back. Pick our conversation up where it stopped: ONE short line naming what we were doing or the last thing I told you, and then your next question, straight away. Not a greeting as if we had just met, not a summary of the whole conversation, and never a question about something I already answered.";
+
+/**
+ * The three doors at the start of a conversation.
+ *
+ * A blank turn after the greeting is where people close the app: "clicco sul
+ * pulsante verde e lui mi dice tocca a te. Ma cosa devo dire?". The screen
+ * used to offer three rescue phrases — "Sorry, can you repeat that?" — which
+ * are what you need in the MIDDLE of a conversation, not at the start of one.
+ * At the start you need to know what to talk about.
+ *
+ * Like the openers, these are instructions to the coach and not things the
+ * learner said, so they are never stored or shown.
+ */
+export const TOPICS = [
+  {
+    key: "business",
+    label: "Lavoro",
+    hint: "Riunioni, clienti, il tuo mestiere",
+    icon: "💼",
+    prompt:
+      "Let's talk about work today. Start a real conversation about my job, my meetings or my clients — one question, something specific, and stay on work for this whole session.",
+  },
+  {
+    key: "travel",
+    label: "Viaggi",
+    hint: "Aeroporti, hotel, ristoranti",
+    icon: "✈️",
+    prompt:
+      "Let's talk about travel today. Start a real conversation about trips, airports, hotels or eating out — one question to begin, and stay on travel for this whole session.",
+  },
+  {
+    key: "hobby",
+    label: "Tempo libero",
+    hint: "Sport, cibo, il fine settimana",
+    icon: "⚽️",
+    prompt:
+      "Let's talk about something lighter today — sport, food, the weekend, whatever I am into. Start a real conversation with one question, and stay off work for this whole session even if my path says otherwise.",
+  },
+] as const;
+
+export type TopicKey = (typeof TOPICS)[number]["key"];
 
 export function openerFor(mode: string): string {
   return OPENERS[mode] ?? OPENERS["text-5"];
 }
 
-const SYNTHETIC = new Set([...Object.values(OPENERS), RESUME_PROMPT].map((line) => line.trim()));
+const SYNTHETIC = new Set(
+  [...Object.values(OPENERS), RESUME_PROMPT, ...TOPICS.map((topic) => topic.prompt)].map((line) => line.trim())
+);
 
 /**
  * Recognises one of those lines in stored history.

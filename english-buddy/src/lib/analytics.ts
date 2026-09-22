@@ -51,7 +51,8 @@ export type FunnelEvent =
   | "home_all_trainings"
   | "home_rail"
   | "voice_invite"
-  | "chat_starter"
+  | "chat_starter" // ritirato: sostituito da chat_topic, accettato per le schede rimaste aperte
+  | "chat_topic"
   | "first_step"
   | "tour_end"
   | "doc_train"

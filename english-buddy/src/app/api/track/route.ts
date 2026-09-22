@@ -48,6 +48,7 @@ const bodySchema = z.object({
     "home_rail",
     "voice_invite",
     "chat_starter",
+    "chat_topic",
     "first_step",
     "tour_end",
     "doc_train",
