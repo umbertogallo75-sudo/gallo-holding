@@ -50,6 +50,7 @@ const bodySchema = z.object({
     "chat_starter",
     "chat_topic",
     "level_card",
+    "voice_in_chat",
     "first_step",
     "tour_end",
     "doc_train",

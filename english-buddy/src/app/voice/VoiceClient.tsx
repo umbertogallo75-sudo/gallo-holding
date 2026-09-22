@@ -112,12 +112,22 @@ export function VoiceClient({
   hero,
   reopen,
   question,
+  onSession,
 }: {
   mode?: string;
   hero?: React.ReactNode;
   reopen?: string;
   /** What Sam asked by notification, so the call opens on it rather than on silence. */
   question?: string;
+  /**
+   * Which conversation this call is writing into, as soon as it is settled.
+   *
+   * Only the chat needs it, and only because the microphone now opens on top
+   * of the chat rather than on its own page: when the call closes, the chat
+   * has to know which transcript to read back to show the lines that were
+   * spoken into it.
+   */
+  onSession?: (sessionId: string) => void;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -571,7 +581,7 @@ export function VoiceClient({
       });
       if (response.ok) {
         const data = (await response.json()) as { sessionId?: string };
-        if (data.sessionId) sessionRef.current = data.sessionId;
+        if (data.sessionId) { sessionRef.current = data.sessionId; onSession?.(data.sessionId); }
         pendingRef.current = pendingRef.current.slice(batch.length);
       }
     } catch {
@@ -631,6 +641,7 @@ export function VoiceClient({
   function adopt(data: { sessionId?: string; recap?: { role: "you" | "coach"; text: string }[] }) {
     if (!data?.sessionId) return;
     sessionRef.current = data.sessionId;
+    onSession?.(data.sessionId);
     if (Array.isArray(data.recap) && data.recap.length) {
       // What was already said, back on the screen: somebody who tapped
       // "riprendi" is continuing a conversation, and an empty transcript is

@@ -112,15 +112,27 @@ describe("the spoken conversation on screen", () => {
 
   it("carries the conversation into the microphone instead of starting another", () => {
     const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
-    expect(chat).toContain("`/voice?riprendi=${encodeURIComponent(sessionId)}`");
+    // The microphone opens over the chat now rather than on its own page, and
+    // it is handed the session being written in: same thread, other medium.
+    expect(chat).toContain("reopen={sessionId}");
     expect(voice).toContain("Stai continuando la conversazione di adesso");
+  });
+
+  it("brings the spoken lines back into the chat when the call closes", () => {
+    const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
+    // Reads the transcript back and says nothing of its own: the person has
+    // just been talking to Sam, and a fresh greeting would undo the point of
+    // keeping it one conversation.
+    expect(chat).toContain("function closeCall()");
+    expect(chat).toContain("if (id) void load(id);");
+    expect(chat).toContain("onSession={(id) => { callSession.current = id; }}");
   });
 
   it("carries a question that arrived by notification, which has no session yet", () => {
     // "Quando arriva la notifica e poi vai in Voice perdi la memoria sulla
     // domanda che ti aveva posto e lui si mette in attesa. Rimani bloccato."
     const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
-    expect(chat).toContain("`/voice?domanda=${encodeURIComponent(initialQuestion.slice(0, 300))}`");
+    expect(chat).toContain("question={!sessionId ? initialQuestion?.slice(0, 300) : undefined}");
     expect(voiceRoute).toContain("THE QUESTION THEY CAME TO ANSWER");
     expect(voiceRoute).toContain("Open the call by asking it again out loud");
   });

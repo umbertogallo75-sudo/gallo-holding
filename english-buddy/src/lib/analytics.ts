@@ -54,6 +54,7 @@ export type FunnelEvent =
   | "chat_starter" // ritirato: sostituito da chat_topic, accettato per le schede rimaste aperte
   | "chat_topic"
   | "level_card"
+  | "voice_in_chat"
   | "first_step"
   | "tour_end"
   | "doc_train"

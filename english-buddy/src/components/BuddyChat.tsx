@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
 import { Speak } from "@/components/Speak";
 import { RememberPhrase } from "@/components/RememberPhrase";
 import { SessionRecap } from "@/components/SessionRecap";
@@ -9,6 +10,18 @@ import { EnablePush } from "@/components/EnablePush";
 import { track } from "@/lib/track-client";
 import { inStoreApp } from "@/lib/shell";
 import { openerFor, RESUME_PROMPT, TOPICS } from "@/lib/learning/openers";
+
+/**
+ * The microphone, loaded only when somebody reaches for it.
+ *
+ * It is a WebRTC client with a realtime transport inside it — a large thing
+ * to hand to every person who opened a chat to type. Off the first load, and
+ * fetched on the tap that opens it.
+ */
+const VoiceClient = dynamic(() => import("@/app/voice/VoiceClient").then((m) => m.VoiceClient), {
+  ssr: false,
+  loading: () => <p className="muted" style={{ padding: 24, textAlign: "center" }}>Preparo il microfono…</p>,
+});
 
 type Mistake = { incorrect:string; correct:string; note?:string };
 type Expression = { expression:string; meaning?:string };
@@ -90,6 +103,11 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>();
+  /** The microphone, open on top of this conversation rather than instead of it. */
+  const [calling, setCalling] = useState(false);
+  // Which session the call is writing into: its own if the chat had not
+  // started one yet, otherwise this one.
+  const callSession = useRef<string | undefined>(undefined);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string>();
@@ -201,13 +219,19 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
     }
   }
 
-  /** Picks the conversation back up exactly where it stopped. */
-  async function resume(id: string) {
-    setResumable(null);
+  /**
+   * Puts a stored conversation on the screen, without saying anything.
+   *
+   * Two callers want different things from here. Resuming needs the coach to
+   * speak afterwards; coming back from the microphone does not — the lines
+   * were just spoken out loud, and having Sam greet you about them would be
+   * the app pretending it had not been listening.
+   */
+  const load = useCallback(async (id: string): Promise<boolean> => {
     try {
       const r = await fetch(`/api/sessioni?id=${encodeURIComponent(id)}`);
       const data = await r.json();
-      if (!r.ok || !Array.isArray(data.transcript)) return;
+      if (!r.ok || !Array.isArray(data.transcript)) return false;
       setMessages(
         (data.transcript as { role: string; content: string }[]).map((line) => ({
           role: line.role === "user" ? ("user" as const) : ("assistant" as const),
@@ -216,17 +240,40 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
       );
       setSessionId(id);
       started.current = true;
-      // Whatever the page was showing, a resumed conversation belongs at its
-      // end: that is the part nobody has read yet.
+      // Whatever the page was showing, a conversation just reloaded belongs at
+      // its end: that is the part nobody has read yet.
       follow.current = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  /** Picks the conversation back up exactly where it stopped. */
+  async function resume(id: string) {
+    setResumable(null);
+    if (await load(id)) {
       track("session_resumed", { where: mode.slice(0, 20) });
       // And then he says something. Restoring the messages alone left the
       // learner looking at an old conversation with no sign that the coach
       // still had it — which is what "non la riprende davvero" meant.
       void send(RESUME_PROMPT, false);
-    } catch {
-      // The conversation simply starts fresh, which is where it was anyway.
     }
+    // Otherwise the conversation simply starts fresh, which is where it was.
+  }
+
+  /**
+   * Back from the microphone, into the same conversation.
+   *
+   * The spoken lines were written to the session as they were said, so the
+   * chat only has to read them back. It says nothing of its own: the person
+   * has just been talking to Sam, and a fresh greeting would undo the whole
+   * point of keeping it one conversation.
+   */
+  function closeCall() {
+    setCalling(false);
+    const id = callSession.current ?? sessionId;
+    if (id) void load(id);
   }
 
   /** Ends it on purpose, and says how it went. */
@@ -358,24 +405,33 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   function submit(e: FormEvent) { e.preventDefault(); void send(text); }
 
   /**
-   * The microphone carries the conversation with it.
+   * The microphone opens on top of the conversation, not instead of it.
    *
-   * It used to be a bare link to /voice, so tapping it after Sam had just
-   * asked you something dropped you into a different conversation — often the
-   * offer to resume an unrelated call from days ago. A tester wrote it down
-   * exactly: "mi hai appena detto che dovevamo ripartire da che faccio a
-   * lavoro e poi ripartiamo da qua? Non c'è logica". Same thread, other
-   * medium.
+   * It was a link to another page, and a page change is the part that made it
+   * feel like a different product: you tapped it in the middle of a sentence
+   * and landed somewhere else, with its own hero, its own offer to resume
+   * something unrelated, and its own back button to find. A tester wrote it
+   * down exactly — "mi hai appena detto che dovevamo ripartire da che faccio
+   * a lavoro e poi ripartiamo da qua? Non c'è logica".
+   *
+   * Now it is one tap and the same conversation: the call writes its lines
+   * into this session, and closing it puts them in the transcript you were
+   * already reading. Writing and speaking stop being two products.
    */
-  const voiceHref = sessionId
-    ? `/voice?riprendi=${encodeURIComponent(sessionId)}`
-    : initialQuestion
-      ? // Arrived from a notification and not yet answered: there is no session
-        // to continue, but there is a question on the screen. Without this the
-        // microphone opened on an empty room and waited — "perdi la memoria
-        // sulla domanda che ti aveva posto e rimani bloccato".
-        `/voice?domanda=${encodeURIComponent(initialQuestion.slice(0, 300))}`
-      : "/voice";
+  function openCall() {
+    callSession.current = sessionId;
+    setCalling(true);
+    track("voice_in_chat", { where: mode.slice(0, 20) });
+  }
+
+  // While the call is up, the page underneath must not move: a fixed layer
+  // over a scrollable body is how a finger ends up scrolling the wrong thing.
+  useEffect(() => {
+    if (!calling) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [calling]);
 
   const canAskHelp = !loading && messages.some(m => m.role === "assistant");
   /** Sam has spoken, the person has not, and the box is still empty. */
@@ -558,29 +614,47 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
         </button>
       )}
     </div>
+    {calling ? (
+      <div className="callLayer" role="dialog" aria-modal="true" aria-label="Conversazione a voce con Sam">
+        <div className="callBar">
+          <strong>Stai parlando con Sam</strong>
+          <button type="button" className="chip" onClick={closeCall}>← Torna a scrivere</button>
+        </div>
+        <div className="callBody">
+          <VoiceClient
+            mode="voice"
+            reopen={sessionId}
+            question={!sessionId ? initialQuestion?.slice(0, 300) : undefined}
+            onSession={(id) => { callSession.current = id; }}
+          />
+        </div>
+      </div>
+    ) : null}
     {/* The microphone lives here, next to what you type, instead of behind a
         question asked before the conversation starts. Writing is the default
         because it works in an open office, on a train and in a meeting; the
         voice is one tap away for whoever can use it. */}
     <form className="composer" ref={composerRef} onSubmit={submit}>
       {!knowsVoice && !inviteHidden ? (
-        <a className="voiceInvite" href={voiceHref} data-track="voice_invite">
+        <button type="button" className="voiceInvite" data-track="voice_invite" onClick={openCall}>
           <span className="voiceInviteIcon" aria-hidden>🎙️</span>
           <span className="voiceInviteText">
             <strong>Preferisci parlare?</strong>
             <span>Non è dettatura: Sam ti risponde a voce</span>
           </span>
           <span className="voiceInviteGo" aria-hidden>→</span>
-          <button
-            type="button"
+          <span
             className="voiceInviteClose"
+            role="button"
+            tabIndex={0}
             aria-label="Nascondi"
-            onClick={(e) => { e.preventDefault(); setInviteHidden(true); }}
-          >×</button>
-        </a>
+            onClick={(e) => { e.stopPropagation(); setInviteHidden(true); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setInviteHidden(true); } }}
+          >×</span>
+        </button>
       ) : null}
       <textarea aria-label="La tua risposta" placeholder="Rispondi in inglese…" value={text} onChange={e=>setText(e.target.value)} />
-      <a className="composerMic" href={voiceHref} aria-label="Rispondi a voce a Sam" title="Rispondi a voce">🎙️<span className="composerMicLabel">Voce</span></a>
+      <button type="button" className="composerMic" onClick={openCall} aria-label="Rispondi a voce a Sam" title="Rispondi a voce">🎙️<span className="composerMicLabel">Voce</span></button>
       <button className="primary" disabled={!text.trim()} aria-label="Invia">{loading ? <span className="navSpin" aria-hidden /> : "Invia"}</button>
     </form>
   </>;
