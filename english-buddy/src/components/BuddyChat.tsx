@@ -637,6 +637,9 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
             reopen={sessionId}
             question={!sessionId ? initialQuestion?.slice(0, 300) : undefined}
             onSession={(id) => { callSession.current = id; }}
+            // The tap on the microphone was the tap. A second button here
+            // would be the same double step, minus the change of address.
+            autoStart
           />
         </div>
       </div>

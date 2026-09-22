@@ -113,6 +113,7 @@ export function VoiceClient({
   reopen,
   question,
   onSession,
+  autoStart,
 }: {
   mode?: string;
   hero?: React.ReactNode;
@@ -128,6 +129,17 @@ export function VoiceClient({
    * spoken into it.
    */
   onSession?: (sessionId: string) => void;
+  /**
+   * Open the microphone straight away, without a start button.
+   *
+   * True when this is opened from inside a conversation: tapping the
+   * microphone there IS the deliberate tap, and asking for a second one — on
+   * a card that looks exactly like the page the tap was meant to avoid — is
+   * the double step the testers reported twice. On the voice page itself it
+   * stays false: somebody arriving from the menu has not yet said they are
+   * ready to speak, and may want the headphones warning first.
+   */
+  autoStart?: boolean;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -288,6 +300,24 @@ export function VoiceClient({
    * describing — so the offer belongs on the screen before the start button,
    * not in a menu somewhere else.
    */
+  /**
+   * Opened from a conversation: the call starts itself.
+   *
+   * The tap on the microphone was the deliberate tap. Landing on a card that
+   * says "press to begin" is the same second step whether it arrives after a
+   * page change or not — which is exactly what came back in the second
+   * report. If the browser refuses the microphone the status falls to
+   * "error", and the card with the button is there after all, with the
+   * reason on it.
+   */
+  useEffect(() => {
+    if (!autoStart || lookedRef.current) return;
+    lookedRef.current = true;
+    void start(lastEngine(), reopen);
+    // start is a declaration in this component and never changes identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, reopen]);
+
   useEffect(() => {
     if (lookedRef.current) return;
     lookedRef.current = true;
@@ -931,6 +961,9 @@ export function VoiceClient({
         <section className="card" style={{ textAlign: "center", padding: 28 }}>
           <div className="voiceOrb pulsing">🎙️</div>
           <p className="muted" style={{ marginTop: 14 }}>Connessione in corso…</p>
+          {/* Said here as well as before the button, because a call that
+              starts by itself never shows the screen the button was on. */}
+          <p className="composerNote" style={{ marginTop: 8 }}>🎧 Alza il volume o metti le cuffie: Sam ti parlerà a voce.</p>
         </section>
       ) : null}
 

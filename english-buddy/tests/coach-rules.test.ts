@@ -118,6 +118,19 @@ describe("the spoken conversation on screen", () => {
     expect(voice).toContain("Stai continuando la conversazione di adesso");
   });
 
+  it("opens the microphone without asking for a second tap", () => {
+    // Reported twice: "premo il microfono e mi porta alla sezione Voice in cui
+    // devo premere il pulsante Inizia a parlare". Removing the change of page
+    // was not enough — the same card with the same green button came up
+    // inside the layer, so from a thumb's point of view nothing had changed.
+    const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
+    expect(chat).toContain("autoStart");
+    expect(voice).toContain("if (!autoStart || lookedRef.current) return;");
+    expect(voice).toContain("void start(lastEngine(), reopen);");
+    // And the headphones warning has to survive skipping the screen it was on.
+    expect(voice).toContain("Alza il volume o metti le cuffie");
+  });
+
   it("brings the spoken lines back into the chat when the call closes", () => {
     const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
     // Reads the transcript back and says nothing of its own: the person has
