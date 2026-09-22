@@ -124,8 +124,11 @@ describe("the spoken conversation on screen", () => {
     // just been talking to Sam, and a fresh greeting would undo the point of
     // keeping it one conversation.
     expect(chat).toContain("function closeCall()");
-    expect(chat).toContain("if (id) void load(id);");
     expect(chat).toContain("onSession={(id) => { callSession.current = id; }}");
+    // Twice: the spoken lines leave in batches eight seconds apart and the
+    // last one leaves on the way out, so a transcript read immediately is
+    // missing the end of the conversation.
+    expect(chat).toContain("if (sends.current === mark) void load(id);");
   });
 
   it("carries a question that arrived by notification, which has no session yet", () => {

@@ -217,8 +217,15 @@ export function VoiceClient({
 
   // Teardown on unmount, and only on unmount: listing cleanup as a dependency
   // would re-run it on every render, which would hang up the call.
+  //
+  // A call still live when this unmounts is one the person walked out of —
+  // closing the microphone over the chat, or leaving the page — and its last
+  // lines have to travel with it. Flushes are eight seconds apart, so without
+  // the report the final eight seconds of a conversation simply vanished.
+  // Already stopped means already reported, and the guard keeps it from
+  // going twice.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => () => { cleanup(false); }, []);
+  useEffect(() => () => { cleanup(statusRef.current === "live"); }, []);
 
   // A spoken conversation is the one screen nobody touches, so the phone locks
   // and the call dies mid-sentence. Held only while the call is live.

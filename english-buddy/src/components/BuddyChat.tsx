@@ -103,6 +103,8 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>();
+  /** How many turns have been sent from here, so a late reload knows to stand down. */
+  const sends = useRef(0);
   /** The microphone, open on top of this conversation rather than instead of it. */
   const [calling, setCalling] = useState(false);
   // Which session the call is writing into: its own if the chat had not
@@ -175,6 +177,7 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   async function send(raw: string, visible = true, opening = false) {
     const message = raw.trim();
     if (!message) return;
+    sends.current += 1;
     // Sam is still composing his opening line. Refusing the message here is
     // what makes the button feel broken — people type while they wait, which
     // is exactly what we want them doing. Hold it and send it the moment he
@@ -273,7 +276,15 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
   function closeCall() {
     setCalling(false);
     const id = callSession.current ?? sessionId;
-    if (id) void load(id);
+    if (!id) return;
+    void load(id);
+    // And once more in a moment. The spoken lines are written in batches
+    // eight seconds apart, and the last batch leaves on the way out — so the
+    // transcript read a fraction of a second later is missing the end of the
+    // conversation. Skipped if the person has meanwhile written something:
+    // their own turn outranks a tidier transcript.
+    const mark = sends.current;
+    window.setTimeout(() => { if (sends.current === mark) void load(id); }, 2500);
   }
 
   /** Ends it on purpose, and says how it went. */
