@@ -86,6 +86,43 @@ describe("the entry test", () => {
   });
 });
 
+describe("niente aiuti mentre si misura", () => {
+  it("toglie «non so cosa dire» e i tre argomenti dalla prova di livello", () => {
+    // Uno strumento che ti mette in bocca una frase inglese, dentro l'esercizio
+    // che serve a misurare quali frasi sai produrre. È la stessa ragione per
+    // cui Sam non corregge durante la prova.
+    const chat = readFileSync("src/components/BuddyChat.tsx", "utf8");
+    expect(chat).toContain("const canAskHelp = !measuring");
+    expect(chat).toContain("const blank = !measuring");
+  });
+});
+
+describe("la pronuncia ha una soglia, non solo una correzione", () => {
+  const drill = coachInstructions(memory, "shadow");
+
+  it("dice che cosa basta: farsi capire, non sembrare madrelingua", () => {
+    // "Quando la pronuncia non è perfettamente corretta non puoi dire sempre
+    // che non è corretta e me la fai ripetere di continuo." Le istruzioni
+    // descrivevano solo cosa correggere: senza una soglia, nessuna pronuncia
+    // di un adulto italiano la supera mai e l'esercizio non ha un'uscita.
+    expect(drill).toContain("The standard is being UNDERSTOOD");
+    expect(drill).toContain("An Italian accent is not a mistake");
+    expect(drill).toContain("assume they said it well");
+  });
+
+  it("vieta di tenere qualcuno sulla stessa frase", () => {
+    expect(drill).toContain("Never present the same sentence twice in a row");
+    expect(drill).toContain("never hold them on one until it is right");
+  });
+
+  it("dice le stesse due cose anche al microfono", () => {
+    // Le due versioni del drill devono muoversi insieme: la soglia è un testo
+    // solo, importato da entrambe.
+    expect(voiceRoute).toContain("PRONUNCIATION_STANDARD");
+    expect(voiceRoute).toContain("Never give the same sentence twice in a row");
+  });
+});
+
 describe("the guided session", () => {
   const prompt = coachInstructions(memory, "guided");
 

@@ -444,9 +444,20 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
     return () => { document.body.style.overflow = previous; };
   }, [calling]);
 
-  const canAskHelp = !loading && messages.some(m => m.role === "assistant");
+  /**
+   * The entry test is being measured, so nothing on the screen may help.
+   *
+   * Every aid changes what the person produces, which is the one thing the
+   * test is there to measure — the same reason Sam does not correct while it
+   * runs. «Non so cosa dire» hands them an English sentence to say; the three
+   * subjects offer to change the subject of a test whose ten questions are
+   * the test. Neither belongs here. Both come back the moment the
+   * conversation is an ordinary one.
+   */
+  const measuring = mode === "levelcheck";
+  const canAskHelp = !measuring && !loading && messages.some(m => m.role === "assistant");
   /** Sam has spoken, the person has not, and the box is still empty. */
-  const blank = !loading && !text && messages.some(m => m.role === "assistant") && !messages.some(m => m.role === "user");
+  const blank = !measuring && !loading && !text && messages.some(m => m.role === "assistant") && !messages.some(m => m.role === "user");
   // The end of the very first session: three answers is enough to have felt
   // what the coach does, which is the only moment the notification request
   // means anything. Asked before that, it is a permission dialog from a

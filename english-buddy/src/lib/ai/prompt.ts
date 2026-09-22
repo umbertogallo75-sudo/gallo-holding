@@ -2,6 +2,23 @@ import type { LearningContext } from "@/lib/learning/service";
 import { CAPABILITIES, PHASE_FOCUS } from "@/lib/learning/capabilities";
 import { continuityBlock } from "@/lib/learning/continuity";
 
+/**
+ * When a pronunciation is good enough, which nobody had ever said.
+ *
+ * The drill kept answering "not quite" and asking for the sentence again,
+ * because the instructions described what to correct and never what passes.
+ * Measured against a native speaker no Italian adult ever passes, so the
+ * exercise had no exit: the same line over and over until the person
+ * concludes they cannot say it at all, and stops.
+ *
+ * The standard is being understood, and an accent is not a fault. Shared by
+ * the written drill and the spoken one so the two cannot drift apart.
+ */
+export const PRONUNCIATION_STANDARD = `WHAT COUNTS AS GOOD ENOUGH — read this before you judge anything.
+The standard is being UNDERSTOOD by a native speaker without effort. It is not sounding like one. An Italian accent is not a mistake and is never to be corrected: fluent professionals keep theirs for life and are understood everywhere.
+So: if you would have understood them on a phone call, they got it right — say so plainly and move on. Only a sound that would actually cost them the word ("ship" heard as "sheep", a stress that moves the meaning) is worth a note, and even then it is ONE note, offered as a refinement and not as a failure.
+Never say a repetition was wrong when it was merely accented. You are also working from an imperfect hearing of their voice: when you are not certain what you heard, assume they said it well — telling somebody a sound was wrong when it was not is how they stop trusting everything else you say.`;
+
 const modeGuidance: Record<string, string> = {
   "text-2": "Micro session (~2 minutes). One question, one short exchange. Keep every turn under 40 words.",
   "text-5": "Short session (~5 minutes). Natural quick conversation, concise turns.",
@@ -40,7 +57,9 @@ When items run out, give a one-line summary and stop. If there are no due items,
   warmup: `Pre-meeting warm-up (~5 minutes). First ask what the meeting/call is about, with whom, and what outcome they want — they may answer in Italian. Then, tightly: (1) the 6-8 most useful English phrases for EXACTLY that situation, each with a short Italian gloss (record the best 2 in expressions); (2) rapid role-play of the 3 most likely exchanges — you play the counterpart; (3) one final confidence tip. Practical, zero theory, finish strong: they walk into the meeting ready.`,
   shadow: `Pronunciation drill (~3-5 minutes). This is about HOW it sounds, not whether the sentence is right.
 One short natural sentence per turn, business or travel flavoured: they play the audio, repeat it ALOUD imitating rhythm and intonation, then type "ok" (or the sentence) for the next one.
-Coach the sound, every turn, in one line: where the stress falls ("imPORtant, not IMportant"), which words link together ("wanna meet up" not "want to meet up"), which sound Italians replace ("th" as in "think" is not "t"), the vowel that changes the word ("ship" and "sheep"). Say it about THIS sentence, and be concrete: a general note about pronunciation helps nobody.
+${PRONUNCIATION_STANDARD}
+Every turn you give a NEW sentence. Never present the same sentence twice in a row, and never hold them on one until it is right: the note you have just given travels with the next sentence, where they get to apply it. Being made to repeat the same line over and over is how somebody concludes they cannot say it at all — and they stop.
+Coach the sound in one line, and start from what worked: where the stress falls ("imPORtant, not IMportant"), which words link together ("wanna meet up" not "want to meet up"), which sound Italians replace ("th" as in "think" is not "t"), the vowel that changes the word ("ship" and "sheep"). Say it about THIS sentence, and be concrete: a general note about pronunciation helps nobody. One refinement per turn, never a list.
 Do not correct their grammar here and do not teach vocabulary: they are repeating your sentence, so mistakes are not theirs. If they cannot speak aloud right now, tell them to whisper it or mouth it silently while listening — it still works.
 Start at 5-7 words and grow longer as they keep up.`,
   briefing: `Daily business read (~3 minutes). Write ONE short read (60-90 words) at their level about a timeless business/finance/leadership idea or a realistic scenario — negotiation tactics, cash flow, pricing, M&A basics, meeting culture, executive small talk. NEVER invent current news or real company events.

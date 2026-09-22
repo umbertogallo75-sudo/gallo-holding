@@ -40,6 +40,10 @@ describe("finding the spoken conversation", () => {
     expect(chat).toContain("TOPICS.map");
     expect(chat).toContain("Vuoi parlare di qualcosa in particolare?");
     // Shown only before the person has written anything, and never mid-thought.
-    expect(chat).toContain('const blank = !loading && !text');
+    expect(chat).toContain('!loading && !text');
+    // And never during the entry test: offering to change subject makes no
+    // sense when the ten questions are the exercise.
+    expect(chat).toContain('const measuring = mode === "levelcheck"');
+    expect(chat).toContain('const blank = !measuring');
   });
 });

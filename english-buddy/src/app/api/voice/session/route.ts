@@ -5,6 +5,7 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { billingEnforced, getEntitlement, PAYWALL_MESSAGE } from "@/lib/stripe";
 import { ANDROID_PAYWALL_MESSAGE, EMBEDDED_PAYWALL_MESSAGE, embeddedShellOf } from "@/lib/appclient";
 import { PHASE_FOCUS, monthPhase } from "@/lib/learning/capabilities";
+import { PRONUNCIATION_STANDARD } from "@/lib/ai/prompt";
 import { modelFor } from "@/lib/ai/models";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { DEFAULT_ENGINE, isVoiceEngine } from "@/lib/voice/engines";
@@ -87,7 +88,9 @@ Conversation rules:
     shadow
       ? `\nPRONUNCIATION DRILL — this call is about HOW things sound, not whether the sentence is right.
 Say ONE short natural sentence (5-12 words, business or travel), ask them to repeat it aloud, and listen to the repetition.
-Then coach the sound, in one or two lines, about THAT sentence: where the stress falls ("imPORtant, not IMportant"), which words run together, the sound Italians replace ("th" is not "t"), the vowel that changes the word ("ship" and "sheep"). Be concrete and say it in Italian if they are a beginner, then give the sentence again slowly.
+${PRONUNCIATION_STANDARD}
+Then coach the sound, in one line, starting from what worked: where the stress falls ("imPORtant, not IMportant"), which words run together, the sound Italians replace ("th" is not "t"), the vowel that changes the word ("ship" and "sheep"). Be concrete and say it in Italian if they are a beginner.
+Every turn of yours carries a NEW sentence. Never give the same sentence twice in a row and never hold them on one until it is right — the note you just gave travels with the next sentence, which is where they get to use it. Being made to repeat the same line again and again is how somebody decides they cannot say it at all, and hangs up.
 Do NOT correct grammar or teach vocabulary here: they are repeating your sentence, so the mistakes are not theirs. Do not drift into conversation. Sentence, repetition, one note on the sound, next sentence — and grow longer as they keep up.`
       : diary
       ? `\nSPOKEN DIARY MODE: this session is their 1-minute spoken diary. Invite them warmly to tell you about their day (work, meetings, anything) for about a minute, in English. Listen with minimal interruptions — only short encouragements ("mm-hm", "go on"). When they finish: give a warm 3-part close: one thing they said well, at most 2 corrections (with the note that you'll bring them back another day), and a naturally-phrased version of one of their sentences. Then say goodbye — keep the whole session short.`
