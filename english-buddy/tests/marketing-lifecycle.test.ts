@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { lifecycleStart, runLifecycleEmails } from "@/lib/marketing/lifecycle";
+import { lessonAt } from "@/lib/marketing/lessons";
 
 let client: Client;
 let sent: { to: string; subject: string }[];
@@ -54,13 +55,18 @@ describe("the opening date", () => {
     // Three days after the opening, and only now, the gentle one.
     await runLifecycleEmails(client, at("2026-09-04T10:00:00Z"), send);
     expect(sent).toHaveLength(1);
-    expect(sent[0].subject).toBe("Tutto bene?"); // il tono morbido, non quello duro
+    // The letters carry a phrase each, in sequence, so which phrase arrived
+    // is what says which rung of the ladder she was put on.
+    expect(sent[0].subject).toContain(lessonAt(0).when.toLowerCase()); // la prima, non la terza
   });
 
   it("reaches the firm letter a week in, in the right order", async () => {
     await runLifecycleEmails(client, at("2026-09-04T10:00:00Z"), send);
     await runLifecycleEmails(client, at("2026-09-08T10:00:00Z"), send);
-    expect(sent.map((m) => m.subject)).toEqual(["Tutto bene?", "Una settimana senza inglese"]);
+    expect(sent.map((m) => m.subject)).toEqual([
+      `Come si dice, quando ${lessonAt(0).when.toLowerCase()}`,
+      `Come si dice, quando ${lessonAt(1).when.toLowerCase()}`,
+    ]);
   });
 
   it("never writes to somebody who asked to be left alone", async () => {

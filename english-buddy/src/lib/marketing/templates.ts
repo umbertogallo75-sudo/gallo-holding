@@ -1,7 +1,8 @@
 import { renderEmail } from "@/lib/email";
 import type { Message } from "./send";
 import { appBase, trialUrl, unsubscribeUrl } from "./tokens";
-import type { WinBackStep } from "./winback";
+import { MAX_REMINDERS, type WinBackStep } from "./winback";
+import { lessonAt } from "./lessons";
 
 /**
  * Every lifecycle email, in one file, so the whole voice can be read at once.
@@ -55,14 +56,16 @@ export function trialReminder(userId: string, name: string | null, days: number)
       preheader: "La settimana gratis sta per finire. I tuoi progressi restano comunque tuoi.",
       heading: `${hello(name)}${days === 1 ? "manca un giorno" : `mancano ${days} giorni`}.`,
       bodyHtml: `<p style="${P}">Il tuo accesso completo a Sam è ancora aperto, ma non per molto.</p>
-        <p style="${P}">Se c'è una cosa da provare prima che finisca, è <strong>parlare a voce con Sam</strong>: è il pezzo che quasi nessuno prova, ed è quello che rompe il blocco davanti a una call vera.</p>
+        <p style="${P}">Se c'è una cosa da provare prima che finisca, è <strong>parlare a voce con Sam</strong>: è il pezzo che quasi nessuno prova, ed è quello che rompe il blocco davanti a una call vera. Portaci questa, tanto per avere una frase in tasca:</p>
+        <p style="margin:0 0 12px;padding:14px 16px;border-left:3px solid #c9d4c6;background:#f4f7f3;font-size:17px;line-height:1.5;color:#2f3a30;"><strong>${lessonAt(1).en}</strong></p>
+        <p style="${P}">${lessonAt(1).it}</p>
         <p style="${SMALL}">Quando la settimana finisce non ti viene addebitato nulla: l'accesso si chiude e basta. Il tuo livello, il frasario e gli errori su cui stai lavorando restano dove sono.</p>`,
       ctaLabel: "Continua da dove eri",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché la tua settimana gratuita di ExecLingo sta per finire.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${hello(name)}${days === 1 ? "manca un giorno" : `mancano ${days} giorni`} del tuo accesso completo.\n\nSe c'è una cosa da provare prima che finisca, è parlare a voce con Sam.\n\n${url}\n\nQuando finisce non ti viene addebitato nulla, e i tuoi progressi restano.\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${hello(name)}${days === 1 ? "manca un giorno" : `mancano ${days} giorni`} del tuo accesso completo.\n\nSe c'è una cosa da provare prima che finisca, è parlare a voce con Sam. Una frase da portarci:\n\n  ${lessonAt(1).en}\n\n${lessonAt(1).it}\n\n${url}\n\nQuando finisce non ti viene addebitato nulla, e i tuoi progressi restano.\n\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
@@ -89,12 +92,20 @@ export function trialEnded(userId: string, name: string | null): Message {
 }
 
 /**
- * 5 — The win-back ladder. One function, four voices.
+ * 5 — The letters that go out when somebody stops coming.
  *
- * The tone hardens on purpose as the silence lengthens, because the same
- * gentle sentence repeated for six weeks stops meaning anything. What none of
- * them do is blame: guilt does not teach a language, and somebody who feels
- * told off does not open the next one either.
+ * They used to be a pressure ladder: a hand on the shoulder, then "parliamoci
+ * chiaro", then the abandoned gym membership. The testers read all three and
+ * the verdict was the same each time — it makes you feel judged, and nobody
+ * opens the next one. They were right, and not only about the tone: those
+ * letters gave nothing. Every one of them asked for something and taught
+ * nothing, which is a debt collector's letter, not a coach's.
+ *
+ * So each one now carries a phrase. One sentence of real English, what it
+ * does and when you would reach for it. Somebody who reads it on the train
+ * and never opens the app has still learnt something, and that is the point:
+ * it is the only thing that earns the next email. The silence gets one line,
+ * factual, and never a reproach.
  */
 export function winBack(
   userId: string,
@@ -104,84 +115,40 @@ export function winBack(
 ): Message {
   const url = `${appBase()}/home`;
   const out = unsubscribeUrl(userId);
-  const foot = (note: string) => ({ footerNote: note, unsubscribeUrl: out });
+  // Where this letter sits in the sequence, so the phrases do not repeat.
+  const ordinal = step.stage === "soft" ? 0 : step.stage === "firm" ? 1 : step.stage === "hard" ? 2 : 2 + step.index;
+  const lesson = lessonAt(ordinal);
+  const last = step.stage === "reminder" && step.index >= MAX_REMINDERS;
 
-  if (step.stage === "soft") {
-    return {
-      subject: "Tutto bene?",
-      html: renderEmail({
-        preheader: "Tre giorni non cancellano niente. Cinque minuti oggi rimettono tutto in moto.",
-        heading: `${hello(name)}tutto bene?`,
-        bodyHtml: `<p style="${P}">Sono ${days} giorni che non ci sentiamo. Nessun rimprovero — la settimana lavorativa è quella che è, succede a tutti.</p>
-          <p style="${P}">Solo una cosa vale la pena ricordare: l&rsquo;inglese non si perde in tre giorni, <strong>si perde in tre mesi di rinvii</strong>. E si riprende in <strong>cinque minuti</strong>, oggi, da dove eri.</p>
-          <p style="${SMALL}">Sam si ricorda di te: il tuo livello, i tuoi errori ricorrenti, le espressioni che stavi imparando. Non devi ricominciare da capo.</p>`,
-        ctaLabel: "Riprendo in 5 minuti",
-        ctaUrl: url,
-        ...foot("Ricevi questa email perché non apri ExecLingo da qualche giorno."),
-      }),
-      text: `${hello(name)}tutto bene?\n\nSono ${days} giorni che non ci sentiamo. L'inglese non si perde in tre giorni, si perde in tre mesi di rinvii. E si riprende in cinque minuti.\n\n${url}\n\nDisiscriviti: ${out}`,
-    };
-  }
+  // The one line about the silence. It says how long it has been and nothing
+  // else: no "parliamoci chiaro", no diagnosis of their character.
+  const gap =
+    step.stage === "soft"
+      ? `Sono ${days} giorni che non ci sentiamo — la settimana lavorativa è quella che è.`
+      : step.stage === "firm"
+        ? `Una settimana. Sam ha ancora il tuo livello, i tuoi errori e il tuo frasario dove li avevi lasciati.`
+        : last
+          ? `Questa è l'ultima che ti scrivo. Dopo resta solo l'app, se un giorno ti va.`
+          : `Sono ${days} giorni. Nessun problema: il percorso ti aspetta al punto esatto in cui l'hai lasciato.`;
 
-  if (step.stage === "firm") {
-    return {
-      subject: "Una settimana senza inglese",
-      html: renderEmail({
-        preheader: "Non è l'inglese che si perde in una settimana. È l'abitudine — ed è quella che vale.",
-        heading: `${hello(name)}parliamoci chiaro.`,
-        bodyHtml: `<p style="${P}">È passata <strong>una settimana</strong>. In una settimana non si dimentica l&rsquo;inglese: si perde l&rsquo;abitudine. Ed è l&rsquo;abitudine la cosa difficile da costruire — le parole tornano da sole, il ritmo no.</p>
-          <p style="${P}">Ti eri iscritto per una ragione precisa: una call, una riunione, un cliente, un colloquio. <strong>Quella ragione è ancora lì.</strong> Non se n&rsquo;è andata perché questa settimana è stata piena.</p>
-          <p style="${P}">Non ti serve un&rsquo;ora. Ti servono <strong>cinque minuti oggi</strong> e cinque domani. È letteralmente tutto il metodo.</p>
-          <p style="${SMALL}">Sam riparte esattamente da dove vi eravate lasciati.</p>`,
-        ctaLabel: "Riprendo adesso",
-        ctaUrl: url,
-        ...foot("Ricevi questa email perché non apri ExecLingo da una settimana."),
-      }),
-      text: `${hello(name)}parliamoci chiaro.\n\nÈ passata una settimana. Non si dimentica l'inglese in sette giorni: si perde l'abitudine, ed è quella la parte difficile.\n\nTi eri iscritto per una ragione precisa. Quella ragione è ancora lì.\n\nCinque minuti oggi, cinque domani: ${url}\n\nDisiscriviti: ${out}`,
-    };
-  }
-
-  if (step.stage === "hard") {
-    return {
-      subject: "Due settimane. Te lo dico onestamente.",
-      html: renderEmail({
-        preheader: "A questo punto o riprendi oggi, o questo diventa un altro proposito lasciato a metà.",
-        heading: `${hello(name)}ti dico la verità.`,
-        bodyHtml: `<p style="${P}">Sono <strong>${days} giorni</strong>. A questo punto so come va a finire, perché va così quasi sempre: o si riprende <em>oggi</em>, o questo resta l&rsquo;ennesimo proposito lasciato a metà — insieme al corso comprato e mai finito, e all&rsquo;abbonamento in palestra di gennaio.</p>
-          <p style="${P}">Non è una colpa. È che l&rsquo;inglese non è mai <strong>urgente</strong> finché non lo diventa tutto insieme: la call che non puoi rimandare, il cliente che passa all&rsquo;inglese, la riunione dove sai cosa dire e non sai come dirlo.</p>
-          <p style="${P}">Il tuo percorso è ancora lì, intatto, con il tuo livello e i tuoi errori. <strong>Cinque minuti.</strong> Se dopo averli fatti pensi ancora che non faccia per te, disiscriviti in fondo a questa email e non ti scrivo più — davvero, senza rancore.</p>`,
-        ctaLabel: "Va bene, cinque minuti",
-        ctaUrl: url,
-        ...foot("Ricevi questa email perché non apri ExecLingo da due settimane."),
-      }),
-      text: `${hello(name)}ti dico la verità.\n\nSono ${days} giorni. O si riprende oggi, o questo resta l'ennesimo proposito lasciato a metà.\n\nL'inglese non è mai urgente finché non lo diventa tutto insieme: la call che non puoi rimandare, il cliente che passa all'inglese.\n\nCinque minuti: ${url}\n\nSe dopo pensi che non faccia per te, disiscriviti qui e non ti scrivo più: ${out}`,
-    };
-  }
-
-  // The reminders. Short by design — at this distance a long letter is not
-  // read, and the variations exist so six of them do not read as one robot
-  // repeating itself.
-  const lines = [
-    { subject: "Cinque minuti?", body: "Nessun discorso. Solo la domanda: cinque minuti di inglese, oggi?" },
-    { subject: "La tua call in inglese, quando arriva", body: "Arriverà con due giorni di preavviso e nessun tempo per prepararsi. È l'unico motivo per cui vale la pena farlo adesso che non serve." },
-    { subject: "Sam si ricorda ancora di te", body: "Il tuo livello, i tuoi errori, le espressioni che stavi imparando: è tutto lì. Non si è cancellato niente." },
-    { subject: "Un minuto, allora", body: "Se cinque sono troppi: uno. Una domanda, una risposta in inglese, e hai finito. È già meglio di zero." },
-    { subject: "L'inglese di chi lo parla male", body: "Non è chi ha studiato di più. È chi si è esposto di più — sbagliando, davanti a qualcuno. Sam è il posto dove farlo senza pubblico." },
-    { subject: "Ultimo promemoria", body: "Questo è l'ultimo che ti mando: dopo smetto, e resta solo l'app se un giorno ti va. Nessun rancore, e la porta resta aperta." },
-  ];
-  const pick = lines[Math.min(step.index - 1, lines.length - 1)] ?? lines[0];
-  const last = step.index >= lines.length;
   return {
-    subject: pick.subject,
+    subject: `Come si dice, quando ${lesson.when.toLowerCase()}`,
     html: renderEmail({
-      preheader: pick.body.slice(0, 130),
-      heading: pick.subject,
-      bodyHtml: `<p style="${P}">${pick.body}</p>${last ? "" : `<p style="${SMALL}">Se non è il momento, va bene così — basta che non diventi mai il momento.</p>`}`,
-      ctaLabel: "Apri ExecLingo",
+      preheader: lesson.en,
+      heading: lesson.when,
+      bodyHtml: `<p style="${P}">${gap}</p>
+        <p style="${P}">Intanto, la frase di oggi — quella che in italiano viene da sola e in inglese no:</p>
+        <p style="margin:0 0 12px;padding:14px 16px;border-left:3px solid #c9d4c6;background:#f4f7f3;font-size:17px;line-height:1.5;color:#2f3a30;"><strong>${lesson.en}</strong></p>
+        <p style="${P}">${lesson.it}</p>
+        <p style="${SMALL}">Dirla una volta vale più che leggerla dieci. Sam te la fa usare in due minuti, in una situazione tua.</p>`,
+      ctaLabel: "Provala con Sam",
       ctaUrl: url,
-      ...foot(last ? "È l'ultimo promemoria di questa serie: dopo non ti scriviamo più." : "Ricevi questa email perché non apri ExecLingo da un po'."),
+      footerNote: last
+        ? "È l'ultimo promemoria di questa serie: dopo non ti scriviamo più."
+        : "Ricevi questa email perché non apri ExecLingo da qualche giorno.",
+      unsubscribeUrl: out,
     }),
-    text: `${pick.body}\n\n${url}\n\nDisiscriviti: ${out}`,
+    text: `${gap}\n\nLa frase di oggi:\n\n  ${lesson.en}\n\n${lesson.it}\n\nProvala con Sam: ${url}\n\nDisiscriviti: ${out}`,
   };
 }
 

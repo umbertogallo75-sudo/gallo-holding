@@ -6,6 +6,7 @@ import { billingEnforced, getEntitlement } from "@/lib/stripe";
 import { lifecycleStart } from "@/lib/marketing/lifecycle";
 import { unsubscribedIds } from "@/lib/marketing/prefs";
 import { unsubscribeUrl } from "@/lib/marketing/tokens";
+import { lessonAt } from "@/lib/marketing/lessons";
 
 /**
  * Netflix-style upgrade emails: the store apps show no purchase flows, so
@@ -38,13 +39,16 @@ function day1Email(userId: string, name: string): { subject: string; html: strin
       heading: `${name ? name + ", il" : "Il"} tuo coach è pronto.`,
       bodyHtml: `<p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Hai creato il tuo account ExecLingo — il primo passo è fatto. Per allenarti ogni giorno con <strong>Sam</strong> (chat e voce, missioni business, Meeting Warm-up, English Rescue) ti manca solo il piano.</p>
         <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">👉 <strong>Come si fa</strong>: apri <strong>execlingo.it</strong> dal browser, <strong>accedi con la tua email</strong> e scegli il piano. L&rsquo;app sul telefono si sblocca da sola, con lo stesso account.</p>
+        <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">Intanto tieniti questa, che serve più spesso di quanto sembri:</p>
+        <p style="margin:0 0 12px;padding:14px 16px;border-left:3px solid #c9d4c6;background:#f4f7f3;font-size:17px;line-height:1.5;color:#2f3a30;"><strong>${lessonAt(0).en}</strong></p>
+        <p style="margin:0 0 12px;font-size:15.5px;line-height:1.6;color:#3a423b;">${lessonAt(0).it}</p>
         <p style="margin:0;font-size:14px;line-height:1.6;color:#6b736a;">🏢 La tua azienda ti ha dato un codice? Inseriscilo in Profilo → Abbonamento e non serve altro.</p>`,
       ctaLabel: "Accedi e attiva il tuo piano",
       ctaUrl: url,
       footerNote: "Ricevi questa email perché hai un account ExecLingo senza piano attivo.",
       unsubscribeUrl: unsubscribeUrl(userId),
     }),
-    text: `${name ? name + ", il" : "Il"} tuo coach è pronto.\n\nPer allenarti ogni giorno con Sam ti manca solo il piano:\n1) apri execlingo.it dal browser\n2) accedi con la tua email\n3) scegli il piano — l'app si sblocca da sola\n\n${url}\n\nHai un codice aziendale? Inseriscilo in Profilo → Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
+    text: `${name ? name + ", il" : "Il"} tuo coach è pronto.\n\nIntanto tieniti questa:\n\n  ${lessonAt(0).en}\n\n${lessonAt(0).it}\n\nPer allenarti ogni giorno con Sam ti manca solo il piano:\n1) apri execlingo.it dal browser\n2) accedi con la tua email\n3) scegli il piano — l'app si sblocca da sola\n\n${url}\n\nHai un codice aziendale? Inseriscilo in Profilo → Abbonamento.\n\nExecLingo · un servizio VASP ITALIA SRL\nDisiscriviti: ${unsubscribeUrl(userId)}`,
   };
 }
 
