@@ -12,6 +12,7 @@ import { COACH_MODES, MODE_MINUTES } from "@/lib/learning/modes";
 import { ensureTrial } from "@/lib/marketing/trial";
 import { isFirstSession } from "@/lib/learning/first-use";
 import { isSyntheticOpener } from "@/lib/learning/openers";
+import { answersSoFar, isVerdictTurn, levelcheckOrder, saveLevelcheck } from "@/lib/learning/levelcheck";
 import { trackEvent } from "@/lib/analytics";
 import {
   ensureProfile,
@@ -110,9 +111,19 @@ export async function POST(request: Request) {
       parsed.data.doc ? readDocument(parsed.data.doc, userId).catch(() => null) : Promise.resolve(null),
     ]);
     const docContext = doc ? trainingContext(doc.analysis) : undefined;
+    // The entry test is counted here, not by the coach.
+    //
+    // Asked to "ask about ten questions" a model loses count, and the test
+    // the testers ran drifted into an ordinary chat and never produced a
+    // verdict. So the answers are counted in the database, the coach is told
+    // on every turn where it is, and on the tenth answer it is ordered to
+    // deliver the verdict and stop.
+    const answers = mode === "levelcheck" && !synthetic ? await answersSoFar(sessionId) : 0;
+    const verdictTurn = mode === "levelcheck" && isVerdictTurn(answers);
     // The greeting is asked for as a greeting: seven fields of coaching output
     // on a turn where the user has not spoken yet is a wait paid for nothing.
-    const instructions = coachInstructions(context, mode, docContext);
+    const instructions =
+      coachInstructions(context, mode, docContext) + (mode === "levelcheck" && !synthetic ? levelcheckOrder(answers) : "");
     const result = parsed.data.opening && !parsed.data.sessionId
       ? { reply: await runOpening(instructions, message), correction: null, mistakes: [], expressions: [], reviewed_items: [], skill_updates: {}, capabilities: [] }
       : await runCoach(instructions, message);
@@ -145,6 +156,10 @@ export async function POST(request: Request) {
           if (await recordReviewResult(userId, item.text, item.success)) reviewed++;
         }
         await maybeAdjustLevel(userId);
+        // The verdict is written down only once the level it reports has been
+        // recalculated from this very conversation: a stored level is worth
+        // something only against the next one.
+        if (verdictTurn) await saveLevelcheck(userId, sessionId, result.reply);
         await recordDailyMetric(userId, {
           minutes: MODE_MINUTES[mode] ?? 5,
           interactions: 1,

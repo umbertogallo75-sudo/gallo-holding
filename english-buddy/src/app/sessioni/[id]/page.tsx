@@ -5,6 +5,7 @@ import { RememberPhrase } from "@/components/RememberPhrase";
 import { Speak } from "@/components/Speak";
 import { requireUserId } from "@/lib/auth";
 import { isVoiceMode, sessionMode, sessionReport, sessionTranscript } from "@/lib/learning/sessions";
+import { lastLevelcheck } from "@/lib/learning/levelcheck";
 import styles from "../sessioni.module.css";
 
 export const metadata = { title: "Sessione · ExecLingo" };
@@ -21,13 +22,28 @@ export default async function SessionePage({ params }: { params: Promise<{ id: s
   ]);
   if (transcript.length === 0) notFound();
   const spoken = isVoiceMode(mode ?? "");
+  // The entry test is read back as a result, not as a conversation to carry
+  // on: it ended when Sam gave the verdict, and this page is where the home
+  // screen sends somebody who wants to read that verdict again.
+  const check = mode === "levelcheck" ? await lastLevelcheck(userId).catch(() => null) : null;
+  const test = check?.sessionId === id ? check : null;
 
   return (
     <main className="shell">
       <div className="topbar">
-        <div className="brand">{spoken ? "🎙️ A voce" : "✍️ Scritta"}</div>
+        <div className="brand">{mode === "levelcheck" ? "🎯 Prova di livello" : spoken ? "🎙️ A voce" : "✍️ Scritta"}</div>
         <Link className="chip" href={spoken ? "/sessioni?tipo=voce" : "/sessioni"}>← Tutte</Link>
       </div>
+
+      {test ? (
+        <section className="card" style={{ display: "grid", gap: 6 }}>
+          <div className="kicker">Il tuo livello: {test.level}</div>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+            {test.score}/100 il giorno della prova, {new Date(test.takenAt).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.
+            Il giudizio di Sam è in fondo alla conversazione.
+          </p>
+        </section>
+      ) : null}
 
       {report ? (
         <section className="card" style={{ display: "grid", gap: 6 }}>
@@ -61,7 +77,28 @@ export default async function SessionePage({ params }: { params: Promise<{ id: s
 
       {/* The end of a conversation is exactly where somebody decides they want
           it back: reading the last thing you said is what reminds you it was
-          never finished. */}
+          never finished. A finished test is the one thing you cannot reopen —
+          it has already said what it had to say. */}
+      {test ? (
+        <section className="card" style={{ display: "grid", gap: 10, marginTop: 16 }}>
+          <strong style={{ fontSize: 15.5 }}>
+            {test.locked ? `Nuova prova tra ${test.daysLeft} ${test.daysLeft === 1 ? "giorno" : "giorni"}` : "Puoi rifare la prova"}
+          </strong>
+          <span className="muted" style={{ fontSize: 14 }}>
+            {test.locked
+              ? "Un mese di pratica è il minimo perché il livello si muova davvero. Prima di allora una seconda prova direbbe solo una cosa diversa dalla prima, e non sapresti a quale credere."
+              : "È passato un mese. Rifalla e vedi nero su bianco quanto sei salito: stesse dieci domande, stesso metro."}
+          </span>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {test.locked ? null : (
+              <Link className="pill" href="/buddy?mode=levelcheck" data-track="level_card" data-where="again">
+                🎯 Rifai la prova
+              </Link>
+            )}
+            <Link className="pill" href="/percorso">Il tuo percorso</Link>
+          </div>
+        </section>
+      ) : (
       <section className="card" style={{ display: "grid", gap: 10, marginTop: 16 }}>
         <strong style={{ fontSize: 15.5 }}>Vuoi riaprire questa sessione?</strong>
         <span className="muted" style={{ fontSize: 14 }}>
@@ -82,6 +119,7 @@ export default async function SessionePage({ params }: { params: Promise<{ id: s
           </Link>
         </div>
       </section>
+      )}
 
       <BottomNav active="home" />
     </main>

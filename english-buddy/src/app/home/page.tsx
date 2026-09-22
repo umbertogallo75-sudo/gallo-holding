@@ -9,6 +9,7 @@ import { AppTracker } from "@/components/AppTracker";
 import { pickFirstSession } from "@/lib/learning/first-session";
 import { HOME_RAIL } from "@/components/ModeGrid";
 import { firstSteps, showFirstSteps } from "@/lib/learning/first-steps";
+import { lastLevelcheck } from "@/lib/learning/levelcheck";
 import { upcomingEvents } from "@/lib/events";
 import { isEmbeddedApp } from "@/lib/appclient";
 import { requireUserId } from "@/lib/auth";
@@ -36,7 +37,7 @@ export default async function HomePage() {
   // not be shown it. Asked in parallel it costs nothing in time, where asking
   // only when needed cost a whole extra round trip for exactly the people who
   // are not paying yet.
-  const [profileResult, metricResult, sessionsResult, entitlement, trial, steps, events, embedded] = await Promise.all([
+  const [profileResult, metricResult, sessionsResult, entitlement, trial, steps, level, events, embedded] = await Promise.all([
     readProfile("SELECT display_name, starting_level, onboarding_done_at, learning_goals, daily_minutes, path_started_at FROM profiles WHERE id = ? LIMIT 1", userId, database),
     database.execute({ sql:"SELECT minutes_practiced, interactions, expressions_reviewed FROM daily_metrics WHERE user_id = ? AND day = ? LIMIT 1", args:[userId,today] }),
     // Conversations, not taps. A row exists the moment a screen is opened, so
@@ -52,6 +53,7 @@ export default async function HomePage() {
     billingEnforced() ? getEntitlement(userId) : Promise.resolve({ access: true }),
     readTrial(userId, database).catch(() => null),
     firstSteps(userId, database),
+    lastLevelcheck(userId, database).catch(() => null),
     upcomingEvents(userId, today, database),
     isEmbeddedApp(),
   ]);
@@ -188,6 +190,34 @@ export default async function HomePage() {
         <span><strong>Mi serve adesso</strong>Scrivi in italiano, esce in inglese</span>
       </Link>
     </div>
+
+    {/* The level, permanently, because a level nobody can see is a level
+        nobody believes they have. Taken once it stops being an invitation and
+        becomes a result: the band, the score it was given at, and the way
+        back to what Sam actually said. It reopens after a month — sooner than
+        that there is nothing new to measure, and a second verdict would only
+        contradict the first. */}
+    <Link
+      href={!level ? "/buddy?mode=levelcheck" : level.locked ? `/sessioni/${level.sessionId}` : "/buddy?mode=levelcheck"}
+      className="mode wide"
+      style={{ display: "flex", marginTop: 12 }}
+      data-track="level_card"
+      data-where={!level ? "new" : level.locked ? "locked" : "again"}
+    >
+      <span className="modeIcon" style={{ background: "color-mix(in srgb, var(--accent) 18%, var(--surface))" }}>
+        {level ? level.level : "🎯"}
+      </span>
+      <div>
+        <div className="modeTitle">{level ? `Il tuo livello: ${level.level}` : "Scopri il tuo livello"}</div>
+        <div className="modeMeta">
+          {!level
+            ? "Dieci domande in chiacchierata, cinque minuti, e sai da dove parti"
+            : level.locked
+              ? `${level.score}/100 · rileggi il giudizio di Sam — nuova prova tra ${level.daysLeft} ${level.daysLeft === 1 ? "giorno" : "giorni"}`
+              : `${level.score}/100 · rifai la prova e vedi quanto sei salito`}
+        </div>
+      </div>
+    </Link>
 
     {/* The path, above everything else that is not today's session: testers
         could not find a path because there was nowhere to look at one. */}

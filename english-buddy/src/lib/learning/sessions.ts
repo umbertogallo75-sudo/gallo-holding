@@ -148,7 +148,14 @@ const SUMMARY_COLUMNS = `s.id, s.mode, s.started_at,
    (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' ORDER BY created_at ASC, rowid ASC LIMIT 1) AS first_user,
    (SELECT content FROM messages WHERE session_id = s.id AND role = 'assistant' ORDER BY created_at ASC, rowid ASC LIMIT 1) AS first_coach`;
 
-/** The one to offer back, if there is one. */
+/**
+ * The one to offer back, if there is one.
+ *
+ * Never the entry test. It is ten questions with a verdict at the end, and a
+ * verdict given to half a test is worth nothing: once it is interrupted the
+ * right thing is to take it again from the top, not to walk back in at
+ * question six.
+ */
 export async function resumableSession(
   userId: string,
   opts: { kind?: SessionKind } = {},
@@ -160,7 +167,7 @@ export async function resumableSession(
     const result = await client.execute({
       sql: `SELECT ${SUMMARY_COLUMNS}, ${hasColumn ? "s.closed_at" : "NULL AS closed_at"}
             FROM sessions s JOIN messages m ON m.session_id = s.id
-            WHERE s.user_id = ? AND s.started_at >= ? ${kind} ${hasColumn ? "AND s.closed_at IS NULL" : ""}
+            WHERE s.user_id = ? AND s.started_at >= ? AND (s.mode IS NULL OR s.mode != 'levelcheck') ${kind} ${hasColumn ? "AND s.closed_at IS NULL" : ""}
             GROUP BY s.id
             HAVING turns >= ?
             ORDER BY last_at DESC

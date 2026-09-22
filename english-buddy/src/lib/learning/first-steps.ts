@@ -1,5 +1,6 @@
 import type { Client } from "@libsql/client";
 import { db } from "@/lib/db";
+import { lastLevelcheck } from "./levelcheck";
 
 /**
  * The three things worth doing in the first days, and whether they are done.
@@ -41,7 +42,7 @@ const STEPS: Omit<FirstStep, "done">[] = [
   {
     key: "level",
     title: "Scopri il tuo livello",
-    meta: "3 minuti di chiacchierata. Niente esame, niente voti",
+    meta: "Dieci domande in chiacchierata, cinque minuti. Alla fine Sam ti dice da dove parti",
     doneMeta: "Fatto — Sam sa da dove partire",
     href: "/buddy?mode=levelcheck",
   },
@@ -74,22 +75,30 @@ async function exists(client: Client, sql: string, userId: string): Promise<bool
 }
 
 export async function firstSteps(userId: string, client: Client = db()): Promise<FirstStep[]> {
-  const [modes, web, ios, android] = await Promise.all([
+  const [modes, level, web, ios, android] = await Promise.all([
     // Done means done, not opened.
     //
-    // A session row exists from the moment a screen is opened, so a level
-    // check abandoned after ten seconds ticked the box and the checklist
+    // A session row exists from the moment a screen is opened, so a spoken
+    // session abandoned after ten seconds ticked the box and the checklist
     // congratulated somebody who had not done it — which is most of what
-    // testers meant by "il wizard non serve a nulla". Three turns is the
-    // smallest thing that gave Sam anything to judge a level on.
+    // testers meant by "il wizard non serve a nulla". Three turns is short,
+    // but it is a conversation.
     client
       .execute({
         sql: `SELECT s.mode FROM sessions s JOIN messages m ON m.session_id = s.id AND m.role = 'user'
-              WHERE s.user_id = ? AND s.mode IN ('levelcheck', 'voice')
+              WHERE s.user_id = ? AND s.mode = 'voice'
               GROUP BY s.id HAVING COUNT(m.id) >= ?`,
         args: [userId, MIN_TURNS_FOR_DONE],
       })
       .catch(() => ({ rows: [] as { mode?: unknown }[] })),
+    // The level step is ticked by the verdict, not by the turns.
+    //
+    // Counting turns said "done" to somebody who had answered three
+    // questions and closed the app, and Sam had no level to work from — the
+    // step promises a starting point, so the starting point is what has to
+    // exist. The test now ends in code and stores what it concluded; that
+    // row is the proof.
+    lastLevelcheck(userId, client).catch(() => null),
     exists(client, "SELECT 1 FROM push_subscriptions WHERE user_id = ? LIMIT 1", userId),
     exists(client, "SELECT 1 FROM apns_tokens WHERE user_id = ? LIMIT 1", userId),
     exists(client, "SELECT 1 FROM fcm_tokens WHERE user_id = ? LIMIT 1", userId),
@@ -102,7 +111,7 @@ export async function firstSteps(userId: string, client: Client = db()): Promise
 
   return STEPS.map((step) => ({
     ...step,
-    done: step.key === "level" ? done.has("levelcheck") : step.key === "voice" ? done.has("voice") : reachable,
+    done: step.key === "level" ? level !== null : step.key === "voice" ? done.has("voice") : reachable,
   }));
 }
 

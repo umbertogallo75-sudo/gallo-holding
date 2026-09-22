@@ -49,6 +49,7 @@ const bodySchema = z.object({
     "voice_invite",
     "chat_starter",
     "chat_topic",
+    "level_card",
     "first_step",
     "tour_end",
     "doc_train",

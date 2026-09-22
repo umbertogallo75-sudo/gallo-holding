@@ -66,9 +66,11 @@ describe("the entry test", () => {
     expect(prompt).toContain("do NOT correct anything while the test is running");
   });
 
-  it("asks about ten questions, climbing", () => {
-    expect(prompt).toContain("about TEN questions");
+  it("climbs a ladder of ten, and leaves the counting to the code", () => {
+    // The ladder stays in the prompt; the count does not. Asked to keep its
+    // own tally the coach lost it, and testers got a test that never ended.
     expect(prompt).toContain("find the ceiling");
+    expect(prompt).toContain("do not count and do not decide the ending yourself");
   });
 
   it("ends with a verdict that is articulated, not a label", () => {
