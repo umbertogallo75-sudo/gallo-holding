@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { track } from "@/lib/track-client";
-import { COMPARISON, ENGINE_CARDS, ENGINE_KEY, VOICE_ENGINES, type VoiceEngine } from "@/lib/voice/engines";
+import { COMPARISON, ENGINE_CARDS, ENGINE_CHOICE, ENGINE_KEY, SELECTABLE_ENGINES, type VoiceEngine } from "@/lib/voice/engines";
 import styles from "./engine.module.css";
 
 /**
@@ -37,10 +37,26 @@ export function EngineStart({
     onStart(engine);
   }
 
+  // One engine on offer: one button, and none of the furniture that exists to
+  // help somebody choose. A comparison table between a thing and nothing is
+  // not a choice, it is an explanation of a choice already made for them.
+  if (!ENGINE_CHOICE) {
+    const only = SELECTABLE_ENGINES[0];
+    return (
+      <div className={styles.root}>
+        <div className={styles.buttons}>
+          <button type="button" className={`${styles.start} ${styles.classic}`} onClick={() => begin(only)}>
+            <span className={styles.startTop}>🎙️ {again ? "Parla ancora" : "Inizia a parlare"}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.root}>
       <div className={styles.buttons}>
-        {VOICE_ENGINES.map((engine) => {
+        {SELECTABLE_ENGINES.map((engine) => {
           const card = ENGINE_CARDS[engine];
           return (
             <button

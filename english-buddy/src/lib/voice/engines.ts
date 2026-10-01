@@ -16,6 +16,35 @@ export const VOICE_ENGINES = ["realtime", "live"] as const;
 export type VoiceEngine = (typeof VOICE_ENGINES)[number];
 
 /**
+ * Which engines a learner is actually offered.
+ *
+ * The full-duplex one is not, from 1 October, and this is the reason written
+ * down so the decision can be revisited on evidence rather than on memory.
+ *
+ * On the day it produced two faults. The first was ours and is fixed: it
+ * delegated its thinking at the model's default effort, which made it the slow
+ * one. The second is not ours and we cannot see it — testers report the call
+ * freezing after about three minutes. The freeze is explained: full duplex has
+ * no turn-completed events, so the screen infers its state from two streams of
+ * deltas, and when the session ends server-side the deltas simply stop. The
+ * app went on saying "a te" to somebody talking to a closed line.
+ *
+ * What is NOT explained is why the session ends. The reason arrives in a
+ * `session.closed` event that we were throwing away; it is now read and
+ * logged. Until a call produces that reason, keeping this engine in front of
+ * learners means shipping, on the part of the product that matters most, a
+ * mode we cannot diagnose — while the alternative is the one the testers kept
+ * choosing anyway.
+ *
+ * To offer it again: add "live" back here. Nothing else has to change, and
+ * the code path has been kept working on purpose.
+ */
+export const SELECTABLE_ENGINES: readonly VoiceEngine[] = ["realtime"];
+
+/** Whether the learner is given a choice at all, or simply a start button. */
+export const ENGINE_CHOICE = SELECTABLE_ENGINES.length > 1;
+
+/**
  * What runs unless somebody chooses otherwise: the one with the mileage.
  *
  * This was switched to the full-duplex engine on 1 October and switched back

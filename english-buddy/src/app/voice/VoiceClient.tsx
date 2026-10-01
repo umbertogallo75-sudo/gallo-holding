@@ -77,7 +77,7 @@ const RESUME_GRACE_MS = 45_000;
  * somebody can test a fix on a real phone rather than reason about it.
  */
 
-import { DEFAULT_ENGINE, ENGINE_KEY, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
+import { DEFAULT_ENGINE, ENGINE_KEY, SELECTABLE_ENGINES, isVoiceEngine, type VoiceEngine } from "@/lib/voice/engines";
 import { INITIAL, onEvent, onTick, type LiveState } from "@/lib/voice/live-phase";
 import { isAudible, levelsFromStats, smoothLevel } from "@/lib/voice/mic-level";
 import { EngineStart } from "./EnginePicker";
@@ -89,7 +89,11 @@ import { EngineStart } from "./EnginePicker";
 function lastEngine(): VoiceEngine {
   try {
     const saved = window.localStorage.getItem(ENGINE_KEY);
-    return isVoiceEngine(saved) ? saved : DEFAULT_ENGINE;
+    // A choice made months ago on a device still counts — unless the engine it
+    // names is no longer one we put in front of people. Withdrawing an engine
+    // has to reach the people who had already picked it, or it is withdrawn
+    // from everybody except the ones who liked it enough to choose.
+    return isVoiceEngine(saved) && SELECTABLE_ENGINES.includes(saved) ? saved : DEFAULT_ENGINE;
   } catch {
     return DEFAULT_ENGINE;
   }
@@ -770,7 +774,10 @@ export function VoiceClient({
       };
       channel.onmessage = (message) => {
         try {
-          const event = JSON.parse(message.data as string) as { type?: string; transcript?: string; delta?: string };
+          const event = JSON.parse(message.data as string) as {
+            type?: string; transcript?: string; delta?: string;
+            reason?: string; error?: { message?: string };
+          };
           if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) {
             setStreaming(null);
             push("you", event.transcript);
@@ -796,6 +803,22 @@ export function VoiceClient({
           // and no item id — so a line is closed by a silence, not by a signal.
           if (event.type === "session.input_transcript.delta" && event.delta) collect("you", event.delta);
           if (event.type === "session.output_transcript.delta" && event.delta) collect("coach", event.delta);
+          // The session ending from the far end, which used to arrive and be
+          // dropped. Full duplex has no turn boundaries, so the screen infers
+          // its state from the two delta streams — and a session that closes
+          // simply stops sending them. The inference falls back to "a te" and
+          // stays there: the app invites somebody to speak into a line that is
+          // already shut, which is what "si blocca e non va avanti" was.
+          //
+          // The reason is logged because it is the one thing nobody has seen
+          // yet: close_requested, expired, content, remote_hangup or
+          // connection_lost each point somewhere completely different.
+          if (event.type === "session.closed" || event.type === "error") {
+            const why = event.reason ?? event.error?.message ?? event.type;
+            console.error("live session closed by the server:", why);
+            if (statusRef.current === "live") endInterrupted();
+            return;
+          }
           if (event.type) markPhase(event.type);
         } catch { /* non-JSON frame */ }
       };

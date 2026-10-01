@@ -5,7 +5,9 @@ import {
   COMPARISON,
   DEFAULT_ENGINE,
   ENGINE_CARDS,
+  ENGINE_CHOICE,
   isVoiceEngine,
+  SELECTABLE_ENGINES,
   VOICE_ENGINES,
 } from "@/lib/voice/engines";
 import {
@@ -60,6 +62,32 @@ describe("the choice offered to the learner", () => {
     // mileage.
     const honesty = COMPARISON.find((row) => /recente|nuova|spigol|provala/i.test(row.live));
     expect(honesty, "manca la riga che dice che il motore alternativo è più recente").toBeDefined();
+  });
+});
+
+describe("ritirare un motore vuol dire ritirarlo per tutti", () => {
+  it("offre solo la classica, finché non sappiamo perché l'altra si chiude", () => {
+    // I tester: "si blocca, si impalla e non va avanti dopo 3 minuti". Il
+    // blocco è spiegato — nel full-duplex non ci sono eventi di fine turno,
+    // quindi lo schermo deduce lo stato dai delta, e una sessione chiusa
+    // smette semplicemente di mandarli. Perché si chiuda non lo sappiamo.
+    expect(SELECTABLE_ENGINES).toEqual(["realtime"]);
+    expect(ENGINE_CHOICE).toBe(false);
+  });
+
+  it("raggiunge anche chi l'aveva già scelta sul proprio telefono", () => {
+    // Una scelta salvata mesi fa vince sul default: senza questo, il motore
+    // sarebbe ritirato per tutti tranne per chi lo aveva preferito.
+    const client = readFileSync(join(__dirname, "..", "src", "app", "voice", "VoiceClient.tsx"), "utf8");
+    expect(client).toContain("SELECTABLE_ENGINES.includes(saved)");
+  });
+
+  it("non resta in ascolto di una linea chiusa", () => {
+    const client = readFileSync(join(__dirname, "..", "src", "app", "voice", "VoiceClient.tsx"), "utf8");
+    expect(client).toContain('event.type === "session.closed"');
+    // E il motivo va scritto nei log: è l'unica cosa che nessuno ha ancora
+    // visto, e ognuno dei motivi possibili punta altrove.
+    expect(client).toContain("live session closed by the server:");
   });
 });
 
@@ -157,9 +185,10 @@ describe("the start of a call", () => {
 describe("how a call is started", () => {
   it("offers one button per engine, each naming its own mode", () => {
     const source = readFileSync(join(__dirname, "..", "src", "app", "voice", "EnginePicker.tsx"), "utf8");
-    // One button per engine, built from the catalogue rather than written out,
-    // so a third engine could never be added and quietly not offered.
-    expect(source).toContain("VOICE_ENGINES.map");
+    // One button per engine OFFERED, built from the catalogue rather than
+    // written out, so an engine could never be added and quietly not offered —
+    // nor withdrawn in one place and left standing in another.
+    expect(source).toContain("SELECTABLE_ENGINES.map");
     expect(source).toContain("Inizia a parlare");
     // The colour carries which is which: green familiar, blue new.
     expect(source).toContain("styles.classic");
