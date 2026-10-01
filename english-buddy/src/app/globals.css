@@ -1055,16 +1055,25 @@ p { line-height:1.55; font-size:16px; }
    volta aperta è l'unica cosa sullo schermo, e la barra in alto è l'unica via
    d'uscita, sempre nello stesso punto. */
 .callLayer { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column;
-  background:var(--bg); overscroll-behavior:contain;
-  /* Il palco della voce si misura sull'altezza dello schermo meno la sua
-     cornice, e qui la cornice è un'altra: niente hero, niente navigazione in
-     fondo, solo la riga per tornare a scrivere. */
-  --voiceChrome: calc(120px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)); }
+  background:var(--bg); overscroll-behavior:contain; }
 .callBar { display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
   border-bottom:1px solid var(--line); background:var(--surface); flex-shrink:0; }
 .callBar strong { font-size:15px; font-weight:740; letter-spacing:-.01em; }
-.callBody { flex:1; min-height:0; overflow-y:auto; padding:12px 14px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+/* Durante la chiamata il corpo non ha niente da scorrere.
+   Il palco della voce porta già la sua barra di scorrimento, dentro la
+   trascrizione, e il CSS qui sopra lo dice da sempre: due contenitori che
+   scorrono uno dentro l'altro sono il modo in cui l'ultima battuta detta
+   diventa irraggiungibile. Aprendo il microfono sopra la chat ne avevo
+   aggiunto un secondo, e per di più misurato a mano - il palco si calcolava
+   su 100dvh meno una cornice indovinata, dentro un contenitore che era già
+   più basso di così. Adesso il corpo dà al palco esattamente lo spazio che
+   resta - quindi durante la chiamata non ha niente da scorrere, e di
+   scorrevole ne rimane uno solo. Resta auto e non hidden perché prima della
+   chiamata lì dentro c'è una scheda, e una scheda tagliata non si recupera. */
+.callBody { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column;
+  padding:12px 14px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+.callBody > .voiceStage { height:auto; flex:1; min-height:0; }
 .composerMicLabel { font-size:10px; font-weight:800; letter-spacing:.04em; color:var(--muted); text-transform:uppercase; }
 
 /* Le tre frasi offerte quando la casella è ancora vuota. */

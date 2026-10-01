@@ -187,10 +187,24 @@ describe("Sam's voice", () => {
     expect(asks.length, "la voce va chiesta su entrambi i motori").toBeGreaterThanOrEqual(2);
   });
 
-  it("retries without the voice rather than losing the call to a rejected field", () => {
-    // Where the field lives on an API a week old is not something to be
-    // certain about: a wrong guess must cost the voice, never the call.
+  it("retries without the extras rather than losing the call to a rejected field", () => {
+    // Where a field lives on a young API is not something to be certain
+    // about: a wrong guess must cost the voice, never the call. Two extras
+    // now, dropped one at a time, slowest-to-lose first.
     expect(route).toContain("response.status === 400");
-    expect(route).toContain("open(false)");
+    expect(route).toContain("open(true, false)");
+    expect(route).toContain("open(false, false)");
+  });
+
+  it("non lascia che la voce dal vivo pensi al ritmo della chat scritta", () => {
+    // "Sam in vocale è lentissimo, molto." Questo motore non risponde da sé:
+    // delega ogni battuta al modello di testo, che deve ragionare prima che
+    // Sam apra bocca. La chat scritta fissa quel modello su "low" apposta per
+    // restare veloce; questa chiamata non fissava niente e prendeva il default
+    // del modello, che è medium — un giro di ragionamento medio davanti a ogni
+    // frase di una conversazione dal vivo.
+    expect(route).toContain('reasoning: { effort: "low" }');
+    const openai = readFileSync("src/lib/ai/openai.ts", "utf8");
+    expect(openai, "le due strade devono chiedere lo stesso sforzo").toContain('reasoning: { effort: "low" }');
   });
 });

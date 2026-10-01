@@ -248,31 +248,59 @@ async function liveSession(opts: { apiKey: string; instructions: string; sdp?: s
    * week after it shipped, so a rejected request is retried without it: a
    * wrong guess must cost the voice, never the call.
    */
-  const body = (withVoice: boolean) => ({
+  /**
+   * The thinking effort, said out loud instead of inherited.
+   *
+   * This engine does not answer by itself: every spoken turn is delegated to
+   * the text model, which then has to think before Sam can open his mouth.
+   * The written chat pins that model to `low` on purpose — "a ragionamento
+   * basso per restare veloce" — and this call pinned nothing, so it ran at the
+   * model's own default, which is MEDIUM. A medium reasoning pass in front of
+   * every sentence of a live conversation is the difference between a coach
+   * and a delay, and it is what testers meant by "lentissimo, molto".
+   *
+   * A conversation is the one place where thinking longer is worth less than
+   * answering now: these are three-sentence replies to small talk, not
+   * analysis. Low here matches the written coach, deliberately.
+   */
+  const body = (withVoice: boolean, withEffort: boolean) => ({
     session: {
       model: modelFor("voiceLive"),
       instructions: voiceInstructions,
       ...(withVoice ? { audio: { output: { voice: "cedar" } } } : {}),
       delegation: {
         type: "responses",
-        responses: { model: modelFor("text"), instructions: opts.instructions },
+        responses: {
+          model: modelFor("text"),
+          instructions: opts.instructions,
+          ...(withEffort ? { reasoning: { effort: "low" } } : {}),
+        },
       },
     },
     transport: { type: "webrtc", sdp: opts.sdp },
   });
 
-  const open = (withVoice: boolean) =>
+  const open = (withVoice: boolean, withEffort: boolean) =>
     fetch("https://api.openai.com/v1/live/sessions", {
       method: "POST",
       headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body(withVoice)),
+      body: JSON.stringify(body(withVoice, withEffort)),
     });
 
-  let response = await open(true);
+  // Both extras are things this API may not accept in the shape we send them,
+  // and neither is worth a dead call: dropped one at a time, slowest-to-lose
+  // first, so a rename upstream costs speed and then a voice, never the
+  // conversation.
+  let response = await open(true, true);
+  if (response.status === 400) {
+    const detail = (await response.text()).slice(0, 400);
+    console.error("live session rejected the reasoning effort, retrying without it:", detail);
+    response = await open(true, false);
+  }
   if (response.status === 400) {
     const detail = (await response.text()).slice(0, 400);
     console.error("live session rejected the voice, retrying without it:", detail);
-    response = await open(false);
+    response = await open(false, false);
   }
 
   if (!response.ok) {
