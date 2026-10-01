@@ -22,11 +22,14 @@ import {
 } from "@/lib/voice/live-phase";
 
 describe("the choice offered to the learner", () => {
-  it("gives everybody the engine that does not talk over them", () => {
-    // It used to be the turn-based one, honestly offered while full-duplex was
-    // new. Interruptions are not an annoyance on a language coach: being cut
-    // off while hunting for a word in a foreign language is when people stop.
-    expect(DEFAULT_ENGINE).toBe("live");
+  it("keeps the engine the testers preferred as the default", () => {
+    // Switched to the full-duplex engine on 1 October and switched back the
+    // same day. The case for switching was a line in OpenAI's documentation
+    // and a theory about why the testers were wrong; the case against was the
+    // testers, who had used both. This assertion is the second one: it moves
+    // when somebody holding a phone says it should, not when a product page
+    // does.
+    expect(DEFAULT_ENGINE).toBe("realtime");
     expect(isVoiceEngine("realtime")).toBe(true);
     expect(isVoiceEngine("live")).toBe(true);
     expect(isVoiceEngine("gpt-live-1")).toBe(false);
@@ -48,15 +51,15 @@ describe("the choice offered to the learner", () => {
     }
   });
 
-  it("dice anche cosa si perde scegliendo quello predefinito", () => {
+  it("dice che l'altro motore è più recente, senza venderlo", () => {
     // The row it would be tempting to leave out. A comparison that only lists
     // the advantages of the default is an advertisement, and this one asks
     // them to choose. Which row that is has moved: while the full-duplex
     // engine was the newcomer, honesty meant saying it was new. Now that it
     // is what everybody gets, honesty means saying the other one has the
     // mileage.
-    const honesty = COMPARISON.find((row) => /mesi|collaudat|è nata/i.test(row.realtime));
-    expect(honesty, "manca la riga che riconosce il vantaggio del motore non predefinito").toBeDefined();
+    const honesty = COMPARISON.find((row) => /recente|nuova|spigol|provala/i.test(row.live));
+    expect(honesty, "manca la riga che dice che il motore alternativo è più recente").toBeDefined();
   });
 });
 

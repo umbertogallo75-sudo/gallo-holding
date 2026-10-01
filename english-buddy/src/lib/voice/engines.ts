@@ -16,21 +16,23 @@ export const VOICE_ENGINES = ["realtime", "live"] as const;
 export type VoiceEngine = (typeof VOICE_ENGINES)[number];
 
 /**
- * What runs unless somebody chooses otherwise.
+ * What runs unless somebody chooses otherwise: the one with the mileage.
  *
- * It was the turn-based one, "the one with the mileage", and the full-duplex
- * engine was offered rather than imposed — honest while it was new, and wrong
- * once the thing it is better at became the point. On a coach, interruptions
- * are not an annoyance: they are the app talking over somebody who is hunting
- * for a word in a foreign language, which is exactly when being talked over
- * makes you stop.
+ * This was switched to the full-duplex engine on 1 October and switched back
+ * the same day, and the reason is worth keeping.
  *
- * It was also quietly the slow one until 1 October, because the brain behind
- * it was thinking at the model's default effort before every sentence. Making
- * it the default before that was fixed would have handed everybody the slow
- * path; fixed, it is simply the better conversation.
+ * The case for switching was a claim in OpenAI's documentation — "smooth
+ * interruption handling" — plus a guess: that testers who preferred the
+ * turn-based engine only preferred it because the full-duplex one was slow,
+ * which had just been fixed. The guess may even be right. But the testers had
+ * actually used both and said the turn-based one was better, and a measured
+ * preference from somebody holding the phone outranks a sentence on a product
+ * page and a theory about why they were wrong.
+ *
+ * It goes back when the comparison is run again on a version where the latency
+ * defect is gone, and the people who use it say so. Not before.
  */
-export const DEFAULT_ENGINE: VoiceEngine = "live";
+export const DEFAULT_ENGINE: VoiceEngine = "realtime";
 
 export function isVoiceEngine(value: unknown): value is VoiceEngine {
   return typeof value === "string" && (VOICE_ENGINES as readonly string[]).includes(value);
@@ -47,12 +49,12 @@ export const ENGINE_CARDS: Record<VoiceEngine, EngineCard> = {
   realtime: {
     engine: "realtime",
     name: "Classica",
-    summary: "A turni: parli tu, poi risponde Sam. Più collaudata, ma può partire prima che tu abbia finito.",
+    summary: "A turni: parli tu, poi risponde Sam. È la predefinita, la più collaudata.",
   },
   live: {
     engine: "live",
     name: "Avanzata",
-    summary: "Sam ti ascolta mentre parla: ti lascia finire, anche se ti fermi a pensare. È quella predefinita.",
+    summary: "Sam ti ascolta mentre parla: ti lascia finire, anche se ti fermi a pensare.",
   },
 };
 
@@ -66,7 +68,7 @@ export const COMPARISON: { label: string; realtime: string; live: string }[] = [
   { label: "Se ti fermi a pensare", realtime: "Sam può partire prima che tu abbia finito", live: "Ti lascia il tempo, e aspetta" },
   { label: "Quanto ci mette a rispondere", realtime: "Subito", live: "Subito" },
   { label: "Interruzioni", realtime: "Capitano, soprattutto a viva voce", live: "Molto più rare" },
-  { label: "Da quanto è in uso", realtime: "Mesi: è il motore con cui l'app è nata", live: "Da ottobre è quella predefinita" },
+  { label: "Da quanto è in uso", realtime: "Mesi: è il motore con cui l'app è nata", live: "Più recente: provala e dicci come va" },
 ];
 
 /** Where the choice is kept: on the device, like the theme. */
