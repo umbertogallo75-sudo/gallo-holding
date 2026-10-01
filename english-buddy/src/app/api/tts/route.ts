@@ -16,11 +16,18 @@ const bodySchema = z.object({
 /**
  * Sam's voice, spoken by the server.
  *
- * The listen buttons normally use the device's own speech synthesis, which is
- * free and instant. Inside the Android app there is no synthesis behind the
- * API — the object exists, the button appears, and nothing is heard. This is
- * the fallback the browser calls when that happens, so an English phrase can
- * always be heard whatever the phone is running.
+ * This is what the listen buttons play — the normal case, not a fallback.
+ * The comment here used to say the opposite, describing an older arrangement
+ * where the device's own synthesis came first and this was the rescue for
+ * phones without one. That changed in the component and not here, which is
+ * how a stale comment becomes a wrong one: read today it understates what
+ * this route is for, which is every listen button in the app.
+ *
+ * The device's synthesis is now the last resort, reached only when the
+ * network is gone — and good riddance as the default: it varies from phone to
+ * phone, and an Italian iPhone reads English with an Italian accent. On a
+ * product about pronunciation, the model voice has to be the same for
+ * everyone.
  */
 export async function POST(request: Request) {
   const userId = await getUserId();
@@ -57,7 +64,7 @@ export async function POST(request: Request) {
 
   return new NextResponse(response.body, {
     headers: {
-      "Content-Type": "audio/mpeg",
+      "Content-Type": "audio/wav",
       // Same phrase, same audio: worth keeping for a day on the device.
       "Cache-Control": "private, max-age=86400",
     },

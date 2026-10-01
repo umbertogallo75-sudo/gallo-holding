@@ -60,7 +60,20 @@ export function ttsRequest(opts: { model: string; voice: string; text: string; r
     // On the new model the slowness is carried by the delivery note, so the
     // speed dial only nudges: asking for both at once sounds dragged.
     speed: legacy ? (opts.rate ?? 0.95) : slow ? 0.9 : 1,
-    response_format: "mp3",
+    // Senza perdita, e per di più più veloce.
+    //
+    // Era mp3: compressione con perdita, e quello che una compressione con
+    // perdita butta via per primo sono le alte frequenze — cioè le consonanti.
+    // Su un'app dove questo audio è il modello di pronuncia che qualcuno
+    // ripete ad alta voce, la differenza fra "think" e "sink", o una esse
+    // finale che sparisce, è esattamente il materiale della lezione.
+    //
+    // Non è un baratto fra qualità e velocità: OpenAI raccomanda wav proprio
+    // per le risposte più rapide, perché non c'è niente da codificare né da
+    // decodificare. Si paga in banda — una frase pesa qualche centinaio di
+    // kilobyte invece di qualche decina — ed è il motivo per cui le frasi
+    // restano corte e la risposta si tiene in cache per un giorno.
+    response_format: "wav",
     ...(legacy ? {} : { instructions: delivery(slow, opts.lang ?? "en-US") }),
   };
 }

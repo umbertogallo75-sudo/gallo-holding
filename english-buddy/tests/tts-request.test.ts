@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SAM_VOICE, delivery, isLegacyTts, ttsRequest } from "@/lib/tts-request";
 
@@ -39,5 +40,19 @@ describe("ttsRequest", () => {
 
   it("drops the Italian gloss, which is for the eye and not the ear", () => {
     expect(ttsRequest({ ...base, model: "gpt-4o-mini-tts" }).input).not.toContain("possiamo");
+  });
+
+  it("consegna audio senza perdita, anche al modello vecchio", () => {
+    // Quello che una compressione con perdita butta via per primo sono le alte
+    // frequenze, cioè le consonanti: "think" contro "sink", le esse finali.
+    // Su un'app dove questo audio è il modello che qualcuno ripete ad alta
+    // voce, quella è la lezione, non un dettaglio di fedeltà.
+    for (const model of ["gpt-4o-mini-tts", "tts-1"]) {
+      expect(ttsRequest({ ...base, model }).response_format, model).toBe("wav");
+    }
+    // E la rotta deve dichiarare lo stesso tipo che chiede, altrimenti il
+    // browser riceve wav etichettato come mp3.
+    const route = readFileSync("src/app/api/tts/route.ts", "utf8");
+    expect(route).toContain('"Content-Type": "audio/wav"');
   });
 });
