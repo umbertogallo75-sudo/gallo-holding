@@ -13,9 +13,9 @@
 export const MODELS = {
   text: {
     env: "OPENAI_MODEL",
-    best: "gpt-5.6-sol",
+    best: "gpt-6-sol",
     label: "Testo — Sam scritto, correzioni, riepiloghi",
-    why: "Il modello di punta della famiglia attuale, a ragionamento basso per restare veloce.",
+    why: "Sbaglia circa la metà di gpt-5.6-sol e arriva all'affidabilità del modello di punta, senza esserlo: Astra è costruito per ricerca e codice, lavori che qui non facciamo, e paghiamo in latenza. A ragionamento basso, per restare veloci.",
   },
   voice: {
     env: "VOICE_MODEL",
@@ -28,6 +28,12 @@ export const MODELS = {
     best: "gpt-live-1",
     label: "Voce full-duplex — modalità avanzata, a scelta dell'utente",
     why: "Ascolta mentre parla: scioglie il compromesso fra interrompere e rispondere tardi. Nuovo, quindi offerto e non imposto.",
+  },
+  voiceBrain: {
+    env: "VOICE_BRAIN_MODEL",
+    best: "gpt-6-sol",
+    label: "Cervello della voce avanzata — pensa prima di ogni frase di Sam",
+    why: "La modalità avanzata non risponde da sé: delega ogni battuta a questo modello, che deve pensare prima che Sam apra bocca. Era la stessa casella del testo scritto, e le due cose non hanno lo stesso bisogno — la chat può permettersi di pensare, una conversazione a voce no. Separata per poter tarare la voce senza toccare la chat.",
   },
   transcribe: {
     env: "VOICE_TRANSCRIBE_MODEL",
@@ -55,6 +61,7 @@ const OVERRIDE: Record<ModelSlot, () => string | undefined> = {
   text: () => process.env.OPENAI_MODEL,
   voice: () => process.env.VOICE_MODEL,
   voiceLive: () => process.env.VOICE_LIVE_MODEL,
+  voiceBrain: () => process.env.VOICE_BRAIN_MODEL,
   transcribe: () => process.env.VOICE_TRANSCRIBE_MODEL,
   speech: () => process.env.OPENAI_TTS_MODEL,
 };

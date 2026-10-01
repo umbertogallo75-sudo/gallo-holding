@@ -48,11 +48,15 @@ describe("modelStatus", () => {
   it("covers every slot the app can call", () => {
     // voiceLive is the full-duplex engine, offered alongside the turn-based
     // one rather than replacing it — so both voice slots are live at once.
+    // voiceBrain is what the full-duplex engine delegates its thinking to:
+    // its own slot, because a spoken turn and a written one do not have the
+    // same patience for a model that stops to think.
     expect(modelStatus().map((m) => m.slot).sort()).toEqual([
       "speech",
       "text",
       "transcribe",
       "voice",
+      "voiceBrain",
       "voiceLive",
     ]);
   });

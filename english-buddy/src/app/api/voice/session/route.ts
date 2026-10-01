@@ -252,7 +252,7 @@ async function liveSession(opts: { apiKey: string; instructions: string; sdp?: s
    * The thinking effort, said out loud instead of inherited.
    *
    * This engine does not answer by itself: every spoken turn is delegated to
-   * the text model, which then has to think before Sam can open his mouth.
+   * the brain model, which then has to think before Sam can open his mouth.
    * The written chat pins that model to `low` on purpose — "a ragionamento
    * basso per restare veloce" — and this call pinned nothing, so it ran at the
    * model's own default, which is MEDIUM. A medium reasoning pass in front of
@@ -271,7 +271,7 @@ async function liveSession(opts: { apiKey: string; instructions: string; sdp?: s
       delegation: {
         type: "responses",
         responses: {
-          model: modelFor("text"),
+          model: modelFor("voiceBrain"),
           instructions: opts.instructions,
           ...(withEffort ? { reasoning: { effort: "low" } } : {}),
         },

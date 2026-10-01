@@ -22,8 +22,11 @@ import {
 } from "@/lib/voice/live-phase";
 
 describe("the choice offered to the learner", () => {
-  it("keeps the engine with the mileage as the default", () => {
-    expect(DEFAULT_ENGINE).toBe("realtime");
+  it("gives everybody the engine that does not talk over them", () => {
+    // It used to be the turn-based one, honestly offered while full-duplex was
+    // new. Interruptions are not an annoyance on a language coach: being cut
+    // off while hunting for a word in a foreign language is when people stop.
+    expect(DEFAULT_ENGINE).toBe("live");
     expect(isVoiceEngine("realtime")).toBe(true);
     expect(isVoiceEngine("live")).toBe(true);
     expect(isVoiceEngine("gpt-live-1")).toBe(false);
@@ -45,11 +48,15 @@ describe("the choice offered to the learner", () => {
     }
   });
 
-  it("tells the learner the new one is new", () => {
+  it("dice anche cosa si perde scegliendo quello predefinito", () => {
     // The row it would be tempting to leave out. A comparison that only lists
-    // the advantages is an advertisement, and this one asks them to choose.
-    const honesty = COMPARISON.find((row) => /nuova|spigol/i.test(row.live));
-    expect(honesty, "manca la riga che dice che il motore nuovo è nuovo").toBeDefined();
+    // the advantages of the default is an advertisement, and this one asks
+    // them to choose. Which row that is has moved: while the full-duplex
+    // engine was the newcomer, honesty meant saying it was new. Now that it
+    // is what everybody gets, honesty means saying the other one has the
+    // mileage.
+    const honesty = COMPARISON.find((row) => /mesi|collaudat|è nata/i.test(row.realtime));
+    expect(honesty, "manca la riga che riconosce il vantaggio del motore non predefinito").toBeDefined();
   });
 });
 
@@ -194,6 +201,15 @@ describe("Sam's voice", () => {
     expect(route).toContain("response.status === 400");
     expect(route).toContain("open(true, false)");
     expect(route).toContain("open(false, false)");
+  });
+
+  it("dà alla voce un cervello suo, separato da quello della chat", () => {
+    // Erano la stessa casella, e le due cose non hanno lo stesso bisogno: la
+    // chat scritta può permettersi di pensare, una conversazione a voce no.
+    // Separate, la latenza della voce si tara senza toccare la chat.
+    expect(route).toContain('modelFor("voiceBrain")');
+    const models = readFileSync("src/lib/ai/models.ts", "utf8");
+    expect(models).toContain("VOICE_BRAIN_MODEL");
   });
 
   it("non lascia che la voce dal vivo pensi al ritmo della chat scritta", () => {
