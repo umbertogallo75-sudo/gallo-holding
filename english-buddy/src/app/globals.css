@@ -173,6 +173,26 @@ p { line-height:1.55; font-size:16px; }
 
 @media (max-width: 390px) { h1 { font-size:37px; } .modeGrid { grid-template-columns:1fr; } .mode.wide { grid-column:auto; } }
 
+/* Una colonna stretta: lo split view, non un telefono piccolo.
+   Nessun iPhone è mai stato così stretto, quindi finora non serviva. Un
+   pieghevole aperto a metà schermo, o affiancato a un'altra app, consegna
+   trecento punti scarsi di larghezza - e la riga di scrittura, che è tre
+   controlli in fila, è la prima cosa che si strozza: la casella di testo si
+   riduce a una fessura mentre microfono e invio restano larghi come prima.
+   Qui la casella si prende una riga tutta sua e gli altri due si dividono
+   quella sotto, che è la stessa riga di comandi, solo piegata. */
+@media (max-width: 360px) {
+  .shell { padding-left:12px; padding-right:12px; }
+  .composer { gap:6px; padding:6px; }
+  .composer textarea { flex:1 0 100%; min-height:48px; }
+  .composerMic { flex:0 0 auto; width:52px; }
+  .composer .primary { flex:1; min-width:0; padding:0 10px; }
+  .bottomNav { padding:7px 5px; }
+  .bottomNav a, .bottomNav button { font-size:10px; padding:7px 1px; letter-spacing:-.02em; }
+  .callBar { padding-left:10px; padding-right:10px; }
+  .callBar strong { font-size:14px; }
+}
+
 .pillGroup { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; }
 .pill { border:1.5px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink); padding:11px 16px; font-size:14.5px; font-weight:600; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.06); transition:transform .1s ease; }
 .pill:active { transform:scale(.95); }

@@ -371,6 +371,27 @@ export function VoiceClient({
     if (log && followRef.current) log.scrollTop = log.scrollHeight;
   }, [lines]);
 
+  /**
+   * And again when the window changes size, which the effect above never sees.
+   *
+   * The transcript box is a fixed height taken from the screen, so a folding
+   * phone opened mid-call makes it taller and leaves the newest line somewhere
+   * above the fold — during a conversation, which is the worst moment to have
+   * to find it with a finger. Same for split view, rotation and the keyboard.
+   */
+  useEffect(() => {
+    const settle = () => {
+      const log = logRef.current;
+      if (log && followRef.current) log.scrollTop = log.scrollHeight;
+    };
+    window.addEventListener("resize", settle);
+    window.visualViewport?.addEventListener("resize", settle);
+    return () => {
+      window.removeEventListener("resize", settle);
+      window.visualViewport?.removeEventListener("resize", settle);
+    };
+  }, []);
+
   /** Reading something further up is a decision: stop dragging them back. */
   function onLogScroll(event: React.UIEvent<HTMLDivElement>) {
     const log = event.currentTarget;

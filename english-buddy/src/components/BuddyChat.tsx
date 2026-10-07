@@ -397,6 +397,33 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /**
+   * Stay at the bottom when the window changes size under you.
+   *
+   * The effect above re-pins the view when a message arrives. Nothing re-pins
+   * it when the viewport itself changes, and on a folding phone that happens
+   * mid-conversation: open the device and the page is suddenly taller, the
+   * content reflows, and the last thing Sam said is no longer where the screen
+   * is looking. The same applies to dragging the divider in split view, to
+   * rotating, and to the keyboard appearing — which is why this is not really
+   * a fix for one new phone.
+   *
+   * visualViewport is the one that reports the keyboard; window.resize is the
+   * one that reports the fold. Both, where they exist.
+   */
+  useEffect(() => {
+    const settle = () => {
+      if (!follow.current) return;
+      endRef.current?.scrollIntoView({ block: "end" });
+    };
+    window.addEventListener("resize", settle);
+    window.visualViewport?.addEventListener("resize", settle);
+    return () => {
+      window.removeEventListener("resize", settle);
+      window.visualViewport?.removeEventListener("resize", settle);
+    };
+  }, []);
+
   useEffect(() => {
     const bar = composerRef.current;
     if (!bar) return;
