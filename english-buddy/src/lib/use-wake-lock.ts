@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { makeWakeVideo, wakeStrategy } from "./wake-video";
+import { inStoreApp } from "./shell";
 
 /**
  * Keeps the screen awake while something is genuinely running.
@@ -53,20 +54,31 @@ export function useWakeLock(active: boolean, maxMs?: number): void {
       if (cancelled || heldRef.current || document.visibilityState !== "visible") return;
       try {
         const sentinel = await navigator.wakeLock?.request("screen");
-        if (!sentinel) return;
+        // Present but unhelpful: the API answered without giving a lock. That
+        // is a refusal like any other, and it used to end here in silence.
+        if (!sentinel) {
+          playVideo();
+          return;
+        }
         if (cancelled) {
           void sentinel.release().catch(() => undefined);
           return;
         }
         heldRef.current = sentinel;
         // The system can take it back on its own — low battery, or the user
-        // switching away. Forget it so the next chance re-takes it.
+        // switching away. Forget it so the next chance re-takes it, and put
+        // the video up meanwhile: a revoked lock with nothing behind it is
+        // how the screen goes dark halfway through a conversation.
         sentinel.addEventListener("release", () => {
           if (heldRef.current === sentinel) heldRef.current = null;
+          if (!cancelled) playVideo();
         });
       } catch {
-        // Unsupported, refused, or the tab lost focus mid-request. The
-        // conversation still works; the screen just behaves as it always did.
+        // Unsupported, refused, or the tab lost focus mid-request. This was
+        // the silent dead end: the code decided the API existed, so the video
+        // was never started, and a failed request left the screen free to
+        // sleep. Whatever the reason, there is still one thing left to try.
+        playVideo();
       }
     }
 
@@ -107,7 +119,10 @@ export function useWakeLock(active: boolean, maxMs?: number): void {
       if (videoRef.current) playVideo();
     }
 
-    if (wakeStrategy(Boolean(navigator.wakeLock)) === "video") playVideo();
+    // Inside the app both run together, because whether a granted lock really
+    // keeps a WKWebView lit is not something this page can find out.
+    const strategy = wakeStrategy(Boolean(navigator.wakeLock), inStoreApp());
+    if (strategy !== "api") playVideo();
     void acquire();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {

@@ -244,8 +244,14 @@ export function VoiceClient({
   useEffect(() => () => { cleanup(statusRef.current === "live"); }, []);
 
   // A spoken conversation is the one screen nobody touches, so the phone locks
-  // and the call dies mid-sentence. Held only while the call is live.
-  useWakeLock(status === "live");
+  // and the call dies mid-sentence.
+  //
+  // Connecting counts too. It was "live" only, which left the handshake —
+  // microphone permission, the token, the offer and answer — running on a
+  // screen free to go dark, and on a slow network that is long enough to
+  // reach the usual fifteen seconds. The lock has to be in place before the
+  // conversation starts, not once it has.
+  useWakeLock(status === "live" || status === "connecting");
 
   /**
    * What happens when a phone call arrives in the middle of a conversation.
