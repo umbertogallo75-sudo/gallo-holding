@@ -45,6 +45,24 @@ describe("modelStatus", () => {
     expect(modelFor("transcribe")).toBe("gpt-live-transcribe");
   });
 
+  it("porta con sé la scadenza della voce dei pulsanti «ascolta»", () => {
+    // Il 1° ottobre 2026 OpenAI ha deprecato tutti i modelli di
+    // /v1/audio/speech. Il sostituto indicato, gpt-realtime-2.1-mini, su
+    // quell'endpoint non esiste: è un modello dell'API Realtime, quindi non è
+    // un cambio di nome ma un'altra strada da costruire.
+    //
+    // Questo controllo NON è un conto alla rovescia: un test che inizia a
+    // fallire a una data è una bomba a orologeria, e in questo progetto ne
+    // abbiamo già disinnescata una. Verifica solo che la scadenza resti
+    // scritta accanto al modello, dove la legge chi apre la pagina admin -
+    // perché l'unico modo in cui una cosa del genere fa danno è sparire dalla
+    // vista finché non smette di funzionare da sola.
+    const speech = MODELS.speech;
+    expect(speech.best).toBe("gpt-4o-mini-tts");
+    expect(speech.why).toContain("6 GENNAIO 2027");
+    expect(speech.why).toContain("gpt-realtime-2.1-mini");
+  });
+
   it("covers every slot the app can call", () => {
     // voiceLive is the full-duplex engine, offered alongside the turn-based
     // one rather than replacing it — so both voice slots are live at once.
