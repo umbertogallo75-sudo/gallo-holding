@@ -65,3 +65,28 @@ obbligatori per qualsiasi app compilata con l'SDK iOS 27.1 o successivo.**
 Non è un blocco per le build di adesso, ma dal momento in cui passiamo a quel
 SDK la scheda dell'App Store andrà rifatta con gli screenshot dei due schermi
 prima di quella data.
+
+## Tre `await` che il compilatore adesso chiama inutili
+
+Dalla build 38, compilata con Xcode 27.1, il target produce tre avvisi uguali:
+
+    No 'async' operations occur within 'await' expression
+    ContentView.swift:148, 152, 169
+
+Sono le tre chiamate a `callback(_:)` dentro `sendPurchased`, `sendFailed` e
+`sendProducts`. `callback` è `@MainActor` e il `Coordinator` non lo è, quindi
+quell'`await` era il salto sul main actor. Che adesso risulti superfluo vuol
+dire che il modulo è isolato sul main actor per intero — l'isolamento
+predefinito introdotto dalle versioni recenti di Swift. Non l'abbiamo deciso
+noi: è arrivato con l'SDK.
+
+Non bloccano niente e le build passano. Non sono stati tolti subito per un
+motivo pratico: **questo codice Swift non è compilabile dall'ambiente dove
+viene scritto**, quindi ogni modifica qui si verifica solo con un'altra build
+in cloud. Tre avvisi cosmetici non valgono una build da soli.
+
+Vanno tolti insieme alla prossima modifica iOS che serva davvero, togliendo
+`await` dalle tre righe e ricompilando. Se dopo averli tolti il compilatore si
+lamenta del contrario, l'isolamento predefinito non è quello che si pensa e la
+cosa da cambiare è quello, non le tre righe.
+
