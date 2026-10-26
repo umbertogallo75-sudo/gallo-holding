@@ -14,6 +14,7 @@ import { AdminActions } from "./AdminActions";
 import { AdminUserLookup } from "./AdminUserLookup";
 import { AdminTools } from "./AdminTools";
 import { AdminCampaign } from "./AdminCampaign";
+import { readVoiceHealth } from "@/lib/voice/health";
 import {
   MarketingDashboard,
   adminTab,
@@ -342,6 +343,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const models = modelStatus();
   const mail = await emailStats();
+  const voice = await readVoiceHealth();
   const overridden = models.filter((model) => model.overridden);
 
   return (
@@ -408,6 +410,25 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </div>
             ) : <p className="muted">Non è ancora partita nessuna email.</p>}
             <p className="itHint">Disiscritti: <strong>{mail.unsubscribed}</strong>.</p>
+          </section>
+
+          <section className="card">
+            <h2>{voice.ok ? "🎙️" : "🔇"} La voce — ultime 24 ore</h2>
+            <div className="skillRow">
+              <div>Chiamate aperte<br /><span className="muted">Credenziali rilasciate dal server</span></div>
+              <div className="skillScore">{voice.opened}</div>
+            </div>
+            <div className="skillRow">
+              <div>Diventate conversazioni<br /><span className="muted">Almeno una battuta trascritta</span></div>
+              <div className="skillScore">{voice.spoke}</div>
+            </div>
+            <p className="itHint">
+              {voice.reason === "quiet"
+                ? "Troppe poche chiamate per dire qualcosa: sotto le cinque il silenzio non significa niente."
+                : voice.ok
+                  ? "Chi apre il microfono parla: la conversazione a voce funziona."
+                  : "⚠️ Quasi nessuna chiamata diventa una conversazione. È il segno che la voce si collega e resta muta — il guasto del 26 ottobre. Da guardare subito."}
+            </p>
           </section>
 
           <section className="card">

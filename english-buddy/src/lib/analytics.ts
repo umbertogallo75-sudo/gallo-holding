@@ -33,6 +33,10 @@ export type FunnelEvent =
   // in mid-lesson and Sam correcting a sentence nobody said to him.
   | "voice_paused"
   | "voice_resumed"
+  // Written by the server, not the page: one per credential minted for a
+  // call. It is the denominator of the only question nobody outside can ask —
+  // whether the calls that opened turned into conversations.
+  | "voice_call_opened"
   /** A phrase the learner chose to keep, rather than one Sam chose for them. */
   | "phrase_saved"
   /** The path, which people could not see before there was a page for it. */

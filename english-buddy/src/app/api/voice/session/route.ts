@@ -11,6 +11,7 @@ import { ensureTrial } from "@/lib/marketing/trial";
 import { DEFAULT_ENGINE, isVoiceEngine } from "@/lib/voice/engines";
 import { resumeVoiceSession, type VoiceLine } from "@/lib/learning/voice-sessions";
 import { continuityBlock, readContinuity } from "@/lib/learning/continuity";
+import { trackEvent } from "@/lib/analytics";
 
 export const maxDuration = 30;
 
@@ -119,7 +120,11 @@ They have just tapped the microphone to answer it. Open the call by asking it ag
   if (resumed) instructions += pickUpBlock(resumed.recap);
   const session = resumed ? { sessionId: resumed.id, recap: resumed.recap } : {};
 
-  if (engine === "live") return liveSession({ apiKey, instructions, sdp: body?.sdp, session });
+  if (engine === "live") {
+    const live = await liveSession({ apiKey, instructions, sdp: body?.sdp, session });
+    if (live.ok) await countCall(userId, "live");
+    return live;
+  }
 
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",
@@ -188,7 +193,23 @@ They have just tapped the microphone to answer it. Open the call by asking it ag
   const json = (await response.json()) as { value?: string };
   if (!json.value) return NextResponse.json({ error: "Voice is temporarily unavailable" }, { status: 502 });
 
+  await countCall(userId, "realtime");
+
   return NextResponse.json({ engine: "realtime", clientSecret: json.value, model: modelFor("voice"), ...session });
+}
+
+/**
+ * One call authorised, written down.
+ *
+ * This is the denominator of the only question that catches a silent voice:
+ * how many calls opened, against how many became conversations. It is counted
+ * on the server and not in the page, because a page that cannot hold a
+ * conversation often cannot report that either — and it is counted on each
+ * engine's own success, so a credential that was never handed out is not a
+ * call anybody had. Never worth failing a call for.
+ */
+async function countCall(userId: string, engine: string): Promise<void> {
+  await trackEvent("voice_call_opened", { userId, meta: { engine } }).catch(() => null);
 }
 
 /**

@@ -72,6 +72,9 @@ export function proxy(request: NextRequest) {
     path.startsWith("/api/auth") ||
     path.startsWith("/api/cron") ||
     path === "/api/track" ||
+    // Il verdetto sulla voce, aperto apposta: lo legge il controllo del
+    // mattino, che non ha credenziali. Per questo non porta numeri.
+    path === "/api/health/voice" ||
     // Answered before signing in, by definition: the whole point is that the
     // question comes first.
     path === "/api/consent" ||
