@@ -44,3 +44,39 @@ describe("the phone's audio session belongs to WebKit", () => {
     expect(voice).toContain("visibilitychange");
   });
 });
+
+/**
+ * Il saluto che non arrivava mai, e la riga che lo spegneva.
+ *
+ * Tutto quello che decide come si comporta una chiamata — il modello, le
+ * istruzioni, le lingue della trascrizione e soprattutto `turn_detection`,
+ * cioè quello che fa rispondere Sam quando l'altro smette di parlare — sta
+ * nella sessione con cui il server conia il client secret. La stretta di
+ * mano documentata è l'URL nudo, la chiave effimera e l'SDP: la sessione
+ * arriva con la chiave.
+ *
+ * Rinominare il modello nella query non aggiunge niente che non ci sia già,
+ * e il 26 ottobre la chiamata si apriva, portava l'audio e non rispondeva
+ * mai: una sessione che non era quella configurata.
+ */
+describe("la stretta di mano della voce non riconfigura niente", () => {
+  it("manda l'SDP all'URL nudo, senza il modello in coda", () => {
+    expect(voice).toContain('fetch("https://api.openai.com/v1/realtime/calls"');
+    expect(voice, "il modello torna nella query e la sessione si perde").not.toMatch(
+      /realtime\/calls\?/,
+    );
+  });
+
+  it("la sessione resta quella che conia il client secret", () => {
+    // Se queste sparissero dalla richiesta del segreto, la chiamata
+    // tornerebbe muta per lo stesso motivo, da un'altra parte.
+    expect(session).toContain("client_secrets");
+    expect(session).toContain("turn_detection");
+  });
+
+  it("un rifiuto dice almeno il codice", () => {
+    // "Voice connection failed" da solo e quello che si legge quando i log
+    // non si possono aprire.
+    expect(voice).toContain("Voice connection failed (${answerResponse.status})");
+  });
+});

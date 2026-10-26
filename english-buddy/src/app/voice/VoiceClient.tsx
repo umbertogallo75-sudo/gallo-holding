@@ -876,12 +876,29 @@ export function VoiceClient({
           }
         }, 250);
       } else {
-        const answerResponse = await fetch(`https://api.openai.com/v1/realtime/calls?model=${tokenData.model}`, {
+        // The model is NOT a query parameter here, and sending it is how the
+        // conversation went deaf.
+        //
+        // Everything about this call — the model, the instructions, the
+        // transcription languages, and above all `turn_detection`, which is
+        // what makes the far end answer when somebody stops speaking — is set
+        // when the server mints the client secret. The documented handshake
+        // is this URL with the ephemeral key and the raw SDP, and nothing
+        // else: the session comes with the key. Naming the model again in the
+        // query is at best ignored, and the symptom says it stopped being
+        // ignored — a call that connects, carries audio, and never replies,
+        // because the session it was created with was not the one we
+        // configured.
+        const answerResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
           method: "POST",
           headers: { Authorization: `Bearer ${tokenData.clientSecret}`, "Content-Type": "application/sdp" },
           body: offer.sdp,
         });
-        if (!answerResponse.ok) throw new Error("Voice connection failed");
+        // The status is worth carrying: "Voice connection failed" on its own
+        // is what a blind morning looks like from the other side.
+        if (!answerResponse.ok) {
+          throw new Error(`Voice connection failed (${answerResponse.status})`);
+        }
         await pc.setRemoteDescription({ type: "answer", sdp: await answerResponse.text() });
       }
 
