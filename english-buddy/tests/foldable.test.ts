@@ -53,6 +53,11 @@ describe("una colonna stretta", () => {
 
   it("tiene il margine stretto dove lo spazio è poco", () => {
     const narrow = css.slice(css.indexOf("@media (max-width: 360px)"));
-    expect(narrow).toContain(".shell { padding-left:12px");
+    // Dodici invece di diciotto, ma dentro max(): la regola arriva dopo quella
+    // del guscio, e scritta in pixel secchi cancellerebbe l'inset della barra
+    // laterale proprio a metà schermo di un pieghevole, che è il caso per cui
+    // questa regola esiste.
+    expect(narrow).toContain(".shell { padding-left:max(12px, env(safe-area-inset-left, 0px))");
+    expect(narrow).toContain("padding-right:max(12px, env(safe-area-inset-right, 0px))");
   });
 });
