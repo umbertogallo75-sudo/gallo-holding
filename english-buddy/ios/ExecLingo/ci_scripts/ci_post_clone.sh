@@ -12,7 +12,7 @@
 # real reason, not stopped here by a missing variable. So every path ends in
 # exit 0, and what happened is said out loud in the log instead.
 #
-# The marketing version — the 1.3 people see — is deliberately left alone:
+# The marketing version — the number people see — is deliberately left alone:
 # that one is a decision, not bookkeeping.
 
 say() { echo "[build-number] $*"; }
