@@ -50,17 +50,43 @@ describe("i comandi stanno dentro l'area sicura", () => {
   });
 });
 
+/** Le barre fisse in fondo allo schermo. */
+const BARS = [".bottomNav", ".composer"];
+
 describe("nessuno assume che i due lati siano uguali", () => {
   it("le barre fisse si centrano nell'area sicura, non nello schermo", () => {
     // left:50% con translateX(-50%) centra sullo schermo: con la barra su un
     // fianco solo, la navigazione e la riga di scrittura ci finiscono sotto.
-    for (const name of [".bottomNav", ".composer"]) {
+    for (const name of BARS) {
       const rule = css.slice(css.indexOf(name + " {"));
       const body = rule.slice(0, rule.indexOf("}"));
       expect(body, `${name} si centra ancora sullo schermo`).not.toContain("translateX(-50%)");
-      expect(body, `${name} non prende l'inset sinistro`).toContain("left:env(safe-area-inset-left, 0px)");
-      expect(body, `${name} non prende l'inset destro`).toContain("right:env(safe-area-inset-right, 0px)");
+      expect(body, `${name} non prende l'inset sinistro`).toMatch(
+        /left:calc\(\s*\d+px \+ env\(safe-area-inset-left, 0px\)\s*\)/,
+      );
+      expect(body, `${name} non prende l'inset destro`).toMatch(
+        /right:calc\(\s*\d+px \+ env\(safe-area-inset-right, 0px\)\s*\)/,
+      );
       expect(body).toContain("margin-inline:auto");
+    }
+  });
+
+  it("nessuna barra fissa prende la larghezza da una percentuale", () => {
+    // Il difetto che lo screenshot dell'iPhone Duo chiuso ha mostrato: dare
+    // left e right corretti non basta se poi la larghezza arriva da una
+    // percentuale. In una regola position:fixed quel 100% si calcola
+    // sull'intero viewport, non sullo spazio fra i due inset, quindi la barra
+    // resta più larga dello spazio libero e sborda sotto la colonna di stato.
+    // La larghezza deve restare quella che left e right lasciano: width:auto.
+    for (const name of BARS) {
+      const rules = css.split(new RegExp(`\\${name}\\s*\\{`)).slice(1);
+      for (const rule of rules) {
+        const flat = rule.slice(0, rule.indexOf("}")).replace(/\s+/g, " ");
+        const m = /(?:^|[;{ ])width\s*:\s*([^;]+)/.exec(flat);
+        if (m && m[1].includes("%")) {
+          throw new Error(`${name} prende la larghezza da "${m[1].trim()}", non dagli inset`);
+        }
+      }
     }
   });
 

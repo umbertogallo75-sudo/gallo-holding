@@ -128,8 +128,8 @@ p { line-height:1.55; font-size:16px; }
    margin-inline:auto il centro è quello dello spazio davvero libero, da
    qualunque parte stia la barra. */
 .bottomNav { position:fixed; bottom:calc(12px + env(safe-area-inset-bottom, 0px));
-  left:env(safe-area-inset-left, 0px); right:env(safe-area-inset-right, 0px); margin-inline:auto;
-  width:min(520px, calc(100% - 24px)); background:rgba(20,22,18,.93); backdrop-filter:blur(20px); border-radius:20px; padding:9px; display:grid; grid-template-columns:repeat(5,1fr); z-index:20; }
+  left:calc(12px + env(safe-area-inset-left, 0px)); right:calc(12px + env(safe-area-inset-right, 0px));
+  width:auto; max-width:520px; margin-inline:auto; background:rgba(20,22,18,.93); backdrop-filter:blur(20px); border-radius:20px; padding:9px; display:grid; grid-template-columns:repeat(5,1fr); z-index:20; }
 /* Icon above the label, not beside it: with five tabs on a 390px phone the
    inline layout cut "Allenamenti" and "Progressi" down to an ellipsis. */
 .bottomNav a, .bottomNav button { color:#d9dccf; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:8px 2px; font-size:11px; letter-spacing:-.01em; font-weight:600; border-radius:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; touch-action:manipulation; -webkit-tap-highlight-color:transparent; transition:transform .08s ease, background .15s ease; background:none; border:0; font-family:inherit; cursor:pointer; }
@@ -158,13 +158,21 @@ p { line-height:1.55; font-size:16px; }
    scrolled to — the conversation appeared to end a paragraph early. The bar
    now measures itself and says how much room it needs. */
 .chat { display:flex; flex-direction:column; gap:10px; margin:20px 0 calc(92px + var(--composerH, 150px) + env(safe-area-inset-bottom, 0px)); }
+/* Dove si ferma lo scorrimento che segue la conversazione.
+   scrollIntoView allinea l'elemento al fondo della finestra, e la finestra non
+   sa niente della riga di scrittura e della navigazione, che le stanno sopra
+   fisse. Senza questo margine l'ultima cosa in fondo - il pulsante «non so
+   cosa dire» - finiva dietro quelle barre, o sotto il bordo dello schermo su
+   un telefono corto come il Duo chiuso. Stessa misura dello spazio che la
+   conversazione si riserva in fondo. */
+.chatEnd { scroll-margin-bottom: calc(92px + var(--composerH, 150px) + env(safe-area-inset-bottom, 0px)); }
 .bubble { padding:15px 17px; max-width:88%; line-height:1.5; font-size:16.5px; white-space:pre-wrap; }
 .bubble.ai { align-self:flex-start; border-bottom-left-radius:6px; }
 .bubble.user { align-self:flex-end; background:var(--accent); color:white; border-color:var(--accent); border-bottom-right-radius:6px; }
 .correction { align-self:flex-start; max-width:92%; font-size:14.5px; color:var(--success); padding:2px 4px 8px; }
 .composer { position:fixed; bottom:calc(78px + env(safe-area-inset-bottom, 0px));
-  left:env(safe-area-inset-left, 0px); right:env(safe-area-inset-right, 0px); margin-inline:auto;
-  width:min(540px, calc(100% - 20px)); display:flex; gap:8px; background:color-mix(in srgb, var(--bg) 94%, transparent); padding:8px; backdrop-filter:blur(14px); }
+  left:calc(10px + env(safe-area-inset-left, 0px)); right:calc(10px + env(safe-area-inset-right, 0px));
+  width:auto; max-width:540px; margin-inline:auto; display:flex; gap:8px; background:color-mix(in srgb, var(--bg) 94%, transparent); padding:8px; backdrop-filter:blur(14px); }
 .composer textarea { flex:1; min-height:54px; max-height:130px; font-size:16px; resize:none; border:1px solid var(--line); border-radius:16px; padding:13px; background:var(--surface); color:var(--ink); outline:none; }
 /* The voice, reachable from inside the conversation rather than from a
    question asked before it starts. Sized like the send button so the row

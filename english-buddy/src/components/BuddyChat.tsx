@@ -656,12 +656,17 @@ export function BuddyChat({ mode, initialQuestion, first = false, doc, reopen }:
           ))}
         </div>
       )}
-      <div ref={endRef} aria-hidden />
       {canAskHelp && suggestions.length === 0 && (
         <button type="button" className="helpBtn" disabled={suggesting} onClick={askForHelp}>
           {suggesting ? "Thinking…" : "I don't know what to say · Non so cosa dire"}
         </button>
       )}
+      {/* L'ancora sta in fondo a tutto, pulsante compreso.
+          Era prima del pulsante, quindi "seguire la conversazione" significava
+          portare al fondo dello schermo l'ultima battuta e spingere il pulsante
+          sotto: invisibile su uno schermo corto, dove lo spazio sotto basta a
+          far scorrere davvero. */}
+      <div ref={endRef} className="chatEnd" aria-hidden />
     </div>
     {calling ? (
       <div className="callLayer" role="dialog" aria-modal="true" aria-label="Conversazione a voce con Sam">
